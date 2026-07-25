@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 820" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" text-rendering="geometricPrecision">
+  <title>Civil Service Commission (CSC) — Enterprise Architecture (ISSP FY 2028–2030, Part III-B)</title>
+  <desc>Sample four-layer enterprise architecture reference diagram for the Civil Service Commission: Strategic Outcomes; Business, Application, Data and Technology architecture; with cross-cutting Security &amp; Privacy and Governance &amp; Interoperability rails.</desc>
+
+  <defs>
+    <style>
+      .ink { fill: #18181B; }
+      .muted { fill: #52525B; }
+      .green { fill: #15803D; }
+      .tag { font-size: 10px; font-weight: 700; fill: #15803D; letter-spacing: 1px; }
+      .hdr { font-size: 9.5px; font-weight: 700; fill: #52525B; letter-spacing: 0.7px; }
+      .layer-name { font-size: 13px; font-weight: 700; fill: #18181B; }
+      .layer-sub { font-size: 9px; fill: #52525B; }
+      .badge-num { font-size: 13px; font-weight: 700; fill: #18181B; }
+      .chip { fill: #FFFFFF; stroke: #E5E3DC; stroke-width: 1; }
+      .chip-line1 { font-size: 11px; font-weight: 600; fill: #18181B; }
+      .chip-line2 { font-size: 9px; fill: #52525B; }
+      .chip-1 { font-size: 11px; fill: #18181B; }
+      .agency { font-size: 9.5px; fill: #18181B; }
+      .rail-title-l { font-size: 13px; font-weight: 700; fill: #15803D; letter-spacing: 1.5px; }
+      .rail-title-r { font-size: 13px; font-weight: 700; fill: #18181B; letter-spacing: 1.2px; }
+    </style>
+  </defs>
+
+  <!-- Canvas -->
+  <rect x="0" y="0" width="1200" height="820" fill="#FAFAF7"/>
+
+  <!-- ============ TITLE BLOCK ============ -->
+  <text x="36" y="62" class="ink" style="font-size:24px;font-weight:700;">Civil Service Commission (CSC)</text>
+  <text x="36" y="84" class="muted" style="font-size:12.5px;">Enterprise Architecture · Information Systems Strategic Plan FY 2028–2030 · Part III-B</text>
+  <!-- CSC badge -->
+  <rect x="1052" y="40" width="112" height="42" rx="7" fill="#FFFFFF" stroke="#bbf7d0" stroke-width="1"/>
+  <text x="1108" y="60" text-anchor="middle" class="green" style="font-size:15px;font-weight:700;">CSC</text>
+  <text x="1108" y="74" text-anchor="middle" class="muted" style="font-size:8.5px;">National Government Agency</text>
+  <line x1="36" y1="96" x2="1164" y2="96" stroke="#E5E3DC" stroke-width="1"/>
+
+  <!-- ============ STRATEGIC OUTCOMES BAND ============ -->
+  <rect x="32" y="104" width="1136" height="74" rx="8" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1"/>
+  <text x="52" y="124" class="tag">STRATEGIC OUTCOMES</text>
+  <text x="52" y="144" class="ink" style="font-size:12px;font-weight:600;">Vision 2030 — a leader in empowering people and organizations in HR &amp; organizational development</text>
+  <text x="52" y="162" class="muted" style="font-size:10.5px;font-style:italic;">Mission: “Gawing Lingkod-Bayani ang Bawat Kawani” — make every public servant a hero of service.</text>
+  <!-- outcome chips -->
+  <g>
+    <rect x="624" y="124" width="128" height="30" rx="6" class="chip" stroke="#bbf7d0"/>
+    <text x="688" y="143" text-anchor="middle" class="chip-1">Professionalized HR</text>
+    <rect x="760" y="124" width="128" height="30" rx="6" class="chip" stroke="#bbf7d0"/>
+    <text x="824" y="143" text-anchor="middle" class="chip-1">Citizen Trust</text>
+    <rect x="896" y="124" width="128" height="30" rx="6" class="chip" stroke="#bbf7d0"/>
+    <text x="960" y="143" text-anchor="middle" class="chip-1">Org Development</text>
+    <rect x="1032" y="124" width="128" height="30" rx="6" class="chip" stroke="#bbf7d0"/>
+    <text x="1096" y="143" text-anchor="middle" class="chip-1">Digital Services</text>
+  </g>
+
+  <!-- connector SO -> layers -->
+  <path d="M594,180 L606,180 L600,190 Z" fill="#15803D"/>
+
+  <!-- ============ LEFT RAIL: SECURITY & PRIVACY ============ -->
+  <rect x="32" y="192" width="96" height="582" rx="8" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1"/>
+  <!-- shield icon -->
+  <path d="M80,208 l12,5 v10 q0,9 -12,14 q-12,-5 -12,-14 v-10 z" fill="none" stroke="#15803D" stroke-width="1.4"/>
+  <path d="M74,221 l4,4 l8,-9" fill="none" stroke="#15803D" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <text transform="rotate(-90 80 490)" x="80" y="490" text-anchor="middle" dominant-baseline="middle" class="rail-title-l">SECURITY &amp; PRIVACY</text>
+
+  <!-- ============ RIGHT RAIL: GOVERNANCE & INTEROPERABILITY ============ -->
+  <rect x="1072" y="192" width="96" height="582" rx="8" fill="#EAE8E1" stroke="#E5E3DC" stroke-width="1"/>
+  <!-- interconnect icon -->
+  <g stroke="#18181B" stroke-width="1.2" fill="#18181B">
+    <line x1="1112" y1="210" x2="1128" y2="210"/>
+    <line x1="1112" y1="210" x2="1112" y2="226"/>
+    <line x1="1128" y1="210" x2="1128" y2="226"/>
+    <line x1="1112" y1="226" x2="1128" y2="226"/>
+    <line x1="1112" y1="226" x2="1128" y2="210"/>
+    <circle cx="1112" cy="210" r="2.4" fill="#FFFFFF"/>
+    <circle cx="1128" cy="210" r="2.4" fill="#FFFFFF"/>
+    <circle cx="1112" cy="226" r="2.4" fill="#FFFFFF"/>
+    <circle cx="1128" cy="226" r="2.4" fill="#FFFFFF"/>
+  </g>
+  <text transform="rotate(-90 1120 490)" x="1120" y="490" text-anchor="middle" dominant-baseline="middle" class="rail-title-r">GOVERNANCE &amp; INTEROPERABILITY</text>
+
+  <!-- ============ LAYER: BUSINESS ============ -->
+  <rect x="138" y="192" width="924" height="106" rx="8" fill="#F7F6F2" stroke="#E5E3DC" stroke-width="1"/>
+  <rect x="138" y="192" width="4" height="106" rx="2" fill="#15803D"/>
+  <circle cx="178" cy="245" r="13" fill="#FFFFFF" stroke="#E5E3DC" stroke-width="1"/>
+  <text x="178" y="245" text-anchor="middle" dominant-baseline="middle" class="badge-num">1</text>
+  <text x="200" y="241" class="layer-name">Business</text>
+  <text x="200" y="254" class="layer-sub">services &amp; mandate</text>
+  <g>
+    <rect x="254" y="214" width="260" height="30" rx="6" class="chip"/>
+    <text x="384" y="229" text-anchor="middle" dominant-baseline="middle" class="chip-1">HR Management &amp; Development</text>
+    <rect x="528" y="214" width="260" height="30" rx="6" class="chip"/>
+    <text x="658" y="229" text-anchor="middle" dominant-baseline="middle" class="chip-1">Recruitment &amp; Examination</text>
+    <rect x="802" y="214" width="260" height="30" rx="6" class="chip"/>
+    <text x="932" y="229" text-anchor="middle" dominant-baseline="middle" class="chip-1">Administrative Justice</text>
+    <rect x="254" y="250" width="260" height="30" rx="6" class="chip"/>
+    <text x="384" y="265" text-anchor="middle" dominant-baseline="middle" class="chip-1">Policy, Standards &amp; Compliance</text>
+    <rect x="528" y="250" width="260" height="30" rx="6" class="chip"/>
+    <text x="658" y="265" text-anchor="middle" dominant-baseline="middle" class="chip-1">Organization Development</text>
+    <rect x="802" y="250" width="260" height="30" rx="6" class="chip"/>
+    <text x="932" y="265" text-anchor="middle" dominant-baseline="middle" class="chip-1">Quality Mgmt &amp; Internal Audit</text>
+  </g>
+
+  <!-- ============ LAYER: APPLICATION ============ -->
+  <rect x="138" y="302" width="924" height="178" rx="8" fill="#FFFFFF" stroke="#E5E3DC" stroke-width="1"/>
+  <rect x="138" y="302" width="4" height="178" rx="2" fill="#15803D"/>
+  <circle cx="178" cy="391" r="13" fill="#FFFFFF" stroke="#E5E3DC" stroke-width="1"/>
+  <text x="178" y="391" text-anchor="middle" dominant-baseline="middle" class="badge-num">2</text>
+  <text x="200" y="387" class="layer-name">Application</text>
+  <text x="200" y="400" class="layer-sub">systems portfolio</text>
+  <g>
+    <!-- row 1 -->
+    <rect x="254" y="318" width="260" height="34" rx="6" class="chip"/>
+    <text x="384" y="332" text-anchor="middle" class="chip-line1">EMMS</text>
+    <text x="384" y="345" text-anchor="middle" class="chip-line2">Executive Monitoring &amp; Mgmt</text>
+    <rect x="528" y="318" width="260" height="34" rx="6" class="chip"/>
+    <text x="658" y="332" text-anchor="middle" class="chip-line1">AJSS</text>
+    <text x="658" y="345" text-anchor="middle" class="chip-line2">Administrative Justice Service</text>
+    <rect x="802" y="318" width="260" height="34" rx="6" class="chip"/>
+    <text x="932" y="332" text-anchor="middle" class="chip-line1">PSEO</text>
+    <text x="932" y="345" text-anchor="middle" class="chip-line2">Public Sector Employee Org.</text>
+    <!-- row 2 -->
+    <rect x="254" y="360" width="260" height="34" rx="6" class="chip"/>
+    <text x="384" y="374" text-anchor="middle" class="chip-line1">Eligibility &amp; Examination</text>
+    <text x="384" y="387" text-anchor="middle" class="chip-line2">Integrated eligibility system</text>
+    <rect x="528" y="360" width="260" height="34" rx="6" class="chip"/>
+    <text x="658" y="374" text-anchor="middle" class="chip-line1">QMS</text>
+    <text x="658" y="387" text-anchor="middle" class="chip-line2">Quality Management System</text>
+    <rect x="802" y="360" width="260" height="34" rx="6" class="chip"/>
+    <text x="932" y="374" text-anchor="middle" class="chip-line1">HRPMIS</text>
+    <text x="932" y="387" text-anchor="middle" class="chip-line2">HR &amp; Payroll Management IS</text>
+    <!-- row 3 -->
+    <rect x="254" y="402" width="260" height="34" rx="6" class="chip"/>
+    <text x="384" y="416" text-anchor="middle" class="chip-line1">IAS</text>
+    <text x="384" y="429" text-anchor="middle" class="chip-line2">Internal Audit System</text>
+    <rect x="528" y="402" width="260" height="34" rx="6" class="chip"/>
+    <text x="658" y="416" text-anchor="middle" class="chip-line1">HRIGA</text>
+    <text x="658" y="429" text-anchor="middle" class="chip-line2">HR Inventory — Gov’t Agencies</text>
+    <rect x="802" y="402" width="260" height="34" rx="6" class="chip" stroke="#bbf7d0"/>
+    <text x="932" y="416" text-anchor="middle" class="chip-line1" fill="#15803D">Citizen / Employee Portal</text>
+    <text x="932" y="429" text-anchor="middle" class="chip-line2">Frontline services</text>
+  </g>
+
+  <!-- ============ LAYER: DATA ============ -->
+  <rect x="138" y="484" width="924" height="128" rx="8" fill="#F7F6F2" stroke="#E5E3DC" stroke-width="1"/>
+  <rect x="138" y="484" width="4" height="128" rx="2" fill="#15803D"/>
+  <circle cx="178" cy="548" r="13" fill="#FFFFFF" stroke="#E5E3DC" stroke-width="1"/>
+  <text x="178" y="548" text-anchor="middle" dominant-baseline="middle" class="badge-num">3</text>
+  <text x="200" y="544" class="layer-name">Data</text>
+  <text x="200" y="557" class="layer-sub">assets &amp; flows</text>
+  <!-- divider -->
+  <line x1="666" y1="496" x2="666" y2="602" stroke="#E5E3DC" stroke-width="1" stroke-dasharray="3 3"/>
+  <!-- left half: master data -->
+  <text x="254" y="506" class="hdr">MASTER DATA DOMAINS</text>
+  <g>
+    <circle cx="262" cy="522" r="2" class="green"/><text x="272" y="525" class="chip-1">Employee &amp; Plantilla Records</text>
+    <circle cx="262" cy="540" r="2" class="green"/><text x="272" y="543" class="chip-1">Eligibility &amp; Exam Results</text>
+    <circle cx="262" cy="558" r="2" class="green"/><text x="272" y="561" class="chip-1">Administrative Cases</text>
+    <circle cx="262" cy="576" r="2" class="green"/><text x="272" y="579" class="chip-1">Payroll Data</text>
+    <circle cx="262" cy="594" r="2" class="green"/><text x="272" y="597" class="chip-1">Organization / Position Registry</text>
+  </g>
+  <!-- right half: interoperability -->
+  <text x="684" y="506" class="hdr">INTEROPERABILITY (PeGIF)</text>
+  <rect x="720" y="514" width="320" height="26" rx="13" fill="#FFFFFF" stroke="#15803D" stroke-width="1.2"/>
+  <text x="880" y="527" text-anchor="middle" dominant-baseline="middle" style="font-size:11px;font-weight:600;fill:#15803D;">National HR Data Registry (MDM)</text>
+  <text x="880" y="554" text-anchor="middle" class="muted" style="font-size:9.5px;">↔ data exchange with partner agencies</text>
+  <g>
+    <rect x="684" y="562" width="58" height="22" rx="5" class="chip"/><text x="713" y="573" text-anchor="middle" dominant-baseline="middle" class="agency">DBM</text>
+    <rect x="748" y="562" width="58" height="22" rx="5" class="chip"/><text x="777" y="573" text-anchor="middle" dominant-baseline="middle" class="agency">GSIS</text>
+    <rect x="812" y="562" width="58" height="22" rx="5" class="chip"/><text x="841" y="573" text-anchor="middle" dominant-baseline="middle" class="agency">SSS</text>
+    <rect x="876" y="562" width="64" height="22" rx="5" class="chip"/><text x="908" y="573" text-anchor="middle" dominant-baseline="middle" class="agency">PhilHealth</text>
+    <rect x="946" y="562" width="58" height="22" rx="5" class="chip"/><text x="975" y="573" text-anchor="middle" dominant-baseline="middle" class="agency">COA</text>
+    <rect x="1010" y="562" width="58" height="22" rx="5" class="chip"/><text x="1039" y="573" text-anchor="middle" dominant-baseline="middle" class="agency">iGovPH</text>
+  </g>
+
+  <!-- ============ LAYER: TECHNOLOGY ============ -->
+  <rect x="138" y="616" width="924" height="158" rx="8" fill="#FFFFFF" stroke="#E5E3DC" stroke-width="1"/>
+  <rect x="138" y="616" width="4" height="158" rx="2" fill="#15803D"/>
+  <circle cx="178" cy="695" r="13" fill="#FFFFFF" stroke="#E5E3DC" stroke-width="1"/>
+  <text x="178" y="695" text-anchor="middle" dominant-baseline="middle" class="badge-num">4</text>
+  <text x="200" y="691" class="layer-name">Technology</text>
+  <text x="200" y="704" class="layer-sub">platforms &amp; infra</text>
+  <g>
+    <rect x="254" y="636" width="260" height="44" rx="6" class="chip"/>
+    <text x="384" y="654" text-anchor="middle" class="chip-line1">GovCloud</text>
+    <text x="384" y="668" text-anchor="middle" class="chip-line2">cloud + on-prem data center</text>
+    <rect x="528" y="636" width="260" height="44" rx="6" class="chip"/>
+    <text x="658" y="654" text-anchor="middle" class="chip-line1">Network Infrastructure</text>
+    <text x="658" y="668" text-anchor="middle" class="chip-line2">LAN / WAN · IPv6</text>
+    <rect x="802" y="636" width="260" height="44" rx="6" class="chip"/>
+    <text x="932" y="654" text-anchor="middle" class="chip-line1">Cybersecurity</text>
+    <text x="932" y="668" text-anchor="middle" class="chip-line2">NGFW · WAF · endpoint</text>
+    <rect x="254" y="690" width="260" height="44" rx="6" class="chip"/>
+    <text x="384" y="708" text-anchor="middle" class="chip-line1">Identity &amp; Access</text>
+    <text x="384" y="722" text-anchor="middle" class="chip-line2">IAM · SSO · MFA</text>
+    <rect x="528" y="690" width="260" height="44" rx="6" class="chip"/>
+    <text x="658" y="708" text-anchor="middle" class="chip-line1">Integration</text>
+    <text x="658" y="722" text-anchor="middle" class="chip-line2">API gateway · PeGIF</text>
+    <rect x="802" y="690" width="260" height="44" rx="6" class="chip"/>
+    <text x="932" y="708" text-anchor="middle" class="chip-line1">Backup &amp; DR</text>
+    <text x="932" y="722" text-anchor="middle" class="chip-line2">disaster recovery &amp; BCP</text>
+  </g>
+
+  <!-- ============ FOOTER LEGEND ============ -->
+  <text x="36" y="804" class="muted" style="font-size:10px;"><tspan class="green" style="font-weight:700;">Security &amp; Privacy:</tspan> DICT cybersecurity controls · Data Privacy / PIA (NPC) · Identity &amp; Access Management</text>
+  <text x="1164" y="804" text-anchor="end" class="muted" style="font-size:10px;"><tspan class="ink" style="font-weight:700;">Governance &amp; Interoperability:</tspan> EGEA / iGovPH · PeGIF · ICT governance &amp; standards</text>
+</svg>
