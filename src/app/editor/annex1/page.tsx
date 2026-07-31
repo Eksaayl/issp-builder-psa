@@ -123,7 +123,7 @@ export default function EditorAnnex1Page() {
                   >
                     <Link
                       href={`/editor/annex1/edit?key=${encodeURIComponent(a.office.displayLabel)}`}
-                      className="flex items-center gap-2 min-w-0 hover:opacity-80 transition-opacity"
+                      className="flex items-center gap-2 min-w-0 flex-1 hover:opacity-80 transition-opacity"
                     >
                       <span className="h-2 w-2 rounded-full bg-success shrink-0" />
                       <span className="text-sm text-foreground truncate font-medium">{a.office.displayLabel}</span>
