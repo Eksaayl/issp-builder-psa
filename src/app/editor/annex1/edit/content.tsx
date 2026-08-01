@@ -15,8 +15,6 @@ import {
   type OfficeIdentity,
   type OfficeType,
   type PhilippineRegionCode,
-  type EquipmentRow,
-  type SoftwareRow,
 } from "@/lib/annex1/types";
 
 export function EditorAnnex1EditContent() {
