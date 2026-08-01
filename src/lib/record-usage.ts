@@ -1,8 +1,11 @@
 import type { AgencyInfo } from "@/lib/store/types";
+import { isExcludedDemoAgency } from "@/lib/usage-log-policy";
 
 export type UsageEventType = "created" | "loaded" | "restored";
 
 export function recordIsspUsage(event: UsageEventType, agency: AgencyInfo): void {
+  if (isExcludedDemoAgency(agency)) return;
+
   const agencyName = agency.name.trim();
   const agencyAcronym = agency.acronym.trim();
   if (!agencyName || !agencyAcronym) return;

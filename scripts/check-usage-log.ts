@@ -2,7 +2,11 @@ import assert from "node:assert/strict";
 import { mkdtemp, readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { appendUsageLogEntry, parseUsageLogInput } from "../src/lib/usage-log";
+import {
+  appendUsageLogEntry,
+  parseUsageLogInput,
+} from "../src/lib/usage-log";
+import { isExcludedDemoAgency } from "../src/lib/usage-log-policy";
 
 const valid = parseUsageLogInput({
   event: "created",
@@ -23,6 +27,9 @@ assert.equal(parseUsageLogInput({
   agencyName: "Department of Example",
   agencyAcronym: "DOE",
 }).success, false);
+
+assert.equal(isExcludedDemoAgency({ acronym: " ncwtr " }), true);
+assert.equal(isExcludedDemoAgency({ acronym: "DOE" }), false);
 
 assert.equal(parseUsageLogInput({
   event: "loaded",
@@ -45,6 +52,11 @@ await Promise.all([
   appendUsageLogEntry({ event: "created", agencyName: "Agency One", agencyAcronym: "A1" }),
   appendUsageLogEntry({ event: "loaded", agencyName: "Agency Two", agencyAcronym: "A2" }),
   appendUsageLogEntry({ event: "restored", agencyName: "Agency Three", agencyAcronym: "A3" }),
+  appendUsageLogEntry({
+    event: "loaded",
+    agencyName: "National Commission on Waiting Time Reduction",
+    agencyAcronym: "NCWTR",
+  }),
 ]);
 const after = Date.now();
 

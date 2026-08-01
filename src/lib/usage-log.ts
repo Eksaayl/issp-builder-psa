@@ -2,6 +2,7 @@ import "server-only";
 
 import { appendFile, mkdir } from "node:fs/promises";
 import path from "node:path";
+import { isExcludedDemoAgency } from "@/lib/usage-log-policy";
 
 export const USAGE_EVENT_TYPES = ["created", "loaded", "restored"] as const;
 
@@ -99,7 +100,11 @@ async function writeUsageLogEntry(entry: UsageLogEntry): Promise<void> {
   });
 }
 
-export function appendUsageLogEntry(input: UsageLogInput): Promise<UsageLogEntry> {
+export function appendUsageLogEntry(input: UsageLogInput): Promise<UsageLogEntry | null> {
+  if (isExcludedDemoAgency({ acronym: input.agencyAcronym })) {
+    return Promise.resolve(null);
+  }
+
   const entry: UsageLogEntry = {
     timestamp: new Date().toISOString(),
     ...input,
