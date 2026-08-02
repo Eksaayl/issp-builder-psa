@@ -44,7 +44,7 @@ This is a large feature organized into **5 phases**, each a reviewable milestone
 - Modify: `package.json` (add `tsx` devDep)
 - Modify: `src/lib/migration-review.ts:1` (`CURRENT_SCHEMA_VERSION` 10 → 11)
 - Modify: `src/lib/store/types.ts:411-446` (`IsspDocument` — add `editScope?`, `consolidationFlags?`)
-- Modify: `src/lib/store/types.ts:417` (fix stale comment)
+- Modify: `src/lib/store/types.ts:416` (fix stale comment — the `schemaVersion?` field is on 417)
 - Modify: `src/lib/store/index.tsx:344` (`migrateLegacyDoc` — add v10→v11 step)
 - Create: `src/lib/scope/types.ts` (`EditScope`, `EditPath`, `OfficeId`)
 
@@ -106,16 +106,16 @@ export interface IsspDocument {
   // ...
 }
 ```
-Also fix the stale comment at line 417: `/** Schema version for migration. 11 = current. */`
+Also fix the stale comment at line 416 (the `schemaVersion?: number;` field is on 417): `/** Schema version for migration. 11 = current. */`
 
 - [ ] **Step 4: Add v10→v11 migration step (idempotent normalization)**
 
 `src/lib/store/index.tsx` inside `migrateLegacyDoc` (after the v9→v10 block at lines 612–625), add:
 ```ts
-// v10 → v11: scoped-distribution fields are optional; no data migration needed,
-// but ensure the keys exist as `undefined` (not missing) for consistent shape.
-if ((doc.schemaVersion ?? 0) < 11) {
-  doc = { ...doc, schemaVersion: 11 };
+// v10 → v11: scoped-distribution fields are optional; no data transform needed.
+// Variable is `base` (matches every prior step's convention); guard is `?? 1`.
+if ((base.schemaVersion ?? 1) < 11) {
+  base = { ...base, schemaVersion: 11 };
 }
 ```
 (No older document carries `editScope`, so there is nothing to transform — this step just advances the version. Confirm against the `schema-change` checklist that defaults/migration-review sections don't need updating; they don't for an additive optional field.)
@@ -219,7 +219,8 @@ const AREA_TO_SECTIONS: Record<string, string[]> = {
   part3: PARTS[2].sections.map((s) => s.id),
   part4: PARTS[3].sections.map((s) => s.id),
   definitions: ["definitions"],
-  annex1: ["annexes/annex1"],
+  // No "annex1" key: the annex path "annexes/annex1" is also its section id,
+  // so resolvePath resolves it via the section branch (ALL_SECTION_IDS) below.
 };
 
 /** All field keys for a section id (from SECTION_FIELDS; definitions/annex1 special-cased). */
