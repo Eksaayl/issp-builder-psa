@@ -624,6 +624,12 @@ export function migrateLegacyDoc(doc: IsspDocument): IsspDocument {
     };
   }
 
+  // v10 → v11: scoped-distribution fields are optional; no data transform needed.
+  // Variable is `base` (matches every prior step's convention); guard is `?? 1`.
+  if ((base.schemaVersion ?? 1) < 11) {
+    base = { ...base, schemaVersion: 11 };
+  }
+
   // Idempotent normalizations — keep stored data in sync with what forms write on mount,
   // so that editing a field and reverting it produces a hash equal to the snapshot.
   let normalized: IsspDocument = {
