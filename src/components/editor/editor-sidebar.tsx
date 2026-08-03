@@ -40,6 +40,7 @@ import {
   Trash2,
   X,
   AlertTriangle,
+  Share2,
 } from "lucide-react";
 import { useIsspStore } from "@/lib/store";
 import { useFileSaveReminder } from "@/hooks/use-file-save-reminder";
@@ -49,6 +50,7 @@ import { PARTS, FRONT_MATTER_SECTIONS, ANNEX_SECTIONS, computeStatus, type Secti
 import { getChangedFields, type SectionField } from "@/lib/section-fields";
 import { StatusDot } from "@/components/ui/status-dot";
 import { IsspPropertiesDialog } from "./issp-properties-dialog";
+import { DistributeDialog } from "./distribute-dialog";
 import { THEMES, isThemeId, useTheme, type ThemeId } from "@/lib/theme";
 import { toast } from "sonner";
 
@@ -318,6 +320,7 @@ export function EditorSidebar({
 
   const [expandedParts, setExpandedParts] = useState<Set<number>>(new Set([1, 2, 3, 4]));
   const [propsOpen, setPropsOpen] = useState(false);
+  const [distributeOpen, setDistributeOpen] = useState(false);
   const [exportState, setExportState] = useState<ExportState>({ status: "idle" });
   const [clearStep, setClearStep] = useState<"idle" | "step1" | "step2">("idle");
   const [showChanges, setShowChanges] = useState(false);
@@ -1137,6 +1140,17 @@ export function EditorSidebar({
                   </Button>
                 )}
               </div>
+              {!doc?.editScope && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn("w-full justify-start gap-2 text-xs", sidebarControlClass)}
+                  onClick={() => setDistributeOpen(true)}
+                >
+                  <Share2 className="h-3.5 w-3.5" />
+                  Distribute to offices
+                </Button>
+              )}
             </>
           )}
 
@@ -1164,6 +1178,7 @@ export function EditorSidebar({
         />
 
         <IsspPropertiesDialog open={propsOpen} onClose={() => setPropsOpen(false)} />
+        <DistributeDialog open={distributeOpen} onClose={() => setDistributeOpen(false)} />
       </aside>
     </>
   );
