@@ -92,10 +92,14 @@ function PersonFields({
    */
   visibleKeys?: Set<string>;
 }) {
+  // Empty allowlist ⇒ render nothing at all (no wrapper, no orphaned title).
+  if (visibleKeys && visibleKeys.size === 0) return null;
   const show = (f: string) => !visibleKeys || visibleKeys.has(f);
   return (
     <div className="space-y-4">
-      {title && <p className="text-sm font-semibold text-muted-foreground">{title}</p>}
+      {title && (!visibleKeys || visibleKeys.size > 0) && (
+        <p className="text-sm font-semibold text-muted-foreground">{title}</p>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {show("name") && (
           <FormField label="Full Name" htmlFor={`${prefix}-name`} className="sm:col-span-2">
@@ -306,6 +310,7 @@ export function Part1BForm({
             visibleKeys={personKeys("cio")}
           />
           <div className="border-t" />
+          {(can("focalSameAsCio") || personKeys("focal").size > 0) && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold text-muted-foreground">ISSP Focal Person</p>
@@ -343,6 +348,7 @@ export function Part1BForm({
               />
             </div>
           </div>
+          )}
         </CardContent>
       </Card>
 

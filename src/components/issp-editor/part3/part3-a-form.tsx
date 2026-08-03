@@ -189,6 +189,7 @@ export function Part3AForm({ initialData }: { initialData: Part3AData }) {
     >
 
       {/* A.1 Network */}
+      {(can("proposedNetworkDesc") || can("proposedNetworkDataUrl")) && (
       <Card>
         <CardHeader className="pb-4">
           <CardTitle className="text-base">A.1 Proposed Network Infrastructure</CardTitle>
@@ -232,6 +233,7 @@ export function Part3AForm({ initialData }: { initialData: Part3AData }) {
           )}
         </CardContent>
       </Card>
+      )}
 
       {/* A.2 Cybersecurity */}
       {can("proposedCybersecControls") && (

@@ -284,6 +284,7 @@ export function Part2BForm({ initialData }: Part2BFormProps) {
     >
 
       {/* B.1 Network description */}
+      {(can("networkDescription") || can("networkDiagrams")) && (
       <Card>
         <CardHeader className="pb-4">
           <CardTitle className="text-base">B.1 Network Infrastructure</CardTitle>
@@ -394,6 +395,7 @@ export function Part2BForm({ initialData }: Part2BFormProps) {
           )}
         </CardContent>
       </Card>
+      )}
 
       {/* B.2 Cybersecurity checklist */}
       {can("cybersecurityControls") && (
