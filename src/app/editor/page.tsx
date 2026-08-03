@@ -22,7 +22,11 @@ function OverviewView() {
   if (!doc) return null;
 
   const sectionMeta = doc.sectionMeta ?? {};
-  const doneCount = ALL_SECTIONS.filter(
+  // Scope-filter both counts so a scoped doc's header matches the visible cards
+  // (e.g. "2 of 4", not "2 of 21"). Null scope ⇒ isSectionVisible is always true,
+  // so visibleSections === ALL_SECTIONS and behavior is unchanged when unscoped.
+  const visibleSections = ALL_SECTIONS.filter((s) => isSectionVisible(scope, s.id));
+  const doneCount = visibleSections.filter(
     (s) => computeStatus(sectionMeta[s.id]) === "done"
   ).length;
   const pendingSectionIds = doc.migrationReview?.pendingSectionIds ?? [];
@@ -34,7 +38,7 @@ function OverviewView() {
 
   return (
     <div className="space-y-6">
-      <OverviewStickyHeader doc={doc} doneCount={doneCount} totalCount={ALL_SECTIONS.length} />
+      <OverviewStickyHeader doc={doc} doneCount={doneCount} totalCount={visibleSections.length} />
       {pendingSectionIds.length > 0 && (
         <div className="flex flex-col gap-3 rounded-xl border border-warning-border bg-warning-bg px-5 py-4 text-warning sm:flex-row sm:items-center">
           <AlertTriangle className="h-5 w-5 shrink-0" />
