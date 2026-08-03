@@ -519,6 +519,7 @@ export function EditorSidebar({
 
   const sectionMeta = doc.sectionMeta ?? {};
   const pendingReviewIds = doc.migrationReview?.pendingSectionIds ?? [];
+  const consolidationFlagIds = doc.consolidationFlags ?? [];
 
   // ── Shared nav (rendered in both mobile popup and desktop sidebar) ──────────
   // Scoped docs hide any section the office doesn't own. Null scope ⇒ all visible.
@@ -568,7 +569,9 @@ export function EditorSidebar({
       })}
 
       {visibleParts.map(({ part, sections }) => {
-        const hasPendingReview = (doc.migrationReview?.pendingSectionIds ?? []).some((id) => id.startsWith(`part${part.partNum}/`));
+        const hasPendingReview =
+          (doc.migrationReview?.pendingSectionIds ?? []).some((id) => id.startsWith(`part${part.partNum}/`)) ||
+          (doc.consolidationFlags ?? []).some((id) => id.startsWith(`part${part.partNum}/`));
         const isExpanded = expandedParts.has(part.partNum) || hasPendingReview;
         const isActiveSection = sections.some(
           (s) => pathname === s.href || pathname.startsWith(s.href + "/")
@@ -594,7 +597,7 @@ export function EditorSidebar({
                 {sections.map((section) => {
                   const isActive = pathname === section.href || pathname.startsWith(section.href + "/");
                   const status = computeStatus(sectionMeta[section.id]);
-                  const needsReview = pendingReviewIds.includes(section.id);
+                  const needsReview = pendingReviewIds.includes(section.id) || consolidationFlagIds.includes(section.id);
                   return (
                     <Link
                       key={section.id}

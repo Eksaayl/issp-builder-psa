@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Circle, ChevronLeft, ChevronRight, LayoutDashboard, Menu, AlertTriangle } from "lucide-react";
+import { CheckCircle2, Circle, ChevronLeft, ChevronRight, LayoutDashboard, Menu, AlertTriangle, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusDot } from "@/components/ui/status-dot";
 import { cn } from "@/lib/utils";
@@ -42,7 +42,7 @@ export function SectionShell({
   children,
 }: SectionShellProps) {
   const router = useRouter();
-  const { doc, updateSectionMeta } = useIsspStore();
+  const { doc, updateSectionMeta, update } = useIsspStore();
   const mobileSidebar = useEditorMobileSidebar();
   const scope = useResolvedScope();
 
@@ -90,6 +90,7 @@ export function SectionShell({
   const status = computeStatus(meta);
   const isDone = meta?.userMarkedDone ?? false;
   const needsMigrationReview = doc?.migrationReview?.pendingSectionIds.includes(sectionId) ?? false;
+  const needsConsolidationReview = doc?.consolidationFlags?.includes(sectionId) ?? false;
   const sectionPrefix = section?.label.match(/^[A-Z][\d.]+/)?.[0] ?? null;
 
   const handleMarkDone = useCallback(
@@ -98,6 +99,21 @@ export function SectionShell({
     },
     [sectionId, updateSectionMeta]
   );
+
+  // Clear the per-section consolidation flag once the secretariat has reviewed
+  // the merged content. The merge engine sets consolidationFlags for list
+  // overlaps, multi-owner definitions, and scalar conflicts; the flag is purely
+  // a review nudge, so clearing it is safe and does not touch the data.
+  const handleMarkConsolidationReviewed = useCallback(() => {
+    update((prev) => {
+      if (!prev.consolidationFlags?.length) return prev;
+      const next = prev.consolidationFlags.filter((id) => id !== sectionId);
+      return {
+        ...prev,
+        consolidationFlags: next.length ? next : undefined,
+      };
+    });
+  }, [sectionId, update]);
 
   // Route guard: a scoped user navigating directly to a hidden section gets a
   // small notice instead of the form. Null scope ⇒ isSectionVisible is true ⇒
@@ -208,6 +224,29 @@ export function SectionShell({
             <p>
               Cross-check the entries from your older ISSP file against the current form, then mark this section as done again to clear the review flag.
             </p>
+          </div>
+        </div>
+      )}
+
+      {needsConsolidationReview && (
+        <div className="flex gap-3 rounded-lg border border-warning-border bg-warning-bg px-4 py-3 text-sm text-warning">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <div className="flex flex-1 flex-wrap items-start justify-between gap-3 leading-relaxed">
+            <div className="min-w-0">
+              <p className="font-semibold text-foreground">Flagged during consolidation</p>
+              <p>
+                Multiple scoped files contributed to this section — review for duplicates or conflicting entries, then clear the flag.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 shrink-0 gap-1.5 border-warning-border bg-background text-warning hover:bg-warning-border/30"
+              onClick={handleMarkConsolidationReviewed}
+            >
+              <Check className="h-3.5 w-3.5" />
+              Mark reviewed
+            </Button>
           </div>
         </div>
       )}
