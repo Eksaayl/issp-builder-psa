@@ -1082,14 +1082,18 @@ export function IsspStoreProvider({ children }: { children: ReactNode }) {
       }
 
       setDoc(merged);
-      scheduleSave(merged);
+      // Consolidate is a one-shot, irreversible mutation (like loadFromFile) and
+      // the success toast implies it's persisted. Await the IDB write directly
+      // instead of the 1500 ms debounced scheduleSave — closing the tab inside
+      // that window would otherwise lose the entire merge from IDB.
+      await idbSave(merged);
       return {
         success: true,
         reviewFlags: result.reviewFlags,
         scalarConflicts: result.scalarConflicts,
       };
     },
-    [doc, scheduleSave]
+    [doc]
   );
 
   const unsavedToFile = !doc

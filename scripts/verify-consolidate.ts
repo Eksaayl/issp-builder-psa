@@ -17,7 +17,7 @@
 import assert from "node:assert/strict";
 import { consolidate } from "../src/lib/scope/consolidate";
 import { createEmptyDocument } from "../src/lib/store/defaults";
-import type { Annex1FilePayload, IsspDocument, Stakeholder } from "../src/lib/store/types";
+import type { Annex1FilePayload, DefinitionTerm, IsspDocument, Stakeholder } from "../src/lib/store/types";
 
 function makeMaster(): IsspDocument {
   return createEmptyDocument({
@@ -226,6 +226,53 @@ function scoped(
   assert.equal(byOffice.a, "Atty. Cruz", "(h) office a value");
   assert.equal(byOffice.b, "Atty. Dela Cruz", "(h) office b value");
   assert.equal(r.merged.part1.cioName, "Master-On-File", "(h) merged keeps master value (no silent pick)");
+}
+
+// ─── (i) multi-owner definitions → overlay (last file wins) + review flag, NO ─
+// conflict. Regression guard: an earlier strategyFor returned "scalar-conflict"
+// for the no-partKey case (definitions has no Part I–IV prefix), which emitted
+// a spurious scalarConflict for "definitions.definitions" in the pre-pass and
+// surfaced a misleading "pick a value" UI — but the resolution overlay skips
+// no-partKey sections, so the secretariat's pick was silently dropped and the
+// merged doc kept whatever the last file wrote (file-order-dependent). The
+// main-pass branch is the real handler: last-write-wins + reviewFlags.add
+// ("definitions") when ≥2 offices owned it.
+{
+  const master = makeMaster();
+  const aDefs: DefinitionTerm[] = [{ id: "a1", term: "A-term", definition: "from-a" }];
+  const bDefs: DefinitionTerm[] = [{ id: "b1", term: "B-term", definition: "from-b" }];
+  const a = scoped("a", ["definitions.definitions"], (d) => {
+    d.definitions = aDefs;
+  });
+  const b = scoped("b", ["definitions.definitions"], (d) => {
+    d.definitions = bDefs;
+  });
+  const r = consolidate(master, [a, b]);
+  const conflictForDefinitions = r.scalarConflicts.find(
+    (c) => c.sectionId === "definitions" && c.fieldKey === "definitions"
+  );
+  assert.equal(conflictForDefinitions, undefined, "(i) NO scalar conflict for multi-owner definitions");
+  assert.ok(r.reviewFlags.includes("definitions"), "(i) definitions flagged for review");
+  // Main-pass rule: iterate files in order, last write wins → b.definitions.
+  assert.deepEqual(
+    r.merged.definitions,
+    bDefs,
+    "(i) merged.definitions is the last file's value (deterministic last-write-wins)"
+  );
+
+  // Order independence of the flag: swap file order, flag still set, last still wins.
+  const r2 = consolidate(master, [b, a]);
+  assert.ok(r2.reviewFlags.includes("definitions"), "(i) review flag set regardless of file order");
+  assert.deepEqual(
+    r2.merged.definitions,
+    aDefs,
+    "(i) merged.definitions follows file iteration order (a is now last)"
+  );
+  assert.equal(
+    r2.scalarConflicts.find((c) => c.sectionId === "definitions"),
+    undefined,
+    "(i) no spurious conflict regardless of file order"
+  );
 }
 
 // ─── Annex 1 (annexes/annex1) replace-by-office + idempotent re-import ──────

@@ -65,8 +65,15 @@ function strategyFor(
   // ≥2 owners on a non-shared path. Inspect the owners' actual values rather
   // than just owner-count — the spec says a scalar conflict arises only when a
   // field is "written differently" by ≥2 offices.
+  // No partKey → front-matter (definitions) or annex. These aren't scalar
+  // leaves of a Part I–IV section; the main pass special-cases them (annex1
+  // shared-table replace; definitions last-write-wins + review flag when
+  // multi-owner). Return "overlay" so the pre-pass emits NO spurious conflict
+  // (which would surface a misleading "pick a value" UI for `definitions`
+  // that the resolution overlay silently drops). The main-pass branch still
+  // flags `definitions` for review when ≥2 offices owned it.
   const partKey = partKeyFor(sid);
-  if (!partKey) return "scalar-conflict";
+  if (!partKey) return "overlay";
   const fk = key.slice(key.indexOf(".") + 1);
   const values = owners.map((oid) => readFieldValue(files, oid, partKey, fk));
   // All list-valued → union + flag (lossless). List owners are unioned even
