@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -240,17 +240,35 @@ export function DistributeDialog({
   const [generating, setGenerating] = useState(false);
   function handleGenerate() {
     if (!doc || generating) return;
-    const valid = offices.filter(
-      (e) => e.name.trim().length > 0 && leavesToEditPaths(e.leaves).length > 0
-    );
-    if (valid.length === 0) {
-      toast.error("Give each office a name and select at least one field.");
+
+    if (offices.length === 0) {
+      toast.error("Add at least one office");
       return;
     }
+
+    // Surface every incomplete office rather than silently skipping it. An
+    // office is "complete" only when it has a name AND at least one selected
+    // field; the secretariat must see exactly what to fix before any file is
+    // generated, and Generate must never produce a partial batch.
+    const incomplete = offices
+      .map((e, i) => {
+        const reasons: string[] = [];
+        if (e.name.trim().length === 0) reasons.push("is missing a name");
+        if (leavesToEditPaths(e.leaves).length === 0) reasons.push("has no fields selected");
+        return reasons.length === 0
+          ? null
+          : { label: e.name.trim() || `Office ${i + 1}`, msg: reasons.join(" and ") };
+      })
+      .filter((p): p is { label: string; msg: string } => p !== null);
+
+    if (incomplete.length > 0) {
+      toast.error(incomplete.map((p) => `${p.label} ${p.msg}`).join("; "));
+      return;
+    }
+
     setGenerating(true);
     try {
-      let count = 0;
-      for (const entry of valid) {
+      for (const entry of offices) {
         const name = entry.name.trim();
         const office: OfficeIdentity = {
           id: entry.officeId,
@@ -276,9 +294,8 @@ export function DistributeDialog({
         a.click();
         a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 0);
-        count++;
       }
-      toast.success(`Generated ${count} scoped file${count > 1 ? "s" : ""}`);
+      toast.success(`Generated ${offices.length} scoped file${offices.length > 1 ? "s" : ""}`);
       onClose();
     } catch (err) {
       console.error("Distribute failed:", err);
@@ -289,14 +306,6 @@ export function DistributeDialog({
   }
 
   // ── Derived view state ───────────────────────────────────────────────────
-  const validCount = useMemo(
-    () =>
-      offices.filter(
-        (e) => e.name.trim().length > 0 && leavesToEditPaths(e.leaves).length > 0
-      ).length,
-    [offices]
-  );
-
   const officeSelectLabel = (e: OfficeEntry, idx: number) =>
     e.name.trim() || `Office ${idx + 1}`;
 
@@ -454,11 +463,11 @@ export function DistributeDialog({
           <Button variant="outline" onClick={onClose} disabled={generating}>
             Cancel
           </Button>
-          <Button onClick={handleGenerate} disabled={generating || validCount === 0}>
+          <Button onClick={handleGenerate} disabled={generating || offices.length === 0}>
             <Download className="h-4 w-4" />
             {generating
               ? "Generating…"
-              : `Generate ${validCount > 0 ? `${validCount} ` : ""}file${validCount === 1 ? "" : "s"}`}
+              : `Generate ${offices.length} file${offices.length === 1 ? "" : "s"}`}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -483,6 +492,7 @@ function StandaloneSectionRow({
         checked={state === "all"}
         indeterminate={state === "some"}
         onCheckedChange={() => onToggle()}
+        aria-label={section.label}
       />
       <span className="truncate">{section.label}</span>
     </li>
@@ -533,6 +543,7 @@ function AreaRow({
           checked={state === "all"}
           indeterminate={state === "some"}
           onCheckedChange={onToggleAreaCheck}
+          aria-label={`Part ${part.part}: ${part.title}`}
         />
         <span className="font-semibold uppercase tracking-wide text-xs text-muted-foreground">
           Part {part.part}: {part.title}
@@ -567,6 +578,7 @@ function AreaRow({
                       checked={sState === "all"}
                       indeterminate={sState === "some"}
                       onCheckedChange={() => onToggleSectionCheck(sec.id)}
+                      aria-label={sec.label}
                     />
                   ) : (
                     <span className="inline-block w-4" aria-hidden="true" />
@@ -592,6 +604,7 @@ function AreaRow({
                           <Checkbox
                             checked={selectedLeaves.has(leaf)}
                             onCheckedChange={() => onToggleLeaf(leaf)}
+                            aria-label={f.label}
                           />
                           <span className="text-sm text-muted-foreground">{f.label}</span>
                         </li>
