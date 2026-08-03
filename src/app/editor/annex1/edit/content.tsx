@@ -36,12 +36,18 @@ export function EditorAnnex1EditContent() {
     // identical and is what InventoryEditor expects.
     const existing = (doc.annexedOffices ?? []).find((a) => a.office.displayLabel === key) as Annex1FilePayload | undefined;
     if (!existing) { router.replace("/editor/annex1"); return null; }
+    // Snapshot the scope office id at render time; the closure below can't see the
+    // narrowed `doc` (TS conservatively widens it back to nullable inside a nested fn).
+    const scopeOfficeId = doc.editScope?.office.id;
+    const stamp = (payload: Annex1FilePayload): Annex1FilePayload =>
+      scopeOfficeId ? { ...payload, officeId: scopeOfficeId } : payload;
 
     function handleUpdate(payload: Annex1FilePayload) {
+      const stamped = stamp(payload);
       update((prev) => ({
         ...prev,
         annexedOffices: (prev.annexedOffices ?? []).map((a) =>
-          a.office.displayLabel === key ? payload : a
+          a.office.displayLabel === key ? stamped : a
         ),
       }));
       toast.success("Office updated");
@@ -82,14 +88,19 @@ export function EditorAnnex1EditContent() {
     // Snapshot the attached list at render time; closures below can't see the narrowed
     // `doc` (TS conservatively widens it back to nullable inside a nested function).
     const attachedOffices = doc.annexedOffices ?? [];
+    // Scoped: stamp payload with this office's id so consolidate() can replace it.
+    const scopeOfficeId = doc.editScope?.office.id;
+    const stamp = (payload: Annex1FilePayload): Annex1FilePayload =>
+      scopeOfficeId ? { ...payload, officeId: scopeOfficeId } : payload;
 
     function handleAdd(payload: Annex1FilePayload) {
-      const dup = attachedOffices.some((a) => a.office.displayLabel === payload.office.displayLabel);
+      const stamped = stamp(payload);
+      const dup = attachedOffices.some((a) => a.office.displayLabel === stamped.office.displayLabel);
       if (dup) {
-        toast.error(`"${payload.office.displayLabel}" is already in the list`);
+        toast.error(`"${stamped.office.displayLabel}" is already in the list`);
         return false;
       }
-      update((prev) => ({ ...prev, annexedOffices: [...(prev.annexedOffices ?? []), payload] }));
+      update((prev) => ({ ...prev, annexedOffices: [...(prev.annexedOffices ?? []), stamped] }));
       toast.success("Office added");
       return true;
     }

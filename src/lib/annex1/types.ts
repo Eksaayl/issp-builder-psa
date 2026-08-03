@@ -84,6 +84,11 @@ export interface Annex1FilePayload {
   exportedAt: string;
   tool: "issp-platform";
   office: OfficeIdentity;
+  /**
+   * Provenance stamp for scoped files (Phase 3 consolidate() replaces Annex 1
+   * payloads by officeId). Absent ⇒ secretariat/legacy-owned.
+   */
+  officeId?: string;
   annex1: Annex1Data;
 }
 

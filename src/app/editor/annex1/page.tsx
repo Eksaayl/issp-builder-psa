@@ -35,6 +35,9 @@ export default function EditorAnnex1Page() {
   if (!doc) { router.replace("/editor"); return null; }
 
   const attached: Annex1FilePayload[] = doc.annexedOffices ?? [];
+  // Scoped: stamp attached payloads with this doc's office id (a returned scoped file
+  // already carries its own officeId — preserve that; only fill when absent).
+  const scopeOfficeId = doc.editScope?.office.id;
 
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
@@ -48,7 +51,10 @@ export default function EditorAnnex1Page() {
         if (!parsed.office?.displayLabel) { errors.push(`${file.name}: missing office information`); continue; }
         const duplicate = attached.find((a) => a.office.displayLabel === parsed.office.displayLabel);
         if (duplicate) { errors.push(`${file.name}: "${parsed.office.displayLabel}" is already attached`); continue; }
-        toAdd.push(parsed);
+        const stamped = scopeOfficeId && !parsed.officeId
+          ? { ...parsed, officeId: scopeOfficeId }
+          : parsed;
+        toAdd.push(stamped);
       } catch { errors.push(`${file.name}: could not read file`); }
     }
     if (toAdd.length > 0) {

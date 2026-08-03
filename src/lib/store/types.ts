@@ -55,6 +55,12 @@ export interface Stakeholder {
   id: string;
   name: string;
   services: StakeholderService[];
+  /**
+   * Provenance stamps for scoped files (Phase 3 consolidate() merge contract).
+   * Absent ⇒ secretariat/legacy-owned (unscoped docs never carry these).
+   */
+  rowId?: string;
+  officeId?: string;
 }
 
 export interface Part1Data {
@@ -396,6 +402,11 @@ export interface Annex1FilePayload {
   exportedAt: string;
   tool: "issp-platform";
   office: { type: string; region?: string; name: string; displayLabel: string };
+  /**
+   * Provenance stamp for scoped files (Phase 3 consolidate() replaces Annex 1
+   * payloads by officeId). Absent ⇒ secretariat/legacy-owned.
+   */
+  officeId?: string;
   annex1: {
     equipment: Array<{
       id: string; type: string; isCustom: boolean;
