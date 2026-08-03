@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - **No test framework exists.** Verification uses two mechanisms: (1) runnable `.ts` scripts under `scripts/` executed with `npx tsx` using `node:assert` for pure logic (resolver/slice/consolidate), and (2) the `verify-feature` skill (typecheck + Puppeteer browser/PDF smoke + build + deploy) for UI. **Task 1 adds `tsx` as a devDependency.**
-- **Type gate:** `npm run build` (runs `tsc` via `next build`). Every task ends green on `npm run build` and `npm run lint`.
+- **Dev type-gate:** `npx tsc --noEmit` + `npm run lint` (+ Puppeteer smokes on :3000). ⚠️ **Do NOT run `npm run build` during dev** — it rewrites `.next` and desyncs the live pm2 prod process (manifest 500s; took prod down 2026-08-03 — see `AGENTS.md` → *Production & deploy safety*). `npm run build` is **deploy-only** (`git checkout main && npm run build && pm2 restart issp`). Any task step below that says `Run: npm run build` is **superseded** — use `npx tsc --noEmit` + `npm run lint` instead.
 - **Schema version:** bump `CURRENT_SCHEMA_VERSION` from **10 → 11** (`src/lib/migration-review.ts:1`). Also fix the stale comment at `src/lib/store/types.ts:417` ("9 = current" → "11 = current"). The data-model task uses the **`schema-change`** skill (its full checklist applies: types, defaults, migration, forms, PDF, section-fields map, demo file).
 - **Scoped files keep `fileType: "issp-main"`** (they are full `IsspDocument`s carrying `editScope`), so they pass `loadFromFile`'s existing gate (`index.tsx:122`) unchanged. No new `fileType`.
 - **Soft lock only** — no crypto/tamper-proofing (per spec non-goals).
