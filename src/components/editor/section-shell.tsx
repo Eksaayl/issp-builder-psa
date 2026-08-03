@@ -8,6 +8,8 @@ import { StatusDot } from "@/components/ui/status-dot";
 import { cn } from "@/lib/utils";
 import { useIsspStore } from "@/lib/store";
 import { ALL_SECTIONS, PARTS, computeStatus } from "@/lib/sections";
+import { useResolvedScope } from "@/hooks/use-resolved-scope";
+import { isSectionVisible } from "@/lib/scope/paths";
 import { useEditorMobileSidebar } from "./editor-mobile-sidebar-context";
 
 // Header collapses past COLLAPSE_PX and only expands again once scrolled back
@@ -41,6 +43,7 @@ export function SectionShell({
   const router = useRouter();
   const { doc, updateSectionMeta } = useIsspStore();
   const mobileSidebar = useEditorMobileSidebar();
+  const scope = useResolvedScope();
 
   const headerRef = useRef<HTMLDivElement>(null);
   const [isCompact, setIsCompact] = useState(false);
@@ -61,22 +64,26 @@ export function SectionShell({
     return () => scrollContainer.removeEventListener("scroll", handleScroll);
   }, [sectionId]);
 
-  // Derive part + section from config
-  const sectionIndex = ALL_SECTIONS.findIndex((s) => s.id === sectionId);
-  const section = ALL_SECTIONS[sectionIndex];
+  // Derive part + section from config. Scoped docs restrict the prev/next
+  // chain to sections the office owns so navigation never lands on a hidden page.
+  const visibleSections = ALL_SECTIONS.filter((s) => isSectionVisible(scope, s.id));
+  const sectionIndex = visibleSections.findIndex((s) => s.id === sectionId);
+  const section = ALL_SECTIONS.find((s) => s.id === sectionId);
   // Front-matter sections (e.g. Definition of Terms) have no parent part
   const part = PARTS.find((p) => p.sections.some((s) => s.id === sectionId)) ?? null;
 
-  const prevSection = sectionIndex > 0 ? ALL_SECTIONS[sectionIndex - 1] : null;
+  const prevSection = sectionIndex > 0 ? visibleSections[sectionIndex - 1] : null;
   const prevPart = prevSection
     ? PARTS.find((p) => p.sections.some((s) => s.id === prevSection.id))
     : null;
   const nextSection =
-    sectionIndex < ALL_SECTIONS.length - 1 ? ALL_SECTIONS[sectionIndex + 1] : null;
+    sectionIndex >= 0 && sectionIndex < visibleSections.length - 1
+      ? visibleSections[sectionIndex + 1]
+      : null;
   const nextPart = nextSection
     ? PARTS.find((p) => p.sections.some((s) => s.id === nextSection.id))
     : null;
-  const isLast = sectionIndex === ALL_SECTIONS.length - 1;
+  const isLast = sectionIndex === visibleSections.length - 1;
 
   const meta = doc?.sectionMeta?.[sectionId];
   const status = computeStatus(meta);
@@ -90,6 +97,50 @@ export function SectionShell({
     },
     [sectionId, updateSectionMeta]
   );
+
+  // Route guard: a scoped user navigating directly to a hidden section gets a
+  // small notice instead of the form. Null scope ⇒ isSectionVisible is true ⇒
+  // this never renders, so unscoped behavior is unchanged.
+  if (!isSectionVisible(scope, sectionId)) {
+    return (
+      <div className="space-y-6">
+        <div className="sticky top-0 z-10 -mx-4 px-4 md:-mx-8 md:px-8 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b -mt-4 md:-mt-8">
+          <div className="py-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <button
+              type="button"
+              aria-label="Open editor navigation"
+              onClick={mobileSidebar?.openMobileSidebar}
+              className="md:hidden -ml-1 mr-1 inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              <Menu className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => router.push("/editor")}
+              className="hover:text-foreground transition-colors flex items-center gap-1"
+            >
+              <LayoutDashboard className="h-3 w-3" />
+              Overview
+            </button>
+          </div>
+        </div>
+        <div className="flex gap-3 rounded-lg border border-border bg-card px-4 py-6 text-sm">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
+          <div className="space-y-1">
+            <p className="font-semibold text-foreground">This section isn&apos;t part of your assigned scope.</p>
+            <p className="text-muted-foreground leading-relaxed">
+              Your office&apos;s copy of this ISSP only includes the sections you&apos;re responsible for. Return to the overview to continue editing the sections assigned to you.
+            </p>
+            <div className="pt-2">
+              <Button onClick={() => router.push("/editor")} className="gap-1.5">
+                <LayoutDashboard className="h-4 w-4" />
+                Return to Overview
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">

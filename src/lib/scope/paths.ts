@@ -58,6 +58,21 @@ export function resolvePath(path: EditPath): LeafField[] {
   return []; // unknown path (e.g. removed by schema change) → contributes nothing
 }
 
+/**
+ * Section ids covered by a path, independent of whether those sections have
+ * writable fields. Read-only computed sections (e.g. part4/summary) have no
+ * leaf fields, so {@link resolvePath} yields nothing for them — without this,
+ * an office owning the whole area wouldn't see its own summary. Visibility is
+ * derived from path coverage, not field coverage.
+ */
+function sectionsCoveredByPath(path: EditPath): string[] {
+  const dot = path.indexOf(".");
+  if (dot >= 0) return [path.slice(0, dot)];
+  if (AREA_TO_SECTIONS[path]) return AREA_TO_SECTIONS[path];
+  if (ALL_SECTION_IDS.includes(path)) return [path];
+  return [];
+}
+
 export interface ResolvedScope {
   /** Set of `${sectionId}.${fieldKey}` the office may edit. */
   editableFields: Set<string>;
@@ -74,7 +89,11 @@ export function resolveScope(paths: EditPath[]): ResolvedScope {
   for (const p of paths) {
     for (const leaf of resolvePath(p)) {
       editableFields.add(`${leaf.sectionId}.${leaf.fieldKey}`);
-      visibleSections.add(leaf.sectionId);
+    }
+    // Visibility tracks section coverage (incl. read-only leaf-less sections),
+    // not just sections with owned fields.
+    for (const sid of sectionsCoveredByPath(p)) {
+      visibleSections.add(sid);
     }
     // a path that names a shared table (directly or as an area/section) owns that table
     for (const leaf of resolvePath(p)) {

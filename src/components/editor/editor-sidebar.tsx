@@ -43,6 +43,8 @@ import {
 } from "lucide-react";
 import { useIsspStore } from "@/lib/store";
 import { useFileSaveReminder } from "@/hooks/use-file-save-reminder";
+import { useResolvedScope } from "@/hooks/use-resolved-scope";
+import { isSectionVisible } from "@/lib/scope/paths";
 import { PARTS, FRONT_MATTER_SECTIONS, ANNEX_SECTIONS, computeStatus, type SectionDef, type PartDef } from "@/lib/sections";
 import { getChangedFields, type SectionField } from "@/lib/section-fields";
 import { StatusDot } from "@/components/ui/status-dot";
@@ -307,6 +309,7 @@ export function EditorSidebar({
   onMobileClose: () => void;
 }) {
   const { doc, saveToFile, loadFromFile, fileSavedAt, savedSnapshot, unsavedToFile, clearDoc, saveStatus, saveError } = useIsspStore();
+  const scope = useResolvedScope();
   const now = useNow();
   const isMobileViewport = useIsMobileViewport();
   const pathname = usePathname();
@@ -507,6 +510,16 @@ export function EditorSidebar({
   const pendingReviewIds = doc.migrationReview?.pendingSectionIds ?? [];
 
   // ── Shared nav (rendered in both mobile popup and desktop sidebar) ──────────
+  // Scoped docs hide any section the office doesn't own. Null scope ⇒ all visible.
+  const visibleFrontMatter = FRONT_MATTER_SECTIONS.filter((s) => isSectionVisible(scope, s.id));
+  const visibleParts = PARTS
+    .map((part) => ({
+      part,
+      sections: part.sections.filter((s) => isSectionVisible(scope, s.id)),
+    }))
+    .filter((entry) => entry.sections.length > 0);
+  const visibleAnnexes = ANNEX_SECTIONS.filter((s) => isSectionVisible(scope, s.id));
+
   const navContent = (
     <nav className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5 min-h-0">
       <Link
@@ -522,7 +535,7 @@ export function EditorSidebar({
         Overview
       </Link>
 
-      {FRONT_MATTER_SECTIONS.map((section) => {
+      {visibleFrontMatter.map((section) => {
         const isActive = pathname === section.href || pathname.startsWith(section.href + "/");
         const status = computeStatus(sectionMeta[section.id]);
         return (
@@ -543,10 +556,10 @@ export function EditorSidebar({
         );
       })}
 
-      {PARTS.map((part) => {
+      {visibleParts.map(({ part, sections }) => {
         const hasPendingReview = (doc.migrationReview?.pendingSectionIds ?? []).some((id) => id.startsWith(`part${part.partNum}/`));
         const isExpanded = expandedParts.has(part.partNum) || hasPendingReview;
-        const isActiveSection = part.sections.some(
+        const isActiveSection = sections.some(
           (s) => pathname === s.href || pathname.startsWith(s.href + "/")
         );
 
@@ -567,7 +580,7 @@ export function EditorSidebar({
 
             {isExpanded && (
               <div className="mt-0.5 space-y-0.5">
-                {part.sections.map((section) => {
+                {sections.map((section) => {
                   const isActive = pathname === section.href || pathname.startsWith(section.href + "/");
                   const status = computeStatus(sectionMeta[section.id]);
                   const needsReview = pendingReviewIds.includes(section.id);
@@ -601,12 +614,13 @@ export function EditorSidebar({
         );
       })}
 
-      {/* Annexes */}
-      <div className="mt-2">
-        <p className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Annexes
-        </p>
-        {ANNEX_SECTIONS.map((section) => {
+      {/* Annexes — hidden entirely when scoped mode leaves no visible annex */}
+      {visibleAnnexes.length > 0 && (
+        <div className="mt-2">
+          <p className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Annexes
+          </p>
+          {visibleAnnexes.map((section) => {
           const isActive = pathname === section.href || pathname.startsWith(section.href + "/");
           const count = section.id === "annexes/annex1" ? (doc?.annexedOffices?.length ?? 0) : 0;
           return (
@@ -630,7 +644,8 @@ export function EditorSidebar({
             </Link>
           );
         })}
-      </div>
+        </div>
+      )}
     </nav>
   );
 
