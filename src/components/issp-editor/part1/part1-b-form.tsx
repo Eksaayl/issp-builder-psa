@@ -10,6 +10,8 @@ import { Info } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { SectionShell } from "@/components/editor/section-shell";
+import { useResolvedScope } from "@/hooks/use-resolved-scope";
+import { isFieldEditable } from "@/lib/scope/paths";
 
 interface HumanCapital {
   plantilla: {
@@ -75,7 +77,7 @@ function FormField({
 }
 
 function PersonFields({
-  prefix, title, data, onChange,
+  prefix, title, data, onChange, visibleKeys,
 }: {
   prefix: string;
   title: string;
@@ -83,54 +85,71 @@ function PersonFields({
     name: string; position: string; unit: string; email: string; contact: string;
   };
   onChange: (field: string, value: string) => void;
+  /**
+   * Optional allowlist of generic field names ("name" | "position" | "unit" |
+   * "email" | "contact") to render. When omitted (unscoped), every field shows;
+   * when provided, only the listed fields show. Empty set ⇒ no fields render.
+   */
+  visibleKeys?: Set<string>;
 }) {
+  const show = (f: string) => !visibleKeys || visibleKeys.has(f);
   return (
     <div className="space-y-4">
       {title && <p className="text-sm font-semibold text-muted-foreground">{title}</p>}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <FormField label="Full Name" htmlFor={`${prefix}-name`} className="sm:col-span-2">
-          <Input
-            id={`${prefix}-name`}
-            placeholder="e.g., Juan dela Cruz"
-            value={data.name}
-            onChange={(e) => onChange("name", e.target.value)}
-          />
-        </FormField>
-        <FormField label="Position / Designation" htmlFor={`${prefix}-position`}>
-          <Input
-            id={`${prefix}-position`}
-            placeholder="e.g., Undersecretary for ICT"
-            value={data.position}
-            onChange={(e) => onChange("position", e.target.value)}
-          />
-        </FormField>
-        <FormField label="Office / Unit" htmlFor={`${prefix}-unit`}>
-          <Input
-            id={`${prefix}-unit`}
-            placeholder="e.g., ICTSS"
-            value={data.unit}
-            onChange={(e) => onChange("unit", e.target.value)}
-          />
-        </FormField>
-        <FormField label="Email Address" htmlFor={`${prefix}-email`}>
-          <Input
-            id={`${prefix}-email`}
-            type="email"
-            placeholder="e.g., cio@dict.gov.ph"
-            value={data.email}
-            onChange={(e) => onChange("email", e.target.value)}
-          />
-        </FormField>
-        <FormField label="Contact Number" htmlFor={`${prefix}-contact`}>
-          <Input
-            id={`${prefix}-contact`}
-            type="tel"
-            inputMode="tel"
-            placeholder="e.g., +63 2 1234 5678"
-            value={data.contact}
-            onChange={(e) => onChange("contact", e.target.value)}
-          />
-        </FormField>
+        {show("name") && (
+          <FormField label="Full Name" htmlFor={`${prefix}-name`} className="sm:col-span-2">
+            <Input
+              id={`${prefix}-name`}
+              placeholder="e.g., Juan dela Cruz"
+              value={data.name}
+              onChange={(e) => onChange("name", e.target.value)}
+            />
+          </FormField>
+        )}
+        {show("position") && (
+          <FormField label="Position / Designation" htmlFor={`${prefix}-position`}>
+            <Input
+              id={`${prefix}-position`}
+              placeholder="e.g., Undersecretary for ICT"
+              value={data.position}
+              onChange={(e) => onChange("position", e.target.value)}
+            />
+          </FormField>
+        )}
+        {show("unit") && (
+          <FormField label="Office / Unit" htmlFor={`${prefix}-unit`}>
+            <Input
+              id={`${prefix}-unit`}
+              placeholder="e.g., ICTSS"
+              value={data.unit}
+              onChange={(e) => onChange("unit", e.target.value)}
+            />
+          </FormField>
+        )}
+        {show("email") && (
+          <FormField label="Email Address" htmlFor={`${prefix}-email`}>
+            <Input
+              id={`${prefix}-email`}
+              type="email"
+              placeholder="e.g., cio@dict.gov.ph"
+              value={data.email}
+              onChange={(e) => onChange("email", e.target.value)}
+            />
+          </FormField>
+        )}
+        {show("contact") && (
+          <FormField label="Contact Number" htmlFor={`${prefix}-contact`}>
+            <Input
+              id={`${prefix}-contact`}
+              type="tel"
+              inputMode="tel"
+              placeholder="e.g., +63 2 1234 5678"
+              value={data.contact}
+              onChange={(e) => onChange("contact", e.target.value)}
+            />
+          </FormField>
+        )}
       </div>
     </div>
   );
@@ -194,6 +213,16 @@ export function Part1BForm({
     return { ...initialData, focalSameAsCio: initialData.focalSameAsCio ?? false, humanCapital: merged };
   });
   const { debouncedSave } = useLocalSave("part1", "part1/b");
+
+  const scope = useResolvedScope();
+  const can = (k: string) => isFieldEditable(scope, "part1/b", k);
+  const cap = (f: string) => f.charAt(0).toUpperCase() + f.slice(1);
+  const personKeys = (prefix: "cio" | "focal") =>
+    new Set(
+      ["name", "position", "unit", "email", "contact"].filter((f) =>
+        can(`${prefix}${cap(f)}`)
+      )
+    );
 
   const update = useCallback(
     (updates: Partial<Part1BData>) => {
@@ -274,20 +303,23 @@ export function Part1BForm({
               contact: data.cioContact,
             }}
             onChange={setCio}
+            visibleKeys={personKeys("cio")}
           />
           <div className="border-t" />
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold text-muted-foreground">ISSP Focal Person</p>
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <Checkbox
-                  checked={data.focalSameAsCio}
-                  onCheckedChange={(v) => handleSameAsCio(v === true)}
-                />
-                <span className="text-xs text-muted-foreground">
-                  Concurrently held by the CIO
-                </span>
-              </label>
+              {can("focalSameAsCio") && (
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <Checkbox
+                    checked={data.focalSameAsCio}
+                    onCheckedChange={(v) => handleSameAsCio(v === true)}
+                  />
+                  <span className="text-xs text-muted-foreground">
+                    Concurrently held by the CIO
+                  </span>
+                </label>
+              )}
             </div>
             <div className={cn(data.focalSameAsCio && "opacity-50 pointer-events-none")}>
               <PersonFields
@@ -307,6 +339,7 @@ export function Part1BForm({
                   contact: data.focalContact,
                 }}
                 onChange={setFocal}
+                visibleKeys={personKeys("focal")}
               />
             </div>
           </div>
@@ -314,6 +347,7 @@ export function Part1BForm({
       </Card>
 
       {/* B.2 Human Capital */}
+      {can("humanCapital") && (
       <Card>
         <CardHeader className="pb-4">
           <CardTitle className="text-base">B.2 ICT Human Capital</CardTitle>
@@ -424,6 +458,7 @@ export function Part1BForm({
           </div>
         </CardContent>
       </Card>
+      )}
 
     </SectionShell>
   );

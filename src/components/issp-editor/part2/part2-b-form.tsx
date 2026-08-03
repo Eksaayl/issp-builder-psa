@@ -10,6 +10,8 @@ import { ChevronDown, UploadCloud, ImageIcon } from "lucide-react";
 import { ConfirmDeleteButton } from "@/components/ui/confirm-delete-button";
 import { SectionShell } from "@/components/editor/section-shell";
 import { DIAGRAM_ACCEPT, createDiagramId, getDiagramUploadError, readFileAsDataUrl } from "@/lib/diagram-upload";
+import { useResolvedScope } from "@/hooks/use-resolved-scope";
+import { isFieldEditable } from "@/lib/scope/paths";
 import { CYBER_GROUPS, type CyberControlGroup, type CyberGroupKey } from "@/lib/cyber-controls";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -178,6 +180,9 @@ export function Part2BForm({ initialData }: Part2BFormProps) {
 
   const { debouncedSave } = useLocalSave("part2", "part2/b");
 
+  const scope = useResolvedScope();
+  const can = (k: string) => isFieldEditable(scope, "part2/b", k);
+
   const saveDiagrams = useCallback(
     (updated: NetworkDiagram[]) => {
       diagramsRef.current = updated;
@@ -296,14 +301,17 @@ export function Part2BForm({ initialData }: Part2BFormProps) {
               <li>Cybersecurity components in the network</li>
             </ul>
           </div>
-          <Textarea
-            placeholder="Describe the agency's network infrastructure — topology, internet connectivity, LAN/WAN, cloud services, data centers, etc."
-            value={networkDescription}
-            onChange={(e) => handleDescChange(e.target.value)}
-            rows={6}
-          />
+          {can("networkDescription") && (
+            <Textarea
+              placeholder="Describe the agency's network infrastructure — topology, internet connectivity, LAN/WAN, cloud services, data centers, etc."
+              value={networkDescription}
+              onChange={(e) => handleDescChange(e.target.value)}
+              rows={6}
+            />
+          )}
 
           {/* Network diagram upload */}
+          {can("networkDiagrams") && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium">Network Diagrams</p>
@@ -383,10 +391,12 @@ export function Part2BForm({ initialData }: Part2BFormProps) {
               onChange={handleFileChange}
             />
           </div>
+          )}
         </CardContent>
       </Card>
 
       {/* B.2 Cybersecurity checklist */}
+      {can("cybersecurityControls") && (
       <Card>
         <CardHeader className="pb-4">
           <CardTitle className="text-base">B.2 Cybersecurity Controls</CardTitle>
@@ -406,6 +416,7 @@ export function Part2BForm({ initialData }: Part2BFormProps) {
           ))}
         </CardContent>
       </Card>
+      )}
     </SectionShell>
   );
 }
