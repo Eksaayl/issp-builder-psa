@@ -433,6 +433,11 @@ export function EditorSidebar({
 
   async function handleExportPdf() {
     if (!doc || exportState.status === "exporting") return;
+    // Scoped files must not produce a fragmented PDF — only the consolidated master exports.
+    if (doc.editScope) {
+      toast.info("PDF export is available in the consolidated master, not a scoped file.");
+      return;
+    }
     setExportState({ status: "exporting", stage: "Starting…", pct: 0 });
     try {
       const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
@@ -677,25 +682,33 @@ export function EditorSidebar({
         )}
       >
         {/* Popup header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 shrink-0">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-              ISSP Builder
-            </p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {doc.agency.acronym || doc.agency.name} · {doc.startYear}–{doc.endYear}
-              {doc.amendmentNumber > 0 && ` · A${doc.amendmentNumber}`}
-            </p>
+        <div className="px-4 py-3 border-b border-border/50 shrink-0">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+                ISSP Builder
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {doc.agency.acronym || doc.agency.name} · {doc.startYear}–{doc.endYear}
+                {doc.amendmentNumber > 0 && ` · A${doc.amendmentNumber}`}
+              </p>
+            </div>
+            <Button
+              size="icon"
+              variant="ghost"
+              aria-label="Close navigation"
+              onClick={onMobileClose}
+              className="h-7 w-7 shrink-0 text-foreground hover:bg-accent"
+            >
+              <X className="h-4 w-4" />
+            </Button>
           </div>
-          <Button
-            size="icon"
-            variant="ghost"
-            aria-label="Close navigation"
-            onClick={onMobileClose}
-            className="h-7 w-7 shrink-0 text-foreground hover:bg-accent"
-          >
-            <X className="h-4 w-4" />
-          </Button>
+          {doc.editScope && (
+            <div className="mt-2 rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-xs text-blue-900">
+              <div className="font-medium">Scoped file — {doc.editScope.office.displayLabel}</div>
+              <div className="text-blue-700">Edits: {doc.editScope.editable.join(", ")}</div>
+            </div>
+          )}
         </div>
 
         {/* Nav */}
@@ -794,15 +807,17 @@ export function EditorSidebar({
                 <Download className="h-3 w-3" />
                 Save
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className={cn("h-7 gap-1.5 px-2.5 text-xs shrink-0", sidebarControlClass)}
-                onClick={handleExportPdf}
-              >
-                <FileOutput className="h-3 w-3" />
-                PDF
-              </Button>
+              {!doc?.editScope && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn("h-7 gap-1.5 px-2.5 text-xs shrink-0", sidebarControlClass)}
+                  onClick={handleExportPdf}
+                >
+                  <FileOutput className="h-3 w-3" />
+                  PDF
+                </Button>
+              )}
               <DropdownMenu modal={false}>
                 <DropdownMenuTrigger
                   aria-label="More file actions"
@@ -874,6 +889,12 @@ export function EditorSidebar({
               </Button>
             </div>
           </div>
+          {doc.editScope && (
+            <div className="mx-3 mb-2 rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-xs text-blue-900">
+              <div className="font-medium">Scoped file — {doc.editScope.office.displayLabel}</div>
+              <div className="text-blue-700">Edits: {doc.editScope.editable.join(", ")}</div>
+            </div>
+          )}
         </div>
 
         {/* Nav */}
@@ -1099,20 +1120,22 @@ export function EditorSidebar({
               </div>
 
               {/* Secondary actions */}
-              <div className="grid grid-cols-2 gap-2">
+              <div className={cn("grid gap-2", doc?.editScope ? "grid-cols-1" : "grid-cols-2")}>
                 <Button variant="outline" size="sm" className={cn("justify-start gap-2 text-xs", sidebarControlClass)} onClick={() => setPropsOpen(true)}>
                   <Settings2 className="h-3.5 w-3.5" />
                   Properties
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={cn("justify-start gap-2 text-xs", sidebarControlClass)}
-                  onClick={handleExportPdf}
-                >
-                  <FileOutput className="h-3.5 w-3.5" />
-                  Export PDF
-                </Button>
+                {!doc?.editScope && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn("justify-start gap-2 text-xs", sidebarControlClass)}
+                    onClick={handleExportPdf}
+                  >
+                    <FileOutput className="h-3.5 w-3.5" />
+                    Export PDF
+                  </Button>
+                )}
               </div>
             </>
           )}
