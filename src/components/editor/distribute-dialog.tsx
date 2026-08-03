@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { uuid } from "@/lib/uuid";
 import {
   Dialog,
   DialogContent,
@@ -132,7 +133,7 @@ interface OfficeEntry {
 }
 
 function newOffice(): OfficeEntry {
-  return { officeId: crypto.randomUUID(), name: "", leaves: new Set() };
+  return { officeId: uuid(), name: "", leaves: new Set() };
 }
 
 // ─── Tri-state node helpers ───────────────────────────────────────────────────
