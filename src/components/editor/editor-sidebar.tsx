@@ -31,6 +31,7 @@ import {
   ChevronDown,
   Download,
   FileOutput,
+  FolderInput,
   FolderOpen,
   Loader2,
   Check,
@@ -51,6 +52,7 @@ import { getChangedFields, type SectionField } from "@/lib/section-fields";
 import { StatusDot } from "@/components/ui/status-dot";
 import { IsspPropertiesDialog } from "./issp-properties-dialog";
 import { DistributeDialog } from "./distribute-dialog";
+import { ConsolidateDialog } from "./consolidate-dialog";
 import { THEMES, isThemeId, useTheme, type ThemeId } from "@/lib/theme";
 import { toast } from "sonner";
 
@@ -321,6 +323,7 @@ export function EditorSidebar({
   const [expandedParts, setExpandedParts] = useState<Set<number>>(new Set([1, 2, 3, 4]));
   const [propsOpen, setPropsOpen] = useState(false);
   const [distributeOpen, setDistributeOpen] = useState(false);
+  const [consolidateOpen, setConsolidateOpen] = useState(false);
   const [exportState, setExportState] = useState<ExportState>({ status: "idle" });
   const [clearStep, setClearStep] = useState<"idle" | "step1" | "step2">("idle");
   const [showChanges, setShowChanges] = useState(false);
@@ -1141,15 +1144,26 @@ export function EditorSidebar({
                 )}
               </div>
               {!doc?.editScope && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={cn("w-full justify-start gap-2 text-xs", sidebarControlClass)}
-                  onClick={() => setDistributeOpen(true)}
-                >
-                  <Share2 className="h-3.5 w-3.5" />
-                  Distribute to offices
-                </Button>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn("justify-start gap-1.5 text-xs", sidebarControlClass)}
+                    onClick={() => setDistributeOpen(true)}
+                  >
+                    <Share2 className="h-3.5 w-3.5" />
+                    Distribute
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn("justify-start gap-1.5 text-xs", sidebarControlClass)}
+                    onClick={() => setConsolidateOpen(true)}
+                  >
+                    <FolderInput className="h-3.5 w-3.5" />
+                    Consolidate
+                  </Button>
+                </div>
               )}
             </>
           )}
@@ -1179,6 +1193,7 @@ export function EditorSidebar({
 
         <IsspPropertiesDialog open={propsOpen} onClose={() => setPropsOpen(false)} />
         <DistributeDialog open={distributeOpen} onClose={() => setDistributeOpen(false)} />
+        <ConsolidateDialog open={consolidateOpen} onClose={() => setConsolidateOpen(false)} />
       </aside>
     </>
   );

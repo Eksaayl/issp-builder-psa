@@ -95,8 +95,10 @@ function strategyFor(
  *  - **Same non-shared path, ≥2 owners, list-valued**: union the contributed
  *    items and set a review flag on the section — never silently discard.
  *  - **Same scalar field, ≥2 owners, values differ**: record a
- *    {@link ScalarConflict}; do NOT silently pick. The merged doc keeps the
- *    master's existing value for that field; Task 10's review screen resolves it.
+ *    {@link ScalarConflict} and flag the section for review; do NOT silently
+ *    pick. The merged doc keeps the master's existing value for that field;
+ *    Task 10's review screen resolves it (and the flag persists post-apply so
+ *    downstream reviewers see the contested write).
  *  - **Same scalar field, ≥2 owners, all values equal**: implicit agreement —
  *    overlay the agreed value once (no conflict, nothing for human review).
  *    Per spec a conflict arises only when a field is "written differently."
@@ -132,7 +134,10 @@ export function consolidate(master: IsspDocument, files: IsspDocument[]): Consol
   }
 
   // Multi-owner scalar conflicts are emitted once, up front, from the strategy
-  // pass — independent of file iteration order.
+  // pass — independent of file iteration order. A section with at least one
+  // scalar conflict is also flagged for review: the secretariat resolved the
+  // field to a single value, but downstream reviewers (Task 11 banner) should
+  // still see that a contested write landed there.
   for (const [key, strat] of strategy) {
     if (strat !== "scalar-conflict") continue;
     const dot = key.indexOf(".");
@@ -140,6 +145,7 @@ export function consolidate(master: IsspDocument, files: IsspDocument[]): Consol
     const fk = key.slice(dot + 1);
     const partKey = partKeyFor(sid);
     if (!partKey) continue;
+    reviewFlags.add(sid);
     scalarConflicts.push({
       sectionId: sid,
       fieldKey: fk,

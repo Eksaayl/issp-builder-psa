@@ -14,6 +14,8 @@ import { createEmptyDocument, makeDefaultPart1, makeDefaultPart2, makeDefaultPar
 import { idbClear, idbLoad, idbSave } from "./idb";
 import { CURRENT_SCHEMA_VERSION, getRequiredMigrationReviewSectionIds } from "@/lib/migration-review";
 import { recordIsspUsage } from "@/lib/record-usage";
+import { consolidate, type ScalarConflict } from "@/lib/scope/consolidate";
+import { SECTION_FIELDS } from "@/lib/section-fields";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -21,6 +23,16 @@ export type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 export type StoreActionResult = { success: true; migrationReview?: MigrationReview } | { success: false; error: string };
 export interface LoadFromFileOptions { recordUsage?: boolean }
+
+/**
+ * Outcome of a consolidate-merge apply. On success, the dialog surfaces
+ * `reviewFlags` (sections needing human dedup — Task 11 banner) and
+ * `scalarConflicts` that were resolved during this apply (informational — the
+ * resolutions are already written into the merged doc).
+ */
+export type ConsolidateActionResult =
+  | { success: true; reviewFlags: string[]; scalarConflicts: ScalarConflict[] }
+  | { success: false; error: string };
 
 export interface IsspStoreValue {
   doc: IsspDocument | null;
@@ -53,6 +65,18 @@ export interface IsspStoreValue {
   saveToFile: () => Promise<StoreActionResult>;
   /** Parse a .issp file and load it into the store. */
   loadFromFile: (file: File, options?: LoadFromFileOptions) => Promise<StoreActionResult>;
+  /**
+   * Merge one or more returned scoped `.issp` files into the current master.
+   * The dialog computes a pure preview via {@link parseScopedIsspFile} +
+   * `consolidate()`; this action re-parses, applies the secretariat's scalar-
+   * conflict `resolutions` (keyed `${sectionId}.${fieldKey}`), then writes the
+   * merged doc. Non-scoped / malformed files are named in `error` — never
+   * silently dropped. Returns flags/conflicts so the dialog can toast + surface.
+   */
+  consolidateFiles: (
+    files: File[],
+    resolutions?: Record<string, unknown>
+  ) => Promise<ConsolidateActionResult>;
 }
 
 const MAX_ISSP_FILE_SIZE_BYTES = 50 * 1024 * 1024;
@@ -213,6 +237,43 @@ function normalizeImportShape(raw: unknown): { success: true; doc: IsspDocument 
   } as IsspDocument;
 
   return { success: true, doc };
+}
+
+/**
+ * Parse and validate a single returned scoped `.issp` file — the shared gate
+ * between the consolidate dialog's pure preview and the {@link consolidateFiles}
+ * store action. Rejects non-`.issp-main`, files missing `editScope` (i.e., a
+ * plain master dropped into Consolidate), and the same size/image gates as
+ * {@link loadFromFile}. Does NOT migrate — scoped files are v11+ by construction
+ * (Phase 1+ feature); the consolidate engine reads fields by shape, not version.
+ *
+ * Returns the file's name in the error string so a reject toast can name it.
+ */
+export async function parseScopedIsspFile(
+  file: File
+): Promise<{ success: true; doc: IsspDocument } | { success: false; error: string }> {
+  try {
+    if (file.size > MAX_ISSP_FILE_SIZE_BYTES) {
+      return { success: false, error: `"${file.name}" is too large to load safely.` };
+    }
+    const text = await file.text();
+    const parsed = JSON.parse(text) as unknown;
+    const normalized = normalizeImportShape(parsed);
+    if (!normalized.success) return { success: false, error: `"${file.name}": ${normalized.error}` };
+    if (!normalized.doc.editScope) {
+      // A non-scoped file in the consolidate slot is rejected with a clear
+      // pointer to "Load different ISSP…" — never silently merged as-is.
+      return {
+        success: false,
+        error: `"${file.name}" is not a scoped office file. Use "Load different ISSP…" to open it as the master.`,
+      };
+    }
+    const imageValidation = validateEmbeddedImages(normalized.doc);
+    if (!imageValidation.success) return { success: false, error: `"${file.name}": ${imageValidation.error}` };
+    return { success: true, doc: normalized.doc };
+  } catch {
+    return { success: false, error: `"${file.name}" could not be read as a valid .issp file.` };
+  }
 }
 
 function estimateBase64Bytes(dataUrl: string): number {
@@ -970,6 +1031,67 @@ export function IsspStoreProvider({ children }: { children: ReactNode }) {
     );
   }, [update]);
 
+  const consolidateFiles = useCallback(
+    async (
+      files: File[],
+      resolutions: Record<string, unknown> = {}
+    ): Promise<ConsolidateActionResult> => {
+      if (!doc) return { success: false, error: "No ISSP document is loaded." };
+      // Masters only — a scoped file can't itself be a consolidate target.
+      if (doc.editScope) {
+        return { success: false, error: "Consolidate is only available on the master document." };
+      }
+      if (files.length === 0) {
+        return { success: false, error: "Select at least one returned .issp file." };
+      }
+
+      // Re-parse + validate each file via the same gate as the dialog preview.
+      // A rejected file is named in the error toast — never silently dropped.
+      const parsed: IsspDocument[] = [];
+      const rejected: string[] = [];
+      for (const f of files) {
+        const r = await parseScopedIsspFile(f);
+        if (r.success) parsed.push(r.doc);
+        else rejected.push(r.error);
+      }
+      if (rejected.length > 0) {
+        return { success: false, error: `Could not consolidate: ${rejected.join("; ")}` };
+      }
+
+      // Pure merge — the merge engine itself takes no resolutions param.
+      const result = consolidate(doc, parsed);
+      const merged = result.merged;
+
+      // Apply the secretariat's scalar-conflict resolutions as a UI-layer
+      // overlay on the merged doc. Keys are `${sectionId}.${fieldKey}`; values
+      // are the chosen scalars. `consolidate()` leaves conflicting fields at
+      // the master's existing value, so unresolved conflicts keep the master
+      // value (no silent pick) — but the dialog gates Apply on every conflict
+      // having an explicit radio, so this path is belt-and-braces. Deep-clone
+      // so the merged doc shares no reference with the dialog's choice state.
+      for (const [key, value] of Object.entries(resolutions)) {
+        const dot = key.indexOf(".");
+        const sid = key.slice(0, dot);
+        const fk = key.slice(dot + 1);
+        // Only regular Part I–IV sections can produce scalar conflicts
+        // (annex1 is a shared table; definitions is a single leaf object).
+        const partKey = SECTION_FIELDS[sid]?.partKey;
+        if (!partKey) continue;
+        const target = merged[partKey] as unknown as Record<string, unknown>;
+        target[fk] = structuredClone(value);
+      }
+
+      setDoc(merged);
+      scheduleSave(merged);
+      return {
+        success: true,
+        reviewFlags: result.reviewFlags,
+        scalarConflicts: result.scalarConflicts,
+      };
+    },
+    [doc, scheduleSave]
+  );
+
   const unsavedToFile = !doc
     ? false
     : savedSnapshot
@@ -998,6 +1120,7 @@ export function IsspStoreProvider({ children }: { children: ReactNode }) {
         clearDoc,
         saveToFile,
         loadFromFile,
+        consolidateFiles,
       }}
     >
       {children}
