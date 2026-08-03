@@ -65,5 +65,10 @@ export function sliceScopedDoc(master: IsspDocument, spec: DistributeSpec): Issp
     generatedAt: now,
     sourceDocId: spec.sourceDocId,
   };
-  return { ...sliced, editScope, exportedAt: now };
+  // Deep-clone so the returned doc shares NO references with the live master.
+  // IsspDocument is plain JSON-serializable data (ISO strings, numbers, arrays,
+  // plain objects — no functions or Date instances), and the runtime already
+  // requires a modern baseline (crypto.randomUUID is used elsewhere), so
+  // structuredClone is safe here and the cheapest correct option.
+  return structuredClone({ ...sliced, editScope, exportedAt: now });
 }

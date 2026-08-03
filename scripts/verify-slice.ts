@@ -20,6 +20,9 @@ const base = createEmptyDocument({
 });
 // Owned field in master.
 base.part1.cioName = "Atty. Cruz";
+// Owned NESTED object field in master — used to prove deep isolation. The
+// default is 0; seeding 7 makes any leak from a shared reference detectable.
+base.part1.humanCapital.plantilla.it.male = 7;
 // Non-owned field in master — MUST NOT leak into the slice.
 base.part1.cioEmail = "leak-test@agency.gov.ph";
 // Shared table row in master — MUST be emptied in the slice.
@@ -38,7 +41,7 @@ base.annexedOffices = [
 
 const spec: DistributeSpec = {
   office: { id: "b", name: "IS Div", displayLabel: "Information Systems Division" },
-  editable: ["part1/b.cioName", "part1/c.stakeholders"],
+  editable: ["part1/b.cioName", "part1/b.humanCapital", "part1/c.stakeholders"],
   sourceDocId: "master-1",
 };
 const sliced = sliceScopedDoc(base, spec);
@@ -82,5 +85,23 @@ assert.ok(
 // 8. Sliced doc is a fresh object — mutating it must not touch the master.
 sliced.part1.cioName = "MUTATED";
 assert.equal(base.part1.cioName, "Atty. Cruz", "mutation of slice must not leak back to master");
+
+// 9. DEEP isolation: an owned nested object field is cloned, not shared by
+//    reference. The slice copies the owned humanCapital value from the master
+//    (it's owned via part1/b.humanCapital), then we mutate a nested leaf on
+//    the slice and assert the master's nested leaf is unchanged. Reverting
+//    Fix 1 (structuredClone) would re-introduce dstPart[f.key] = srcPart[f.key]
+//    shallow sharing on humanCapital → this assertion would fail.
+assert.equal(
+  sliced.part1.humanCapital.plantilla.it.male,
+  7,
+  "owned nested object field must be copied from master"
+);
+sliced.part1.humanCapital.plantilla.it.male = 999;
+assert.equal(
+  base.part1.humanCapital.plantilla.it.male,
+  7,
+  "deep mutation of slice's nested field must not leak back to master"
+);
 
 console.log("✓ slice verification passed");

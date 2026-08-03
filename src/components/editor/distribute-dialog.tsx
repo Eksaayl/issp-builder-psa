@@ -289,7 +289,8 @@ export function DistributeDialog({
         const a = document.createElement("a");
         a.href = url;
         const slug = slugify(office.displayLabel) || "office";
-        a.download = `${doc.agency.acronym || "agency"}-ISSP-${doc.startYear}-${doc.endYear}-${slug}.issp`;
+        const fname = `${slugify(doc.agency.acronym || "agency")}-ISSP-${doc.startYear}-${doc.endYear}-${slug}.issp`;
+        a.download = fname;
         document.body.appendChild(a);
         a.click();
         a.remove();
