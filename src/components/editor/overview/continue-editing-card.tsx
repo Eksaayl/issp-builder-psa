@@ -8,11 +8,27 @@ import { findContinueTarget } from "@/lib/sections";
 
 export function ContinueEditingCard({
   sectionMeta,
+  visibleSectionIds,
 }: {
   sectionMeta: Record<string, SectionMeta>;
+  /**
+   * Optional set of section ids the current office can see. When supplied
+   * (scoped doc), the continue target is picked only from this set so the card
+   * never surfaces a link to a hidden section. Omit (or pass null/empty) for an
+   * unscoped doc — every part section is eligible, matching the original behavior.
+   */
+  visibleSectionIds?: Set<string> | null;
 }) {
-  const hasAnyEdit = Object.values(sectionMeta).some((m) => m.lastEditedAt);
-  const { section, part, lastEditedAt } = findContinueTarget(sectionMeta);
+  // When a scope is supplied, only count edits the office owns — otherwise an
+  // unscoped-looking fallback ("Continue where you left off") shows even if no
+  // owned section has been touched. Null scope ⇒ original "any edit" check.
+  const hasAnyEdit =
+    !visibleSectionIds || visibleSectionIds.size === 0
+      ? Object.values(sectionMeta).some((m) => m.lastEditedAt)
+      : Object.entries(sectionMeta).some(
+          ([id, m]) => m.lastEditedAt && visibleSectionIds.has(id)
+        );
+  const { section, part, lastEditedAt } = findContinueTarget(sectionMeta, visibleSectionIds);
 
   return (
     <Link

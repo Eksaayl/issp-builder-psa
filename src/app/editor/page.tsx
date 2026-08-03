@@ -31,6 +31,9 @@ function OverviewView() {
   ).length;
   const pendingSectionIds = doc.migrationReview?.pendingSectionIds ?? [];
   const firstPendingSection = getMigrationReviewSection(pendingSectionIds[0] ?? "");
+  // Pass the visible set to the Continue card so it can't link to a hidden
+  // section. Null scope ⇒ null set ⇒ findContinueTarget considers all sections.
+  const continueVisibleIds = scope ? new Set(visibleSections.map((s) => s.id)) : null;
 
   // Scoped docs hide non-owned sections across the overview. Null scope ⇒ all visible.
   const visibleFrontMatter = FRONT_MATTER_SECTIONS.filter((s) => isSectionVisible(scope, s.id));
@@ -57,7 +60,7 @@ function OverviewView() {
           )}
         </div>
       )}
-      <ContinueEditingCard sectionMeta={sectionMeta} />
+      <ContinueEditingCard sectionMeta={sectionMeta} visibleSectionIds={continueVisibleIds} />
       {visibleFrontMatter.length > 0 && (
         <div className="rounded-xl border bg-card overflow-hidden transition-[border-color,box-shadow] duration-150 motion-reduce:transition-none focus-within:border-foreground/30 focus-within:shadow-md">
           {visibleFrontMatter.map((section) => (

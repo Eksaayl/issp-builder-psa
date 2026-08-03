@@ -704,9 +704,9 @@ export function EditorSidebar({
             </Button>
           </div>
           {doc.editScope && (
-            <div className="mt-2 rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-xs text-blue-900">
+            <div className="mt-2 rounded-md border border-info-border bg-info-bg px-2.5 py-1.5 text-xs text-info">
               <div className="font-medium">Scoped file — {doc.editScope.office.displayLabel}</div>
-              <div className="text-blue-700">Edits: {doc.editScope.editable.join(", ")}</div>
+              <div className="text-info/80">Edits: {doc.editScope.editable.join(", ")}</div>
             </div>
           )}
         </div>
@@ -890,9 +890,9 @@ export function EditorSidebar({
             </div>
           </div>
           {doc.editScope && (
-            <div className="mx-3 mb-2 rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-xs text-blue-900">
+            <div className="mx-3 mb-2 rounded-md border border-info-border bg-info-bg px-2.5 py-1.5 text-xs text-info">
               <div className="font-medium">Scoped file — {doc.editScope.office.displayLabel}</div>
-              <div className="text-blue-700">Edits: {doc.editScope.editable.join(", ")}</div>
+              <div className="text-info/80">Edits: {doc.editScope.editable.join(", ")}</div>
             </div>
           )}
         </div>

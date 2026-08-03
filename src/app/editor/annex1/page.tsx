@@ -7,6 +7,9 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useIsspStore } from "@/lib/store";
 import { useEditorMobileSidebar } from "@/components/editor/editor-mobile-sidebar-context";
+import { ScopeGuardPanel } from "@/components/editor/scope-guard-panel";
+import { useResolvedScope } from "@/hooks/use-resolved-scope";
+import { isSectionVisible } from "@/lib/scope/paths";
 import type { Annex1FilePayload } from "@/lib/store/types";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -29,10 +32,19 @@ export default function EditorAnnex1Page() {
   const { doc, loading, update } = useIsspStore();
   const router = useRouter();
   const mobileSidebar = useEditorMobileSidebar();
+  const scope = useResolvedScope();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (loading) return null;
   if (!doc) { router.replace("/editor"); return null; }
+
+  // Scope guard: a scoped office whose editScope doesn't include "annexes/annex1"
+  // can't read or modify the attached offices. Bypass the page body (so
+  // handleFiles/removeOffice can't run) and surface the same panel SectionShell
+  // uses for hidden sections. Null scope ⇒ isSectionVisible is true ⇒ skipped.
+  if (doc.editScope && !isSectionVisible(scope, "annexes/annex1")) {
+    return <ScopeGuardPanel />;
+  }
 
   const attached: Annex1FilePayload[] = doc.annexedOffices ?? [];
   // Scoped: stamp attached payloads with this doc's office id (a returned scoped file

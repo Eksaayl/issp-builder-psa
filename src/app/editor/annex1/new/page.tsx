@@ -3,18 +3,33 @@
 import { useRouter } from "next/navigation";
 import { OfficeSelector, type OfficeSelection } from "@/components/annex1/office-selector";
 import { useEditorMobileSidebar } from "@/components/editor/editor-mobile-sidebar-context";
+import { ScopeGuardPanel } from "@/components/editor/scope-guard-panel";
+import { useResolvedScope } from "@/hooks/use-resolved-scope";
+import { isSectionVisible } from "@/lib/scope/paths";
+import { useIsspStore } from "@/lib/store";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 
 export default function EditorAnnex1NewPage() {
   const router = useRouter();
   const mobileSidebar = useEditorMobileSidebar();
+  const { doc, loading } = useIsspStore();
+  const scope = useResolvedScope();
 
   function handleContinue(s: OfficeSelection) {
     const params = new URLSearchParams({ type: s.type });
     if (s.region) params.set("region", s.region);
     if (s.type === "field" && s.name) params.set("name", s.name);
     router.push(`/editor/annex1/edit?${params.toString()}`);
+  }
+
+  // Scope guard mirrors /editor/annex1: a scoped doc without annex1 ownership
+  // gets the panel instead of the office selector (so handleContinue can't run).
+  // Null scope ⇒ isSectionVisible is true ⇒ the page renders as before.
+  if (loading) return null;
+  if (!doc) { router.replace("/editor"); return null; }
+  if (doc.editScope && !isSectionVisible(scope, "annexes/annex1")) {
+    return <ScopeGuardPanel />;
   }
 
   return (

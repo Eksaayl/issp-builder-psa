@@ -7,6 +7,9 @@ import { toast } from "sonner";
 import { InventoryEditor } from "@/components/annex1/inventory-editor";
 import { useIsspStore } from "@/lib/store";
 import { useEditorMobileSidebar } from "@/components/editor/editor-mobile-sidebar-context";
+import { ScopeGuardPanel } from "@/components/editor/scope-guard-panel";
+import { useResolvedScope } from "@/hooks/use-resolved-scope";
+import { isSectionVisible } from "@/lib/scope/paths";
 import {
   buildDisplayLabel,
   defaultEquipmentRows,
@@ -22,9 +25,17 @@ export function EditorAnnex1EditContent() {
   const params = useSearchParams();
   const { doc, loading, update } = useIsspStore();
   const mobileSidebar = useEditorMobileSidebar();
+  const scope = useResolvedScope();
 
   if (loading) return null;
   if (!doc) { router.replace("/editor"); return null; }
+
+  // Scope guard mirrors /editor/annex1: a scoped doc without annex1 ownership
+  // gets the panel instead of the inventory editor (so handleUpdate/handleAdd
+  // can't run). Null scope ⇒ isSectionVisible is true ⇒ the page renders as before.
+  if (doc.editScope && !isSectionVisible(scope, "annexes/annex1")) {
+    return <ScopeGuardPanel />;
+  }
 
   const key = params.get("key");
   const typeParam = params.get("type");

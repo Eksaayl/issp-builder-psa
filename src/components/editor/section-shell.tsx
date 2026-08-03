@@ -11,6 +11,7 @@ import { ALL_SECTIONS, PARTS, computeStatus } from "@/lib/sections";
 import { useResolvedScope } from "@/hooks/use-resolved-scope";
 import { isSectionVisible } from "@/lib/scope/paths";
 import { useEditorMobileSidebar } from "./editor-mobile-sidebar-context";
+import { ScopeGuardPanel } from "./scope-guard-panel";
 
 // Header collapses past COLLAPSE_PX and only expands again once scrolled back
 // above EXPAND_PX. The gap between the two (hysteresis) stops the header from
@@ -102,44 +103,7 @@ export function SectionShell({
   // small notice instead of the form. Null scope ⇒ isSectionVisible is true ⇒
   // this never renders, so unscoped behavior is unchanged.
   if (!isSectionVisible(scope, sectionId)) {
-    return (
-      <div className="space-y-6">
-        <div className="sticky top-0 z-10 -mx-4 px-4 md:-mx-8 md:px-8 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b -mt-4 md:-mt-8">
-          <div className="py-3 flex items-center gap-1.5 text-xs text-muted-foreground">
-            <button
-              type="button"
-              aria-label="Open editor navigation"
-              onClick={mobileSidebar?.openMobileSidebar}
-              className="md:hidden -ml-1 mr-1 inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
-            >
-              <Menu className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => router.push("/editor")}
-              className="hover:text-foreground transition-colors flex items-center gap-1"
-            >
-              <LayoutDashboard className="h-3 w-3" />
-              Overview
-            </button>
-          </div>
-        </div>
-        <div className="flex gap-3 rounded-lg border border-border bg-card px-4 py-6 text-sm">
-          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
-          <div className="space-y-1">
-            <p className="font-semibold text-foreground">This section isn&apos;t part of your assigned scope.</p>
-            <p className="text-muted-foreground leading-relaxed">
-              Your office&apos;s copy of this ISSP only includes the sections you&apos;re responsible for. Return to the overview to continue editing the sections assigned to you.
-            </p>
-            <div className="pt-2">
-              <Button onClick={() => router.push("/editor")} className="gap-1.5">
-                <LayoutDashboard className="h-4 w-4" />
-                Return to Overview
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <ScopeGuardPanel />;
   }
 
   return (
