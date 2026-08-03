@@ -855,6 +855,19 @@ export function EditorSidebar({
                       <ThemeMenuItems />
                     </DropdownMenuSubContent>
                   </DropdownMenuSub>
+                  {!doc?.editScope && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => setDistributeOpen(true)}>
+                        <Share2 className="h-3.5 w-3.5 mr-2" />
+                        Distribute to offices…
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setConsolidateOpen(true)}>
+                        <FolderInput className="h-3.5 w-3.5 mr-2" />
+                        Consolidate returned files…
+                      </DropdownMenuItem>
+                    </>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem variant="destructive" onClick={() => setClearStep("step1")}>
                     <Trash2 className="h-3.5 w-3.5 mr-2" />
@@ -1116,6 +1129,19 @@ export function EditorSidebar({
                         <ThemeMenuItems onThemeSelected={dismissThemeNudge} />
                       </DropdownMenuSubContent>
                     </DropdownMenuSub>
+                    {!doc?.editScope && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => setDistributeOpen(true)}>
+                          <Share2 className="h-3.5 w-3.5 mr-2" />
+                          Distribute to offices…
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setConsolidateOpen(true)}>
+                          <FolderInput className="h-3.5 w-3.5 mr-2" />
+                          Consolidate returned files…
+                        </DropdownMenuItem>
+                      </>
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       variant="destructive"
@@ -1146,28 +1172,6 @@ export function EditorSidebar({
                   </Button>
                 )}
               </div>
-              {!doc?.editScope && (
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className={cn("justify-start gap-1.5 text-xs", sidebarControlClass)}
-                    onClick={() => setDistributeOpen(true)}
-                  >
-                    <Share2 className="h-3.5 w-3.5" />
-                    Distribute
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className={cn("justify-start gap-1.5 text-xs", sidebarControlClass)}
-                    onClick={() => setConsolidateOpen(true)}
-                  >
-                    <FolderInput className="h-3.5 w-3.5" />
-                    Consolidate
-                  </Button>
-                </div>
-              )}
             </>
           )}
 
