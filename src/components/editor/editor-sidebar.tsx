@@ -344,6 +344,7 @@ export function EditorSidebar({
     const groups: { part: PartDef | null; sections: readonly SectionDef[] }[] = [
       { part: null, sections: FRONT_MATTER_SECTIONS },
       ...PARTS.map((part) => ({ part, sections: part.sections })),
+      { part: null, sections: ANNEX_SECTIONS },
     ];
     if (savedSnapshot) {
       for (const { part, sections } of groups) {
