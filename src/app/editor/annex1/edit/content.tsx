@@ -23,7 +23,7 @@ import {
 export function EditorAnnex1EditContent() {
   const router = useRouter();
   const params = useSearchParams();
-  const { doc, loading, update } = useIsspStore();
+  const { doc, loading, update, updateSectionMeta } = useIsspStore();
   const mobileSidebar = useEditorMobileSidebar();
   const scope = useResolvedScope();
 
@@ -61,6 +61,7 @@ export function EditorAnnex1EditContent() {
           a.office.displayLabel === key ? stamped : a
         ),
       }));
+      updateSectionMeta("annexes/annex1", { lastEditedAt: new Date().toISOString() });
       toast.success("Office updated");
       return true;
     }
@@ -112,6 +113,7 @@ export function EditorAnnex1EditContent() {
         return false;
       }
       update((prev) => ({ ...prev, annexedOffices: [...(prev.annexedOffices ?? []), stamped] }));
+      updateSectionMeta("annexes/annex1", { lastEditedAt: new Date().toISOString() });
       toast.success("Office added");
       return true;
     }

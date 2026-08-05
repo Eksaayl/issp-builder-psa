@@ -54,7 +54,6 @@ async function loadFixtureAndGoto(page, fixturePath, targetPath, readyText) {
   }, targetPath);
   if (!clicked) throw new Error(`sidebar link to ${targetPath} not found`);
   await page.waitForFunction((p) => location.pathname === p, { timeout: 15000 }, targetPath);
-  await page.waitForFunction((p) => location.pathname === p, { timeout: 15000 }, targetPath);
   if (readyText) await page.waitForSelector(`text/${readyText}`, { timeout: 15000 });
   await new Promise((r) => setTimeout(r, 600));
 }
@@ -151,7 +150,64 @@ try {
     console.log("----------------------------");
     console.log("hasAnnex1:", hasAnnex1, "hasCentralOffice:", hasCentral);
     console.log(ok ? "PASS: tracker lists Annex 1 / Central Office" : "FAIL: tracker missing Annex 1");
-    exitCode = ok ? 0 : 1;
+
+    // 3. The Annex 1 nav leaf should now carry an in_progress StatusDot. The leaf
+    //    had NO StatusDot at all before Task 2; after stamping lastEditedAt on
+    //    save, computeStatus returns "in_progress" and StatusDot renders
+    //    `<span aria-label="in progress" class="...rounded-full bg-info...">`.
+    //    We detect via aria-label — the count badge also uses `rounded-full`
+    //    but has no aria-label, so this is unambiguous. (The brief's "amber"
+    //    colour is actually the `info` token in this app — see status-dot.tsx.)
+    const dotInProgress = await page.evaluate(() => {
+      const links = [...document.querySelectorAll('a[href="/editor/annex1"]')];
+      const leaf = links.find((a) => /Annex 1/i.test(a.textContent || ""));
+      if (!leaf) return { dot: false, inProgress: false };
+      const dot = !!leaf.querySelector(
+        'span[aria-label="in progress"], span[aria-label="done"], span[aria-label="empty"]'
+      );
+      const inProgress = !!leaf.querySelector('span[aria-label="in progress"]');
+      return { dot, inProgress };
+    });
+    const dotAmber = dotInProgress.dot && dotInProgress.inProgress;
+    console.log(
+      `annex1 leaf: dot=${dotInProgress.dot} inProgress=${dotInProgress.inProgress}\n` +
+      (dotAmber ? "PASS: annex1 dot present and in_progress" : "FAIL: annex1 dot missing or not in_progress")
+    );
+
+    // 4. Fresh page load — deriveMetaFromContent should keep the dot in_progress
+    //    because offices exist (annexedOffices.length > 0). This proves the
+    //    fresh-load fallback tracker path works for Annex 1 (store re-reads from
+    //    IDB; savedSnapshot is null after a cold load → fallback path runs).
+    //    We use a new page rather than page.reload() because the editor's post-save
+    //    state (pending IDB transaction / HMR socket) prevents same-tab navigation
+    //    from committing within Puppeteer's timeout; a fresh tab hits the same
+    //    store-reinit code path and is the cleaner test of "after reload".
+    const fresh = await browser.newPage();
+    await fresh.setViewport({ width: 1280, height: 900 });
+    await fresh.goto(BASE + "/editor/annex1", { waitUntil: "domcontentloaded", timeout: 60000 });
+    await fresh.waitForSelector('a[href="/editor/annex1"]', { timeout: 15000 });
+    // Store re-init from IDB is async; give the doc/loading state time to resolve.
+    await new Promise((r) => setTimeout(r, 1500));
+    const dotAfterReload = await fresh.evaluate(() => {
+      const leaf = [...document.querySelectorAll('a[href="/editor/annex1"]')]
+        .find((a) => /Annex 1/i.test(a.textContent || ""));
+      if (!leaf) return { dot: false, inProgress: false };
+      return {
+        dot: !!leaf.querySelector(
+          'span[aria-label="in progress"], span[aria-label="done"], span[aria-label="empty"]'
+        ),
+        inProgress: !!leaf.querySelector('span[aria-label="in progress"]'),
+      };
+    });
+    await fresh.close();
+    const dotAmberAfterReload = dotAfterReload.dot && dotAfterReload.inProgress;
+    console.log(
+      `after reload: dot=${dotAfterReload.dot} inProgress=${dotAfterReload.inProgress}\n` +
+      (dotAmberAfterReload ? "PASS: annex1 dot in_progress after reload" : "FAIL: annex1 dot not in_progress after reload")
+    );
+
+    const allOk = ok && dotAmber && dotAmberAfterReload;
+    exitCode = allOk ? 0 : 1;
   }
   await page.close();
 } catch (e) {

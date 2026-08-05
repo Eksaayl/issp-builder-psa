@@ -29,7 +29,7 @@ function totals(a: Annex1FilePayload) {
 }
 
 export default function EditorAnnex1Page() {
-  const { doc, loading, update } = useIsspStore();
+  const { doc, loading, update, updateSectionMeta } = useIsspStore();
   const router = useRouter();
   const mobileSidebar = useEditorMobileSidebar();
   const scope = useResolvedScope();
@@ -71,6 +71,7 @@ export default function EditorAnnex1Page() {
     }
     if (toAdd.length > 0) {
       update((prev) => ({ ...prev, annexedOffices: [...(prev.annexedOffices ?? []), ...toAdd] }));
+      updateSectionMeta("annexes/annex1", { lastEditedAt: new Date().toISOString() });
       toast.success(`${toAdd.length} office${toAdd.length > 1 ? "s" : ""} attached`);
     }
     for (const err of errors) toast.error(err);
@@ -82,6 +83,7 @@ export default function EditorAnnex1Page() {
       ...prev,
       annexedOffices: (prev.annexedOffices ?? []).filter((a) => a.office.displayLabel !== displayLabel),
     }));
+    updateSectionMeta("annexes/annex1", { lastEditedAt: new Date().toISOString() });
     toast.success("Office removed");
   }
 

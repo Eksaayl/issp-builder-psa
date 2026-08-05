@@ -638,6 +638,7 @@ export function EditorSidebar({
           {visibleAnnexes.map((section) => {
           const isActive = pathname === section.href || pathname.startsWith(section.href + "/");
           const count = section.id === "annexes/annex1" ? (doc?.annexedOffices?.length ?? 0) : 0;
+          const status = computeStatus(sectionMeta[section.id]);
           return (
             <Link
               key={section.id}
@@ -650,6 +651,7 @@ export function EditorSidebar({
                   : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
               )}
             >
+              <StatusDot status={status} size={6} className="shrink-0" />
               <span className="truncate flex-1">{section.label}</span>
               {count > 0 && (
                 <span className="shrink-0 text-xs font-medium text-muted-foreground bg-muted rounded-full px-1.5 py-0.5 leading-none">
