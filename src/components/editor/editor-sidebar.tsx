@@ -715,7 +715,6 @@ export function EditorSidebar({
           {doc.editScope && (
             <div className="mt-2 rounded-md border border-info-border bg-info-bg px-2.5 py-1.5 text-xs text-info">
               <div className="font-medium">Scoped file — {doc.editScope.office.displayLabel}</div>
-              <div className="text-info/80">Edits: {doc.editScope.editable.join(", ")}</div>
             </div>
           )}
         </div>
@@ -914,7 +913,6 @@ export function EditorSidebar({
           {doc.editScope && (
             <div className="mx-3 mb-2 rounded-md border border-info-border bg-info-bg px-2.5 py-1.5 text-xs text-info">
               <div className="font-medium">Scoped file — {doc.editScope.office.displayLabel}</div>
-              <div className="text-info/80">Edits: {doc.editScope.editable.join(", ")}</div>
             </div>
           )}
         </div>
@@ -1154,13 +1152,13 @@ export function EditorSidebar({
                 </DropdownMenu>
               </div>
 
-              {/* Secondary actions */}
-              <div className={cn("grid gap-2", doc?.editScope ? "grid-cols-1" : "grid-cols-2")}>
-                <Button variant="outline" size="sm" className={cn("justify-start gap-2 text-xs", sidebarControlClass)} onClick={() => setPropsOpen(true)}>
-                  <Settings2 className="h-3.5 w-3.5" />
-                  Properties
-                </Button>
-                {!doc?.editScope && (
+              {/* Secondary actions — hidden on scoped files (no PDF export, no agency-wide properties) */}
+              {!doc?.editScope && (
+                <div className="grid grid-cols-2 gap-2">
+                  <Button variant="outline" size="sm" className={cn("justify-start gap-2 text-xs", sidebarControlClass)} onClick={() => setPropsOpen(true)}>
+                    <Settings2 className="h-3.5 w-3.5" />
+                    Properties
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
@@ -1170,8 +1168,8 @@ export function EditorSidebar({
                     <FileOutput className="h-3.5 w-3.5" />
                     Export PDF
                   </Button>
-                )}
-              </div>
+                </div>
+              )}
             </>
           )}
 
