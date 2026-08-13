@@ -45,7 +45,7 @@
     "typescript": "^5"
   },
   "overrides": {
-    "postcss": "8.5.22",
+    "postcss": "8.5.26",
     "sharp": "0.35.0",
     "brace-expansion": "1.1.18",
     "js-yaml": "4.3.1",
@@ -56,6 +56,8 @@
     "ip-address": "10.3.1",
     "nanoid": "3.3.17",
     "undici": "7.29.0",
+    "hono": "4.13.1",
+    "@hono/node-server": "1.19.17",
     "@typescript-eslint/typescript-estree": {
       "brace-expansion": "5.0.9"
     },
