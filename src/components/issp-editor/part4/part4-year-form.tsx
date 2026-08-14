@@ -19,6 +19,7 @@ import {
 import { Plus, Trash2, Pencil, ExternalLink, Table2, LayoutList } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { SectionShell } from "@/components/editor/section-shell";
+import { ConfirmDeleteButton } from "@/components/ui/confirm-delete-button";
 import { php } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -97,40 +98,191 @@ const OFFICE_LIST_ID = "issp-office-suggestions";
 
 // ─── Line Item Drawer ─────────────────────────────────────────────────────────
 
+interface RowErrors {
+  itemError: string | null;
+  costError: string | null;
+}
+
+function rowErrors(l: LineItem): RowErrors {
+  return {
+    itemError: l.item.trim() ? null : "Description is required.",
+    costError: l.unitCost > 0 ? null : "Unit cost must be greater than ₱0.",
+  };
+}
+
+function LineItemFields({
+  draft,
+  context,
+  attemptedSave,
+  onChange,
+}: {
+  draft: LineItem;
+  context: "co" | "mooe";
+  attemptedSave: boolean;
+  onChange: (next: LineItem) => void;
+}) {
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+  const { itemError, costError } = rowErrors(draft);
+  const lineTotal = draft.qty * draft.unitCost;
+
+  function set<K extends keyof LineItem>(k: K, v: LineItem[K]) {
+    onChange({ ...draft, [k]: v });
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium">Item / Description</label>
+        <Textarea
+          value={draft.item}
+          onChange={(e) => set("item", e.target.value)}
+          placeholder="Describe the item or service being procured…"
+          rows={3}
+          aria-invalid={attemptedSave && !!itemError}
+        />
+        {attemptedSave && itemError && <p className="text-xs text-destructive">{itemError}</p>}
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium">Office / Unit</label>
+        <Input
+          type="text"
+          list={OFFICE_LIST_ID}
+          value={draft.office}
+          onChange={(e) => set("office", e.target.value)}
+          placeholder="Which office or unit will use this?"
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <label className="text-sm font-medium">UACS Code</label>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <a
+                    href={`${basePath}/uacs`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+                  />
+                }
+              >
+                Browse codes
+                <ExternalLink className="h-3 w-3" />
+              </TooltipTrigger>
+              <TooltipContent side="left">Open UACS Explorer in a new tab</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+        <UacsCombobox
+          value={draft.uacsCode}
+          context={context}
+          onChange={(uacs, label) => onChange({ ...draft, uacsCode: uacs, uacsLabel: label })}
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium">Fund Source</label>
+        <select
+          className="h-8 w-full rounded-lg border border-border bg-card px-2.5 py-1 text-sm text-foreground outline-none hover:border-ring/60 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 cursor-pointer"
+          value={draft.fundSource}
+          onChange={(e) => set("fundSource", e.target.value)}
+        >
+          {FUND_SOURCES.map((s) => <option key={s}>{s}</option>)}
+        </select>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium">Unit Cost (₱)</label>
+          <NumberInput
+            min={0}
+            currency
+            value={draft.unitCost}
+            onValueChange={(n) => set("unitCost", n)}
+            aria-invalid={attemptedSave && !!costError}
+          />
+          {attemptedSave && costError && <p className="text-xs text-destructive">{costError}</p>}
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium">Physical Target</label>
+          <NumberInput
+            min={1}
+            value={draft.qty}
+            onValueChange={(n) => set("qty", n)}
+          />
+          <p className="text-xs text-muted-foreground">Units to procure or deploy in this year.</p>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-4 py-3">
+        <span className="text-sm text-muted-foreground">Line Total</span>
+        <span className="font-bold text-base tabular-nums">{php(lineTotal)}</span>
+      </div>
+    </div>
+  );
+}
+
 interface DrawerProps {
   open: boolean;
   item: LineItem | null;
   isNew: boolean;
   context: "co" | "mooe";
-  onSave: (item: LineItem) => void;
+  onSave: (items: LineItem[]) => void;
   onDelete: () => void;
   onClose: () => void;
 }
 
 function LineItemDrawer({ open, item, isNew, context, onSave, onDelete, onClose }: DrawerProps) {
+  // Edit mode always edits a single existing item. Add mode allows one or more new rows at once.
   const [draft, setDraft] = useState<LineItem>(() => item ?? BLANK_LINE());
+  const [drafts, setDrafts] = useState<LineItem[]>(() => [BLANK_LINE()]);
   const [attemptedSave, setAttemptedSave] = useState(false);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (open) { setDraft(item ?? BLANK_LINE()); setAttemptedSave(false); }
+    if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setDraft(item ?? BLANK_LINE());
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setDrafts([BLANK_LINE()]);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAttemptedSave(false);
+    }
   }, [open, item]);
 
-  function set<K extends keyof LineItem>(k: K, v: LineItem[K]) {
-    setDraft((prev) => ({ ...prev, [k]: v }));
+  function updateDraftAt(idx: number, next: LineItem) {
+    setDrafts((prev) => prev.map((d, i) => (i === idx ? next : d)));
   }
 
-  const lineTotal = draft.qty * draft.unitCost;
-  const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+  function addAnotherRow() {
+    setDrafts((prev) => [...prev, BLANK_LINE()]);
+  }
 
-  const itemError = draft.item.trim() ? null : "Description is required.";
-  const costError = draft.unitCost > 0 ? null : "Unit cost must be greater than ₱0.";
-  const hasErrors = !!(itemError || costError);
+  function removeRow(idx: number) {
+    setDrafts((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  const singleHasErrors = isNew
+    ? false
+    : !!(rowErrors(draft).itemError || rowErrors(draft).costError);
+  const multiHasErrors = drafts.some((d) => {
+    const { itemError, costError } = rowErrors(d);
+    return !!(itemError || costError);
+  });
 
   function handleSaveClick() {
-    if (hasErrors) { setAttemptedSave(true); return; }
-    onSave(draft);
+    if (isNew) {
+      if (multiHasErrors) { setAttemptedSave(true); return; }
+      onSave(drafts);
+    } else {
+      if (singleHasErrors) { setAttemptedSave(true); return; }
+      onSave([draft]);
+    }
   }
+
+  const contextLabel = context === "co" ? "Capital Outlay" : "Maintenance & Other Operating Expenses";
 
   return (
     <Sheet open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
@@ -142,9 +294,7 @@ function LineItemDrawer({ open, item, isNew, context, onSave, onDelete, onClose 
       >
         <SheetHeader className="px-6 pt-5 pb-4 border-b shrink-0">
           <SheetTitle>
-            {isNew
-              ? `Add Line Item — ${context === "co" ? "Capital Outlay" : "Maintenance & Other Operating Expenses"}`
-              : `Edit Line Item — ${context === "co" ? "Capital Outlay" : "Maintenance & Other Operating Expenses"}`}
+            {isNew ? `Add Line Items — ${contextLabel}` : `Edit Line Item — ${contextLabel}`}
           </SheetTitle>
           <SheetDescription>
             {context === "co"
@@ -153,117 +303,60 @@ function LineItemDrawer({ open, item, isNew, context, onSave, onDelete, onClose 
           </SheetDescription>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Item / Description</label>
-            <Textarea
-              value={draft.item}
-              onChange={(e) => set("item", e.target.value)}
-              placeholder="Describe the item or service being procured…"
-              rows={3}
-              aria-invalid={attemptedSave && !!itemError}
-            />
-            {attemptedSave && itemError && <p className="text-xs text-destructive">{itemError}</p>}
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Office / Unit</label>
-            <Input
-              type="text"
-              list={OFFICE_LIST_ID}
-              value={draft.office}
-              onChange={(e) => set("office", e.target.value)}
-              placeholder="Which office or unit will use this?"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium">UACS Code</label>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <a
-                        href={`${basePath}/uacs`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+        <div className="flex-1 overflow-y-auto px-6 py-5">
+          {isNew ? (
+            <div className="space-y-4">
+              {drafts.map((d, idx) => (
+                <div key={idx} className="rounded-lg border bg-card/40 p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-muted-foreground">Item {idx + 1}</span>
+                    {drafts.length > 1 && (
+                      <ConfirmDeleteButton
+                        ariaLabel="Remove item"
+                        confirmText="Remove?"
+                        className="h-6 px-2 text-xs"
+                        iconClassName="h-3 w-3"
+                        onDelete={() => removeRow(idx)}
                       />
-                    }
-                  >
-                    Browse codes
-                    <ExternalLink className="h-3 w-3" />
-                  </TooltipTrigger>
-                  <TooltipContent side="left">Open UACS Explorer in a new tab</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+                    )}
+                  </div>
+                  <LineItemFields
+                    draft={d}
+                    context={context}
+                    attemptedSave={attemptedSave}
+                    onChange={(next) => updateDraftAt(idx, next)}
+                  />
+                </div>
+              ))}
+              <Button variant="outline" size="sm" className="w-full gap-1" onClick={addAnotherRow}>
+                <Plus className="h-3.5 w-3.5" />
+                Add Another Item
+              </Button>
             </div>
-            <UacsCombobox
-              value={draft.uacsCode}
+          ) : (
+            <LineItemFields
+              draft={draft}
               context={context}
-              onChange={(uacs, label) =>
-                setDraft((prev) => ({ ...prev, uacsCode: uacs, uacsLabel: label }))
-              }
+              attemptedSave={attemptedSave}
+              onChange={setDraft}
             />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Fund Source</label>
-            <select
-              className="h-8 w-full rounded-lg border border-border bg-card px-2.5 py-1 text-sm text-foreground outline-none hover:border-ring/60 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 cursor-pointer"
-              value={draft.fundSource}
-              onChange={(e) => set("fundSource", e.target.value)}
-            >
-              {FUND_SOURCES.map((s) => <option key={s}>{s}</option>)}
-            </select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Unit Cost (₱)</label>
-              <NumberInput
-                min={0}
-                currency
-                value={draft.unitCost}
-                onValueChange={(n) => set("unitCost", n)}
-                aria-invalid={attemptedSave && !!costError}
-              />
-              {attemptedSave && costError && <p className="text-xs text-destructive">{costError}</p>}
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Physical Target</label>
-              <NumberInput
-                min={1}
-                value={draft.qty}
-                onValueChange={(n) => set("qty", n)}
-              />
-              <p className="text-xs text-muted-foreground">Units to procure or deploy in this year.</p>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-4 py-3">
-            <span className="text-sm text-muted-foreground">Line Total</span>
-            <span className="font-bold text-base tabular-nums">{php(lineTotal)}</span>
-          </div>
+          )}
         </div>
 
         <SheetFooter className="px-6 py-4 border-t flex-row items-center justify-between gap-2 shrink-0">
           {!isNew ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-              onClick={onDelete}
-            >
-              <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-              Delete
-            </Button>
+            <ConfirmDeleteButton
+              ariaLabel="Delete line item"
+              confirmText="Delete line item?"
+              className="h-8 px-2.5 text-sm"
+              iconClassName="h-3.5 w-3.5"
+              onDelete={onDelete}
+            />
           ) : <span />}
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={onClose}>Cancel</Button>
             <Button size="sm" onClick={handleSaveClick}>
-              {isNew ? "Add Item" : "Save Changes"}
+              {isNew ? `Add ${drafts.length} Item${drafts.length !== 1 ? "s" : ""}` : "Save Changes"}
             </Button>
           </div>
         </SheetFooter>
@@ -302,10 +395,11 @@ function LineTable({
   function openEdit(idx: number) { setDrawer({ open: true, idx, item: lines[idx] }); }
   function closeDrawer() { setDrawer({ open: false, idx: -1, item: null }); }
 
-  function handleSave(updated: LineItem) {
+  function handleSave(items: LineItem[]) {
     if (drawer.idx === -1) {
-      onUpdate([...lines, updated]);
+      onUpdate([...lines, ...items]);
     } else {
+      const updated = items[0];
       onUpdate(lines.map((l, i) => (i === drawer.idx ? updated : l)));
     }
     closeDrawer();

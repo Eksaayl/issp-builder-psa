@@ -140,6 +140,7 @@ export function NumberInput({
     onChange: handleChange,
     onFocus: (e: React.FocusEvent<HTMLInputElement>) => {
       setFocused(true);
+      e.target.select();
       onFocus?.(e);
     },
     onBlur: handleBlur,
