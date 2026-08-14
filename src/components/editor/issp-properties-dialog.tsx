@@ -20,7 +20,11 @@ import {
 } from "@/components/ui/dialog";
 import { useIsspStore } from "@/lib/store";
 import type { AgencyType, IsspScope } from "@/lib/store";
-import { LOGO_ACCEPT, getLogoUploadError, readFileAsDataUrl } from "@/lib/diagram-upload";
+import {
+  LOGO_ACCEPT,
+  getLogoUploadError,
+  readFileAsDataUrl,
+} from "@/lib/diagram-upload";
 import { toast } from "sonner";
 import { ImagePlus, Trash2, Loader2 } from "lucide-react";
 
@@ -35,7 +39,10 @@ export const AGENCY_TYPES: { value: AgencyType; label: string }[] = [
 
 export const SCOPE_OPTIONS: { value: IsspScope; label: string }[] = [
   { value: "DEPARTMENT_WIDE", label: "Department-wide" },
-  { value: "DEPARTMENT_CENTRAL_ONLY", label: "Department — Central Office Only" },
+  {
+    value: "DEPARTMENT_CENTRAL_ONLY",
+    label: "Department — Central Office Only",
+  },
   { value: "CENTRAL_ONLY", label: "Central Office Only" },
   { value: "WITH_REGIONAL", label: "Central + Regional Offices" },
   { value: "WITH_BUREAUS", label: "Central + Bureaus" },
@@ -47,7 +54,7 @@ export const SCOPE_OPTIONS: { value: IsspScope; label: string }[] = [
 ];
 
 export const SCOPE_LABELS = Object.fromEntries(
-  SCOPE_OPTIONS.map((o) => [o.value, o.label])
+  SCOPE_OPTIONS.map((o) => [o.value, o.label]),
 ) as Record<IsspScope, string>;
 
 export const AMENDMENT_LABELS: Record<number, string> = {
@@ -60,6 +67,9 @@ export const AMENDMENT_LABELS: Record<number, string> = {
 // Locked per MITHI Resolution 2026-02
 export const ISSP_START_YEAR = 2028;
 export const ISSP_END_YEAR = 2030;
+
+export const ISSP_AGENCY_NAME = "Philippine Statistics Authority";
+export const ISSP_AGENCY_ACRONYM = "PSA";
 
 // ─── Shared form shape ────────────────────────────────────────────────────────
 
@@ -76,8 +86,8 @@ export interface IsspForm {
 }
 
 export const BLANK_FORM: IsspForm = {
-  agencyName: "",
-  agencyAcronym: "",
+  agencyName: ISSP_AGENCY_NAME,
+  agencyAcronym: ISSP_AGENCY_ACRONYM,
   agencyType: "NGA",
   agencyWebsite: "",
   agencyHeadName: "",
@@ -132,19 +142,18 @@ export function IsspFormFields({
               <Label htmlFor={id("agencyName")}>Agency Name</Label>
               <Input
                 id={id("agencyName")}
-                placeholder="e.g., Department of Information and Communications Technology"
                 value={form.agencyName}
-                onChange={(e) => set("agencyName", e.target.value)}
+                readOnly
+                className="bg-muted cursor-not-allowed"
               />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor={id("agencyAcronym")}>Acronym</Label>
               <Input
                 id={id("agencyAcronym")}
-                placeholder="e.g., DICT"
-                className="w-28"
+                className="w-28 bg-muted cursor-not-allowed"
                 value={form.agencyAcronym}
-                onChange={(e) => set("agencyAcronym", e.target.value)}
+                readOnly
               />
             </div>
           </div>
@@ -174,7 +183,9 @@ export function IsspFormFields({
           <div className="space-y-1.5">
             <Label htmlFor={id("agencyWebsite")}>
               Website URL{" "}
-              <span className="text-muted-foreground font-normal">(optional)</span>
+              <span className="text-muted-foreground font-normal">
+                (optional)
+              </span>
             </Label>
             <Input
               id={id("agencyWebsite")}
@@ -198,7 +209,9 @@ export function IsspFormFields({
           <div className="space-y-1.5">
             <Label>
               Agency Logo{" "}
-              <span className="text-muted-foreground font-normal">(optional)</span>
+              <span className="text-muted-foreground font-normal">
+                (optional)
+              </span>
             </Label>
             <input
               ref={logoInputRef}
@@ -216,14 +229,28 @@ export function IsspFormFields({
                   <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                 ) : form.agencyLogo ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={form.agencyLogo} alt="Agency logo" className="h-full w-full object-contain" />
+                  <img
+                    src={form.agencyLogo}
+                    alt="Agency logo"
+                    className="h-full w-full object-contain"
+                  />
                 ) : (
                   <ImagePlus className="h-5 w-5 text-muted-foreground" />
                 )}
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button type="button" variant="outline" size="sm" disabled={logoLoading} onClick={() => logoInputRef.current?.click()}>
-                  {logoLoading ? "Reading…" : form.agencyLogo ? "Replace" : "Upload logo"}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={logoLoading}
+                  onClick={() => logoInputRef.current?.click()}
+                >
+                  {logoLoading
+                    ? "Reading…"
+                    : form.agencyLogo
+                      ? "Replace"
+                      : "Upload logo"}
                 </Button>
                 {form.agencyLogo && !logoLoading && (
                   <Button
@@ -240,7 +267,8 @@ export function IsspFormFields({
               </div>
             </div>
             <p className="text-xs text-muted-foreground">
-              Replaces the DICT logo in the PDF cover and page header. PNG, JPG, WebP, or SVG, up to 2 MB.
+              Replaces the DICT logo in the PDF cover and page header. PNG, JPG,
+              WebP, or SVG, up to 2 MB.
             </p>
           </div>
         </div>
@@ -254,11 +282,19 @@ export function IsspFormFields({
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <Label>Start Year</Label>
-            <Input value={ISSP_START_YEAR} readOnly className="bg-muted cursor-not-allowed" />
+            <Input
+              value={ISSP_START_YEAR}
+              readOnly
+              className="bg-muted cursor-not-allowed"
+            />
           </div>
           <div className="space-y-1.5">
             <Label>End Year</Label>
-            <Input value={ISSP_END_YEAR} readOnly className="bg-muted cursor-not-allowed" />
+            <Input
+              value={ISSP_END_YEAR}
+              readOnly
+              className="bg-muted cursor-not-allowed"
+            />
           </div>
         </div>
         <p className="text-xs text-muted-foreground mt-2">
@@ -297,7 +333,10 @@ export function IsspFormFields({
           <div className="space-y-1.5">
             <Label htmlFor={id("amendment")}>Document Type</Label>
             <Select
-              items={[0, 1, 2, 3].map((n) => ({ value: String(n), label: AMENDMENT_LABELS[n] }))}
+              items={[0, 1, 2, 3].map((n) => ({
+                value: String(n),
+                label: AMENDMENT_LABELS[n],
+              }))}
               value={String(form.amendmentNumber)}
               onValueChange={(v: string | null) =>
                 v && set("amendmentNumber", parseInt(v))
@@ -363,7 +402,12 @@ export function IsspPropertiesDialog({
   }
 
   function handleSave() {
-    if (!form.agencyName.trim() || !form.agencyAcronym.trim() || !form.agencyHeadName.trim()) return;
+    if (
+      !form.agencyName.trim() ||
+      !form.agencyAcronym.trim() ||
+      !form.agencyHeadName.trim()
+    )
+      return;
     update((prev) => ({
       ...prev,
       title,
@@ -399,7 +443,9 @@ export function IsspPropertiesDialog({
         <IsspFormFields form={form} set={set} idPrefix="props-" />
 
         <div className="rounded-lg bg-muted/50 px-4 py-3 text-xs text-muted-foreground space-y-0.5">
-          <p className="font-medium text-foreground text-sm leading-snug">{title}</p>
+          <p className="font-medium text-foreground text-sm leading-snug">
+            {title}
+          </p>
           <p>
             {form.startYear}–{endYear} · {SCOPE_LABELS[form.scope]} ·{" "}
             {AMENDMENT_LABELS[form.amendmentNumber]}
@@ -407,8 +453,12 @@ export function IsspPropertiesDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSave} disabled={!isValid}>Save Changes</Button>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={!isValid}>
+            Save Changes
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
