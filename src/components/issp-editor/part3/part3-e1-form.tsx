@@ -155,7 +155,7 @@ function DurationPicker({
       onChange(parsed.start);
       return;
     }
-    const end = Number(parsed.end) >= Number(parsed.start) ? parsed.end : planYears[planYears.length - 1];
+    const end = Number(parsed.end) > Number(parsed.start) ? parsed.end : planYears[planYears.length - 1];
     onChange(formatDuration(parsed.start, end));
   }
 
