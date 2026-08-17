@@ -11,6 +11,11 @@
   "dependencies": {
     "@base-ui/react": "^1.4.1",
     "@hookform/resolvers": "^5.2.2",
+    "@neondatabase/auth": "^0.5.0-beta",
+    "@neondatabase/auth-ui": "^0.3.0-beta",
+    "@neondatabase/serverless": "^1.1.0",
+    "@prisma/adapter-neon": "^7.9.1",
+    "@prisma/client": "^7.9.1",
     "@types/canvas-confetti": "^1.9.0",
     "canvas-confetti": "^1.9.4",
     "class-variance-authority": "^0.7.1",
@@ -41,6 +46,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.11",
+    "prisma": "^7.9.1",
     "tailwindcss": "^4",
     "typescript": "^5"
   },
@@ -54,7 +60,7 @@
     },
     "fast-uri": "3.1.5",
     "ip-address": "10.3.1",
-    "nanoid": "3.3.17",
+    "nanoid": "3.3.18",
     "undici": "7.29.0",
     "hono": "4.13.1",
     "@hono/node-server": "1.19.17",
@@ -64,5 +70,9 @@
     "@ts-morph/common": {
       "brace-expansion": "5.0.9"
     }
+  },
+  "allowScripts": {
+    "prisma@7.9.1": true,
+    "@prisma/engines@7.9.1": true
   }
 }

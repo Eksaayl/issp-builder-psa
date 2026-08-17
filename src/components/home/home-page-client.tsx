@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { UserButton } from "@neondatabase/auth-ui";
 import {
   FilePlus2, FolderOpen, BookOpen, FileText, AlertTriangle,
   Loader2, Check, BarChart2, Database, LayoutGrid, TrendingUp, ArrowRight,
@@ -335,19 +337,14 @@ export default function HomePageClient({ aboutHtml, privacyHtml }: { aboutHtml: 
       {/* ── Nav ── */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2.5 logo-eq-hover">
-            {/* Part-color accent strip */}
-            <div className="flex gap-0.5 mr-1">
-              {PART_COLORS.map((c, i) => (
-                <span key={c} className="w-1.5 h-4 rounded-full logo-bar" style={{ background: c, animationDelay: `${i * 0.14}s` }} />
-              ))}
-            </div>
+          <div className="flex items-center gap-2.5">
+            <Image src="/PSA/PSA.webp" alt="PSA logo" width={28} height={28} className="h-7 w-7 object-contain" priority />
             <span className="font-display font-semibold text-sm tracking-tight">ISSP Builder</span>
-            <span className="text-[11px] text-muted-foreground italic hidden sm:inline">(does not yet have an official name)</span>
           </div>
           <nav className="flex items-center gap-1">
             <button onClick={() => setAboutOpen(true)} className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors">About</button>
             <button onClick={() => setPrivacyOpen(true)} className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors">Privacy</button>
+            <UserButton size="icon" />
           </nav>
         </div>
       </header>
@@ -356,11 +353,8 @@ export default function HomePageClient({ aboutHtml, privacyHtml }: { aboutHtml: 
       <section className="min-h-[calc(100dvh-3.5rem)] flex flex-col border-b bg-secondary/40">
         {/* Branding — anchored near the top of the first viewport */}
         <div className="w-full max-w-md mx-auto px-6 pt-12 text-center space-y-2">
-          {/* Part-color accent strips */}
-          <div className="flex justify-center gap-1 mb-4 logo-eq">
-            {PART_COLORS.map((c, i) => (
-              <span key={c} className="w-2 h-6 rounded-full logo-bar" style={{ background: c, animationDelay: `${i * 0.14}s` }} />
-            ))}
+          <div className="flex justify-center mb-4">
+            <Image src="/PSA/PSA.webp" alt="PSA logo" width={64} height={64} className="h-16 w-16 object-contain" priority />
           </div>
           <h1 className="font-display text-3xl font-bold tracking-tight">ISSP Builder</h1>
           <p className="text-sm text-muted-foreground">Build your agency&apos;s 3-year Information Systems Strategic Plan</p>
@@ -501,10 +495,6 @@ export default function HomePageClient({ aboutHtml, privacyHtml }: { aboutHtml: 
               <span>{loadError ?? saveError}</span>
             </div>
           )}
-
-          <p className="mt-8 text-center text-xs text-muted-foreground/60">
-            Free to use · No account required · Local-first, works in your browser
-          </p>
         </div>
 
         {/* Attribution chip — docked at the bottom of the first viewport, macOS-dock style */}
@@ -872,6 +862,7 @@ export default function HomePageClient({ aboutHtml, privacyHtml }: { aboutHtml: 
                 <p><span className="text-foreground font-medium">Table &amp; card views</span> — Parts I-C and IV switch between table and card layouts; Part IV columns are resizable.</p>
                 <p><span className="text-foreground font-medium">Save reminders</span> — the editor nudges you when you have unsaved changes, before you lose an hour of work.</p>
                 <p><span className="text-foreground font-medium">Diagram uploads</span> — upload network and architecture diagram images directly from your computer.</p>
+                <p><span className="text-foreground font-medium">Keyboard Shortcuts</span> - Press <kbd></kbd></p>
               </div>
             </details>
 

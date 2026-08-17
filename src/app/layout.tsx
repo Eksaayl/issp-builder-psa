@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Fraunces, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import { Toaster } from "sonner";
+import { NeonAuthUIProvider } from "@neondatabase/auth-ui";
+import { authClient } from "@/lib/auth/client";
 import { IsspStoreProvider } from "@/lib/store";
 import { ThemeProvider } from "@/lib/theme";
 import { StructuredData } from "@/components/seo/structured-data";
@@ -111,12 +113,14 @@ export default function RootLayout({
         <script suppressHydrationWarning dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="min-h-full flex flex-col">
-        <ThemeProvider>
-          <IsspStoreProvider>
-            {children}
-            <Toaster richColors closeButton position="top-right" />
-          </IsspStoreProvider>
-        </ThemeProvider>
+        <NeonAuthUIProvider authClient={authClient} social={{ providers: ["google"] }} signUp={false}>
+          <ThemeProvider>
+            <IsspStoreProvider>
+              {children}
+              <Toaster richColors closeButton position="top-right" />
+            </IsspStoreProvider>
+          </ThemeProvider>
+        </NeonAuthUIProvider>
       </body>
     </html>
   );

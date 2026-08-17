@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "@neondatabase/auth-ui/tailwind";
 
 /* Tie dark: variant to our theme classes, not prefers-color-scheme */
 @custom-variant dark (&:where(.theme-system-dark, .theme-system-dark *, .theme-warm-dark, .theme-warm-dark *));
