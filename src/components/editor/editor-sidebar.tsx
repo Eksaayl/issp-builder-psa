@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -10,6 +10,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -40,6 +41,7 @@ import {
   Trash2,
   X,
   AlertTriangle,
+  Home,
 } from "lucide-react";
 import { useIsspStore } from "@/lib/store";
 import { useFileSaveReminder } from "@/hooks/use-file-save-reminder";
@@ -310,11 +312,13 @@ export function EditorSidebar({
   const now = useNow();
   const isMobileViewport = useIsMobileViewport();
   const pathname = usePathname();
+  const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { theme } = useTheme();
 
   const [expandedParts, setExpandedParts] = useState<Set<number>>(new Set([1, 2, 3, 4]));
   const [propsOpen, setPropsOpen] = useState(false);
+  const [homeConfirmOpen, setHomeConfirmOpen] = useState(false);
   const [exportState, setExportState] = useState<ExportState>({ status: "idle" });
   const [clearStep, setClearStep] = useState<"idle" | "step1" | "step2">("idle");
   const [showChanges, setShowChanges] = useState(false);
@@ -409,6 +413,14 @@ export function EditorSidebar({
 
   function handleSnoozeSaveReminder() {
     snoozeSaveReminder();
+  }
+
+  function handleGoHome() {
+    if (unsavedToFile) {
+      setHomeConfirmOpen(true);
+    } else {
+      router.push("/");
+    }
   }
 
   function handleNavigate() {
@@ -817,6 +829,10 @@ export function EditorSidebar({
                     </DropdownMenuSubContent>
                   </DropdownMenuSub>
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleGoHome}>
+                    <Home className="h-3.5 w-3.5 mr-2" />
+                    Go back to homepage
+                  </DropdownMenuItem>
                   <DropdownMenuItem variant="destructive" onClick={() => setClearStep("step1")}>
                     <Trash2 className="h-3.5 w-3.5 mr-2" />
                     Clear editor data…
@@ -1072,6 +1088,10 @@ export function EditorSidebar({
                       </DropdownMenuSubContent>
                     </DropdownMenuSub>
                     <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleGoHome}>
+                      <Home className="h-3.5 w-3.5 mr-2" />
+                      Go back to homepage
+                    </DropdownMenuItem>
                     <DropdownMenuItem
                       variant="destructive"
                       onClick={() => setClearStep("step1")}
@@ -1101,19 +1121,6 @@ export function EditorSidebar({
               </div>
             </>
           )}
-
-          <p className="text-[10px] text-muted-foreground/40 leading-relaxed select-none text-center">
-            made with ❤️ <em>para sa bayan</em>
-            {" · "}
-            <a
-              href="https://www.instagram.com/carlosanton.io"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-muted-foreground/70 transition-colors underline underline-offset-2"
-            >
-              @carlosanton.io
-            </a>
-          </p>
         </div>
 
         {/* Hidden file input */}
@@ -1126,6 +1133,26 @@ export function EditorSidebar({
         />
 
         <IsspPropertiesDialog open={propsOpen} onClose={() => setPropsOpen(false)} />
+
+        <Dialog open={homeConfirmOpen} onOpenChange={setHomeConfirmOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Leave the editor?</DialogTitle>
+              <DialogDescription>
+                You have unsaved changes that only exist in this browser. Going back to the homepage does not delete them, but if you clear this browser&apos;s data before saving a{" "}
+                <code className="bg-muted px-1 rounded">.issp</code> file, they will be lost.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setHomeConfirmOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="button" variant="destructive" onClick={() => { setHomeConfirmOpen(false); router.push("/"); }}>
+                Go back anyway
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </aside>
     </>
   );

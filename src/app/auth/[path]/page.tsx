@@ -18,7 +18,9 @@ export default async function AuthPage({
           Sign-in is restricted to @psa.gov.ph Google accounts.
         </div>
       )}
-      <AuthView path={path} />
+      <div key={path} className="animate-auth-view-switch w-full flex flex-col items-center">
+        <AuthView path={path} />
+      </div>
     </main>
   );
 }

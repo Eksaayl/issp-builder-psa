@@ -113,7 +113,8 @@ export default function RootLayout({
         <script suppressHydrationWarning dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="min-h-full flex flex-col">
-        <NeonAuthUIProvider authClient={authClient} social={{ providers: ["google"] }} signUp={false}>
+        {/* Google sign-in disabled for now — restore social={{ providers: ["google"] }} to re-enable. */}
+        <NeonAuthUIProvider authClient={authClient} signUp={true}>
           <ThemeProvider>
             <IsspStoreProvider>
               {children}

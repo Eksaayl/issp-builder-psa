@@ -594,6 +594,18 @@
   .animate-overlay-fade-in { animation: none; }
 }
 
+/* Sign-in / sign-up view switch on the auth page */
+@keyframes auth-view-switch {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-auth-view-switch {
+  animation: auth-view-switch 220ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-auth-view-switch { animation: none; }
+}
+
 /* Typewriter caret for the overview greeting */
 @keyframes caret-blink {
   0%, 45% { opacity: 1; }
