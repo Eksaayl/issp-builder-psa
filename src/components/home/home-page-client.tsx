@@ -7,7 +7,7 @@ import { UserButton } from "@neondatabase/auth-ui";
 import {
   FilePlus2, FolderOpen, BookOpen, FileText, AlertTriangle,
   Loader2, Check, BarChart2, Database, LayoutGrid, TrendingUp, ArrowRight,
-  Sparkles, ChevronDown, FileClock, Trash2,
+  Sparkles, ChevronDown, FileClock, Trash2, Download,
 } from "lucide-react";
 import { CompletionBar } from "@/components/ui/completion-bar";
 import { RelativeTime } from "@/components/ui/relative-time";
@@ -85,23 +85,31 @@ function NcwtrIntroModal({ open, onClose, onConfirm, loading }: {
   );
 }
 
-function ContentModal({ open, onClose, title, html }: { open: boolean; onClose: () => void; title: string; html: string; }) {
-  const scrollRef = useRef<HTMLDivElement>(null);
+function DownloadableRow({ title, description, href }: { title: string; description: string; href: string }) {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-lg border p-4">
+      <div>
+        <div className="text-sm font-medium text-foreground">{title}</div>
+        <div className="text-sm text-muted-foreground mt-0.5">{description}</div>
+      </div>
+      <Button size="sm" variant="outline" nativeButton={false} render={<a href={href} download />}>
+        <Download className="h-4 w-4" />
+        Download
+      </Button>
+    </div>
+  );
+}
 
-  useEffect(() => {
-    if (open && scrollRef.current) scrollRef.current.scrollTop = 0;
-  }, [open]);
-
+function DownloadablesModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-3xl max-h-[82vh] flex flex-col p-0 gap-0">
+      <DialogContent className="sm:max-w-lg p-0 gap-0">
         <DialogHeader className="px-6 pt-5 pb-4 border-b flex-shrink-0">
-          <DialogTitle className="text-base font-semibold">{title}</DialogTitle>
+          <DialogTitle className="text-base font-semibold">Downloadables</DialogTitle>
         </DialogHeader>
-        <div ref={scrollRef} className="overflow-y-auto px-6 py-5">
-          <div tabIndex={0} className="h-0 w-0 overflow-hidden outline-none" aria-hidden="true" />
-          <div className="prose-disclaimer mb-5">The thoughts here are my own and reflect my personal experience and opinion only — they do not represent the views of any organization I am or have been affiliated with. AI helped me turn these thoughts into words.</div>
-          <div className="prose-article" dangerouslySetInnerHTML={{ __html: html }} />
+        <div className="px-6 py-5 flex flex-col gap-3">
+          <DownloadableRow title="Manual" description="Guide to using the ISSP Builder." href="/PSA/Manual.pdf" />
+          <DownloadableRow title="Handout" description="Quick-reference handout." href="/PSA/Handout.pdf" />
         </div>
       </DialogContent>
     </Dialog>
@@ -197,7 +205,7 @@ function ContinueCard({
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
-export default function HomePageClient({ aboutHtml, privacyHtml }: { aboutHtml: string; privacyHtml: string; }) {
+export default function HomePageClient() {
   const router = useRouter();
   const { doc, loading: storeLoading, loadFromFile, clearDoc, saveStatus, saveError } = useIsspStore();
   const { theme, setTheme } = useTheme();
@@ -211,8 +219,7 @@ export default function HomePageClient({ aboutHtml, privacyHtml }: { aboutHtml: 
   const [loadError, setLoadError] = useState<string | null>(null);
   const [sampleLoading, setSampleLoading] = useState(false);
   const [sampleIntroOpen, setSampleIntroOpen] = useState(false);
-  const [aboutOpen, setAboutOpen] = useState(false);
-  const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [downloadablesOpen, setDownloadablesOpen] = useState(false);
   const [whatsNewOpen, setWhatsNewOpen] = useState(false);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const confettiRef = useRef<((opts: object) => void) | null>(null);
@@ -342,8 +349,7 @@ export default function HomePageClient({ aboutHtml, privacyHtml }: { aboutHtml: 
             <span className="font-display font-semibold text-sm tracking-tight">ISSP Builder</span>
           </div>
           <nav className="flex items-center gap-1">
-            <button onClick={() => setAboutOpen(true)} className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors">About</button>
-            <button onClick={() => setPrivacyOpen(true)} className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors">Privacy</button>
+            <button onClick={() => setDownloadablesOpen(true)} className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors">Downloadables</button>
             <UserButton size="icon" />
           </nav>
         </div>
@@ -670,8 +676,7 @@ export default function HomePageClient({ aboutHtml, privacyHtml }: { aboutHtml: 
       <NcwtrIntroModal open={sampleIntroOpen} onClose={() => setSampleIntroOpen(false)}
         onConfirm={() => { setSampleIntroOpen(false); handleLoadSample(); }} loading={sampleLoading} />
       <NewIsspDialog open={newDialogOpen} onClose={() => setNewDialogOpen(false)} onCreated={() => { setNavigating(true); router.push("/editor"); }} />
-      <ContentModal open={aboutOpen} onClose={() => setAboutOpen(false)} title="About this project" html={aboutHtml} />
-      <ContentModal open={privacyOpen} onClose={() => setPrivacyOpen(false)} title="Privacy & architecture" html={privacyHtml} />
+      <DownloadablesModal open={downloadablesOpen} onClose={() => setDownloadablesOpen(false)} />
 
       {/* What's New modal */}
       <Dialog open={whatsNewOpen} onOpenChange={setWhatsNewOpen}>

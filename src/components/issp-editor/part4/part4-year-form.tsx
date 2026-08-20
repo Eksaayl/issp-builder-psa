@@ -96,17 +96,36 @@ const OFFICE_SUGGESTIONS = [
 
 const OFFICE_LIST_ID = "issp-office-suggestions";
 
+// MOOE items above the ₱50,000 capitalization threshold should be booked as
+// Capital Outlay instead — except ICT software subscriptions and anything under
+// Repairs and Maintenance, which stay MOOE regardless of unit cost.
+const MOOE_UNIT_COST_CAP = 49999;
+const ICT_SOFTWARE_SUBSCRIPTION_UACS = "5029907001";
+const REPAIRS_AND_MAINTENANCE_UACS_PREFIX = "50213";
+
+function isMooeCapExempt(uacsCode: string): boolean {
+  return uacsCode === ICT_SOFTWARE_SUBSCRIPTION_UACS || uacsCode.startsWith(REPAIRS_AND_MAINTENANCE_UACS_PREFIX);
+}
+
 // ─── Line Item Drawer ─────────────────────────────────────────────────────────
 
 interface RowErrors {
   itemError: string | null;
+  uacsError: string | null;
   costError: string | null;
 }
 
-function rowErrors(l: LineItem): RowErrors {
+function rowErrors(l: LineItem, context: "co" | "mooe"): RowErrors {
+  const mooeCapped = context === "mooe" && !isMooeCapExempt(l.uacsCode);
   return {
     itemError: l.item.trim() ? null : "Description is required.",
-    costError: l.unitCost > 0 ? null : "Unit cost must be greater than ₱0.",
+    uacsError: l.uacsCode.trim() ? null : "UACS code is required.",
+    costError:
+      l.unitCost <= 0
+        ? "Unit cost must be greater than ₱0."
+        : mooeCapped && l.unitCost > MOOE_UNIT_COST_CAP
+        ? `MOOE unit cost cannot exceed ₱${MOOE_UNIT_COST_CAP.toLocaleString()} — book higher-value items under Capital Outlay instead.`
+        : null,
   };
 }
 
@@ -122,7 +141,8 @@ function LineItemFields({
   onChange: (next: LineItem) => void;
 }) {
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
-  const { itemError, costError } = rowErrors(draft);
+  const { itemError, uacsError, costError } = rowErrors(draft, context);
+  const mooeCapped = context === "mooe" && !isMooeCapExempt(draft.uacsCode);
   const lineTotal = draft.qty * draft.unitCost;
 
   function set<K extends keyof LineItem>(k: K, v: LineItem[K]) {
@@ -181,6 +201,7 @@ function LineItemFields({
           context={context}
           onChange={(uacs, label) => onChange({ ...draft, uacsCode: uacs, uacsLabel: label })}
         />
+        {attemptedSave && uacsError && <p className="text-xs text-destructive">{uacsError}</p>}
       </div>
 
       <div className="space-y-1.5">
@@ -204,7 +225,13 @@ function LineItemFields({
             onValueChange={(n) => set("unitCost", n)}
             aria-invalid={attemptedSave && !!costError}
           />
-          {attemptedSave && costError && <p className="text-xs text-destructive">{costError}</p>}
+          {attemptedSave && costError ? (
+            <p className="text-xs text-destructive">{costError}</p>
+          ) : mooeCapped ? (
+            <p className="text-xs text-muted-foreground">
+              Max ₱{MOOE_UNIT_COST_CAP.toLocaleString()} for MOOE — exempt for ICT Software Subscription and Repairs and Maintenance.
+            </p>
+          ) : null}
         </div>
         <div className="space-y-1.5">
           <label className="text-sm font-medium">Physical Target</label>
@@ -264,12 +291,13 @@ function LineItemDrawer({ open, item, isNew, context, onSave, onDelete, onClose 
     setDrafts((prev) => prev.filter((_, i) => i !== idx));
   }
 
+  const singleErrors = rowErrors(draft, context);
   const singleHasErrors = isNew
     ? false
-    : !!(rowErrors(draft).itemError || rowErrors(draft).costError);
+    : !!(singleErrors.itemError || singleErrors.uacsError || singleErrors.costError);
   const multiHasErrors = drafts.some((d) => {
-    const { itemError, costError } = rowErrors(d);
-    return !!(itemError || costError);
+    const { itemError, uacsError, costError } = rowErrors(d, context);
+    return !!(itemError || uacsError || costError);
   });
 
   function handleSaveClick() {

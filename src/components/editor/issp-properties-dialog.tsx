@@ -70,6 +70,7 @@ export const ISSP_END_YEAR = 2030;
 
 export const ISSP_AGENCY_NAME = "Philippine Statistics Authority";
 export const ISSP_AGENCY_ACRONYM = "PSA";
+export const ISSP_AGENCY_WEBSITE = "https://psa.gov.ph";
 
 // ─── Shared form shape ────────────────────────────────────────────────────────
 
@@ -89,7 +90,7 @@ export const BLANK_FORM: IsspForm = {
   agencyName: ISSP_AGENCY_NAME,
   agencyAcronym: ISSP_AGENCY_ACRONYM,
   agencyType: "NGA",
-  agencyWebsite: "",
+  agencyWebsite: ISSP_AGENCY_WEBSITE,
   agencyHeadName: "",
   agencyLogo: null,
   startYear: ISSP_START_YEAR,
@@ -181,18 +182,13 @@ export function IsspFormFields({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor={id("agencyWebsite")}>
-              Website URL{" "}
-              <span className="text-muted-foreground font-normal">
-                (optional)
-              </span>
-            </Label>
+            <Label htmlFor={id("agencyWebsite")}>Website URL</Label>
             <Input
               id={id("agencyWebsite")}
               type="url"
-              placeholder="e.g., https://dict.gov.ph"
               value={form.agencyWebsite}
-              onChange={(e) => set("agencyWebsite", e.target.value)}
+              readOnly
+              className="bg-muted cursor-not-allowed"
             />
           </div>
 
@@ -383,7 +379,7 @@ export function IsspPropertiesDialog({
       agencyName: doc.agency.name,
       agencyAcronym: doc.agency.acronym,
       agencyType: doc.agency.type as AgencyType,
-      agencyWebsite: doc.agency.websiteUrl ?? "",
+      agencyWebsite: ISSP_AGENCY_WEBSITE,
       agencyHeadName: doc.agencyHeadName ?? "",
       agencyLogo: doc.agency.logoBase64 ?? null,
       startYear: doc.startYear,
