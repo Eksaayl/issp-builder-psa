@@ -104,9 +104,9 @@ export default function EditorAnnex1Page() {
               Share the Annex 1 form link with each office. They fill it in and send you their .issp file.
             </p>
           </div>
-          <a href="/annex1" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline shrink-0 mt-0.5">
+          <Link href="/annex1" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline shrink-0 mt-0.5">
             Open form <ExternalLink className="h-3 w-3" />
-          </a>
+          </Link>
         </div>
 
         {/* Attached offices list */}
