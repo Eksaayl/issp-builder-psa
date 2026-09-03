@@ -3,6 +3,7 @@
 import { Fragment } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { uuid } from "@/lib/uuid";
 import { Button } from "@/components/ui/button";
 import type { EquipmentRow, SoftwareRow } from "@/lib/annex1/types";
 
@@ -99,7 +100,7 @@ export function EquipmentTable({
   }
   function addRow() {
     onChange([...rows, {
-      id: crypto.randomUUID(), type: "", isCustom: true,
+      id: uuid(), type: "", isCustom: true,
       centralOffice: { operational: 0, endOfLife: 0, backup: 0 },
       fieldOffice:   { operational: 0, endOfLife: 0, backup: 0 },
     }]);
@@ -264,7 +265,7 @@ export function EquipmentCards({
   }
   function addRow() {
     onChange([...rows, {
-      id: crypto.randomUUID(), type: "", isCustom: true,
+      id: uuid(), type: "", isCustom: true,
       centralOffice: { operational: 0, endOfLife: 0, backup: 0 },
       fieldOffice:   { operational: 0, endOfLife: 0, backup: 0 },
     }]);
@@ -311,7 +312,7 @@ export function SoftwareTable({
   }
   function addRow() {
     onChange([...rows, {
-      id: crypto.randomUUID(), type: "", isCustom: true,
+      id: uuid(), type: "", isCustom: true,
       centralOffice: { perpetual: 0, subscription: 0 },
       fieldOffice:   { perpetual: 0, subscription: 0 },
     }]);
@@ -465,7 +466,7 @@ export function SoftwareCards({
   }
   function addRow() {
     onChange([...rows, {
-      id: crypto.randomUUID(), type: "", isCustom: true,
+      id: uuid(), type: "", isCustom: true,
       centralOffice: { perpetual: 0, subscription: 0 },
       fieldOffice:   { perpetual: 0, subscription: 0 },
     }]);

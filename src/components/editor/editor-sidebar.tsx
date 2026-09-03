@@ -32,6 +32,7 @@ import {
   ChevronDown,
   Download,
   FileOutput,
+  FolderInput,
   FolderOpen,
   Loader2,
   Check,
@@ -42,13 +43,18 @@ import {
   X,
   AlertTriangle,
   Home,
+  Share2,
 } from "lucide-react";
 import { useIsspStore } from "@/lib/store";
 import { useFileSaveReminder } from "@/hooks/use-file-save-reminder";
+import { useResolvedScope } from "@/hooks/use-resolved-scope";
+import { isSectionVisible } from "@/lib/scope/paths";
 import { PARTS, FRONT_MATTER_SECTIONS, ANNEX_SECTIONS, computeStatus, type SectionDef, type PartDef } from "@/lib/sections";
 import { getChangedFields, type SectionField } from "@/lib/section-fields";
 import { StatusDot } from "@/components/ui/status-dot";
 import { IsspPropertiesDialog } from "./issp-properties-dialog";
+import { DistributeDialog } from "./distribute-dialog";
+import { ConsolidateDialog } from "./consolidate-dialog";
 import { THEMES, isThemeId, useTheme, type ThemeId } from "@/lib/theme";
 import { toast } from "sonner";
 
@@ -309,6 +315,7 @@ export function EditorSidebar({
   onMobileClose: () => void;
 }) {
   const { doc, saveToFile, loadFromFile, fileSavedAt, savedSnapshot, unsavedToFile, clearDoc, saveStatus, saveError } = useIsspStore();
+  const scope = useResolvedScope();
   const now = useNow();
   const isMobileViewport = useIsMobileViewport();
   const pathname = usePathname();
@@ -319,6 +326,8 @@ export function EditorSidebar({
   const [expandedParts, setExpandedParts] = useState<Set<number>>(new Set([1, 2, 3, 4]));
   const [propsOpen, setPropsOpen] = useState(false);
   const [homeConfirmOpen, setHomeConfirmOpen] = useState(false);
+  const [distributeOpen, setDistributeOpen] = useState(false);
+  const [consolidateOpen, setConsolidateOpen] = useState(false);
   const [exportState, setExportState] = useState<ExportState>({ status: "idle" });
   const [clearStep, setClearStep] = useState<"idle" | "step1" | "step2">("idle");
   const [showChanges, setShowChanges] = useState(false);
@@ -339,6 +348,7 @@ export function EditorSidebar({
     const groups: { part: PartDef | null; sections: readonly SectionDef[] }[] = [
       { part: null, sections: FRONT_MATTER_SECTIONS },
       ...PARTS.map((part) => ({ part, sections: part.sections })),
+      { part: null, sections: ANNEX_SECTIONS },
     ];
     if (savedSnapshot) {
       for (const { part, sections } of groups) {
@@ -442,6 +452,11 @@ export function EditorSidebar({
 
   async function handleExportPdf() {
     if (!doc || exportState.status === "exporting") return;
+    // Scoped files must not produce a fragmented PDF — only the consolidated master exports.
+    if (doc.editScope) {
+      toast.info("PDF export is available in the consolidated master, not a scoped file.");
+      return;
+    }
     setExportState({ status: "exporting", stage: "Starting…", pct: 0 });
     try {
       const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
@@ -517,8 +532,19 @@ export function EditorSidebar({
 
   const sectionMeta = doc.sectionMeta ?? {};
   const pendingReviewIds = doc.migrationReview?.pendingSectionIds ?? [];
+  const consolidationFlagIds = doc.consolidationFlags ?? [];
 
   // ── Shared nav (rendered in both mobile popup and desktop sidebar) ──────────
+  // Scoped docs hide any section the office doesn't own. Null scope ⇒ all visible.
+  const visibleFrontMatter = FRONT_MATTER_SECTIONS.filter((s) => isSectionVisible(scope, s.id));
+  const visibleParts = PARTS
+    .map((part) => ({
+      part,
+      sections: part.sections.filter((s) => isSectionVisible(scope, s.id)),
+    }))
+    .filter((entry) => entry.sections.length > 0);
+  const visibleAnnexes = ANNEX_SECTIONS.filter((s) => isSectionVisible(scope, s.id));
+
   const navContent = (
     <nav className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5 min-h-0">
       <Link
@@ -534,7 +560,7 @@ export function EditorSidebar({
         Overview
       </Link>
 
-      {FRONT_MATTER_SECTIONS.map((section) => {
+      {visibleFrontMatter.map((section) => {
         const isActive = pathname === section.href || pathname.startsWith(section.href + "/");
         const status = computeStatus(sectionMeta[section.id]);
         return (
@@ -555,10 +581,12 @@ export function EditorSidebar({
         );
       })}
 
-      {PARTS.map((part) => {
-        const hasPendingReview = (doc.migrationReview?.pendingSectionIds ?? []).some((id) => id.startsWith(`part${part.partNum}/`));
+      {visibleParts.map(({ part, sections }) => {
+        const hasPendingReview =
+          (doc.migrationReview?.pendingSectionIds ?? []).some((id) => id.startsWith(`part${part.partNum}/`)) ||
+          (doc.consolidationFlags ?? []).some((id) => id.startsWith(`part${part.partNum}/`));
         const isExpanded = expandedParts.has(part.partNum) || hasPendingReview;
-        const isActiveSection = part.sections.some(
+        const isActiveSection = sections.some(
           (s) => pathname === s.href || pathname.startsWith(s.href + "/")
         );
 
@@ -579,10 +607,10 @@ export function EditorSidebar({
 
             {isExpanded && (
               <div className="mt-0.5 space-y-0.5">
-                {part.sections.map((section) => {
+                {sections.map((section) => {
                   const isActive = pathname === section.href || pathname.startsWith(section.href + "/");
                   const status = computeStatus(sectionMeta[section.id]);
-                  const needsReview = pendingReviewIds.includes(section.id);
+                  const needsReview = pendingReviewIds.includes(section.id) || consolidationFlagIds.includes(section.id);
                   return (
                     <Link
                       key={section.id}
@@ -613,14 +641,16 @@ export function EditorSidebar({
         );
       })}
 
-      {/* Annexes */}
-      <div className="mt-2">
-        <p className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Annexes
-        </p>
-        {ANNEX_SECTIONS.map((section) => {
+      {/* Annexes — hidden entirely when scoped mode leaves no visible annex */}
+      {visibleAnnexes.length > 0 && (
+        <div className="mt-2">
+          <p className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Annexes
+          </p>
+          {visibleAnnexes.map((section) => {
           const isActive = pathname === section.href || pathname.startsWith(section.href + "/");
           const count = section.id === "annexes/annex1" ? (doc?.annexedOffices?.length ?? 0) : 0;
+          const status = computeStatus(sectionMeta[section.id]);
           return (
             <Link
               key={section.id}
@@ -633,6 +663,7 @@ export function EditorSidebar({
                   : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
               )}
             >
+              <StatusDot status={status} size={6} className="shrink-0" />
               <span className="truncate flex-1">{section.label}</span>
               {count > 0 && (
                 <span className="shrink-0 text-xs font-medium text-muted-foreground bg-muted rounded-full px-1.5 py-0.5 leading-none">
@@ -642,7 +673,8 @@ export function EditorSidebar({
             </Link>
           );
         })}
-      </div>
+        </div>
+      )}
     </nav>
   );
 
@@ -674,25 +706,32 @@ export function EditorSidebar({
         )}
       >
         {/* Popup header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 shrink-0">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-              ISSP Builder
-            </p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {doc.agency.acronym || doc.agency.name} · {doc.startYear}–{doc.endYear}
-              {doc.amendmentNumber > 0 && ` · A${doc.amendmentNumber}`}
-            </p>
+        <div className="px-4 py-3 border-b border-border/50 shrink-0">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+                ISSP Builder
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {doc.agency.acronym || doc.agency.name} · {doc.startYear}–{doc.endYear}
+                {doc.amendmentNumber > 0 && ` · A${doc.amendmentNumber}`}
+              </p>
+            </div>
+            <Button
+              size="icon"
+              variant="ghost"
+              aria-label="Close navigation"
+              onClick={onMobileClose}
+              className="h-7 w-7 shrink-0 text-foreground hover:bg-accent"
+            >
+              <X className="h-4 w-4" />
+            </Button>
           </div>
-          <Button
-            size="icon"
-            variant="ghost"
-            aria-label="Close navigation"
-            onClick={onMobileClose}
-            className="h-7 w-7 shrink-0 text-foreground hover:bg-accent"
-          >
-            <X className="h-4 w-4" />
-          </Button>
+          {doc.editScope && (
+            <div className="mt-2 rounded-md border border-info-border bg-info-bg px-2.5 py-1.5 text-xs text-info">
+              <div className="font-medium">Scoped file — {doc.editScope.office.displayLabel}</div>
+            </div>
+          )}
         </div>
 
         {/* Nav */}
@@ -791,15 +830,17 @@ export function EditorSidebar({
                 <Download className="h-3 w-3" />
                 Save
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className={cn("h-7 gap-1.5 px-2.5 text-xs shrink-0", sidebarControlClass)}
-                onClick={handleExportPdf}
-              >
-                <FileOutput className="h-3 w-3" />
-                PDF
-              </Button>
+              {!doc?.editScope && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn("h-7 gap-1.5 px-2.5 text-xs shrink-0", sidebarControlClass)}
+                  onClick={handleExportPdf}
+                >
+                  <FileOutput className="h-3 w-3" />
+                  PDF
+                </Button>
+              )}
               <DropdownMenu modal={false}>
                 <DropdownMenuTrigger
                   aria-label="More file actions"
@@ -828,6 +869,19 @@ export function EditorSidebar({
                       <ThemeMenuItems />
                     </DropdownMenuSubContent>
                   </DropdownMenuSub>
+                  {!doc?.editScope && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => setDistributeOpen(true)}>
+                        <Share2 className="h-3.5 w-3.5 mr-2" />
+                        Distribute to offices…
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setConsolidateOpen(true)}>
+                        <FolderInput className="h-3.5 w-3.5 mr-2" />
+                        Consolidate returned files…
+                      </DropdownMenuItem>
+                    </>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleGoHome}>
                     <Home className="h-3.5 w-3.5 mr-2" />
@@ -875,6 +929,11 @@ export function EditorSidebar({
               </Button>
             </div>
           </div>
+          {doc.editScope && (
+            <div className="mx-3 mb-2 rounded-md border border-info-border bg-info-bg px-2.5 py-1.5 text-xs text-info">
+              <div className="font-medium">Scoped file — {doc.editScope.office.displayLabel}</div>
+            </div>
+          )}
         </div>
 
         {/* Nav */}
@@ -1087,6 +1146,19 @@ export function EditorSidebar({
                         <ThemeMenuItems onThemeSelected={dismissThemeNudge} />
                       </DropdownMenuSubContent>
                     </DropdownMenuSub>
+                    {!doc?.editScope && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => setDistributeOpen(true)}>
+                          <Share2 className="h-3.5 w-3.5 mr-2" />
+                          Distribute to offices…
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setConsolidateOpen(true)}>
+                          <FolderInput className="h-3.5 w-3.5 mr-2" />
+                          Consolidate returned files…
+                        </DropdownMenuItem>
+                      </>
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleGoHome}>
                       <Home className="h-3.5 w-3.5 mr-2" />
@@ -1103,22 +1175,24 @@ export function EditorSidebar({
                 </DropdownMenu>
               </div>
 
-              {/* Secondary actions */}
-              <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" size="sm" className={cn("justify-start gap-2 text-xs", sidebarControlClass)} onClick={() => setPropsOpen(true)}>
-                  <Settings2 className="h-3.5 w-3.5" />
-                  Properties
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={cn("justify-start gap-2 text-xs", sidebarControlClass)}
-                  onClick={handleExportPdf}
-                >
-                  <FileOutput className="h-3.5 w-3.5" />
-                  Export PDF
-                </Button>
-              </div>
+              {/* Secondary actions — hidden on scoped files (no PDF export, no agency-wide properties) */}
+              {!doc?.editScope && (
+                <div className="grid grid-cols-2 gap-2">
+                  <Button variant="outline" size="sm" className={cn("justify-start gap-2 text-xs", sidebarControlClass)} onClick={() => setPropsOpen(true)}>
+                    <Settings2 className="h-3.5 w-3.5" />
+                    Properties
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn("justify-start gap-2 text-xs", sidebarControlClass)}
+                    onClick={handleExportPdf}
+                  >
+                    <FileOutput className="h-3.5 w-3.5" />
+                    Export PDF
+                  </Button>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -1153,6 +1227,8 @@ export function EditorSidebar({
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        <DistributeDialog open={distributeOpen} onClose={() => setDistributeOpen(false)} />
+        <ConsolidateDialog open={consolidateOpen} onClose={() => setConsolidateOpen(false)} />
       </aside>
     </>
   );

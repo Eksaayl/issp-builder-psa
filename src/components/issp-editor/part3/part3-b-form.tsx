@@ -48,7 +48,15 @@ export function Part3BForm({
             </ul>
             <p className="mt-2 text-xs">
               Upload the EA diagram below; it will be embedded in the exported PDF. Reference the{" "}
-              <strong>Philippine EA Framework (PeGov)</strong> if applicable.
+              <a
+                href="https://drive.google.com/file/d/1xvMPCH3GN8F6wSBRB0QRDTyZcr2qXSh9/view"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold underline underline-offset-2"
+              >
+                Philippine Government Interoperability Framework (PGIF) 2.0
+              </a>{" "}
+              if applicable.
             </p>
           </div>
         </div>

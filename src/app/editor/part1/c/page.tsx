@@ -14,5 +14,5 @@ export default function Part1CPage() {
     return null;
   }
 
-  return <Part1CForm initialData={doc.part1.stakeholders} />;
+  return <Part1CForm initialData={doc.part1.stakeholders} officeId={doc?.editScope?.office.id} />;
 }

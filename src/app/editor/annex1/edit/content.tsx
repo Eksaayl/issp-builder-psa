@@ -7,6 +7,9 @@ import { toast } from "sonner";
 import { InventoryEditor } from "@/components/annex1/inventory-editor";
 import { useIsspStore } from "@/lib/store";
 import { useEditorMobileSidebar } from "@/components/editor/editor-mobile-sidebar-context";
+import { ScopeGuardPanel } from "@/components/editor/scope-guard-panel";
+import { useResolvedScope } from "@/hooks/use-resolved-scope";
+import { isSectionVisible } from "@/lib/scope/paths";
 import {
   buildDisplayLabel,
   defaultEquipmentRows,
@@ -20,11 +23,19 @@ import {
 export function EditorAnnex1EditContent() {
   const router = useRouter();
   const params = useSearchParams();
-  const { doc, loading, update } = useIsspStore();
+  const { doc, loading, update, updateSectionMeta } = useIsspStore();
   const mobileSidebar = useEditorMobileSidebar();
+  const scope = useResolvedScope();
 
   if (loading) return null;
   if (!doc) { router.replace("/editor"); return null; }
+
+  // Scope guard mirrors /editor/annex1: a scoped doc without annex1 ownership
+  // gets the panel instead of the inventory editor (so handleUpdate/handleAdd
+  // can't run). Null scope ⇒ isSectionVisible is true ⇒ the page renders as before.
+  if (doc.editScope && !isSectionVisible(scope, "annexes/annex1")) {
+    return <ScopeGuardPanel />;
+  }
 
   const key = params.get("key");
   const typeParam = params.get("type");
@@ -36,14 +47,21 @@ export function EditorAnnex1EditContent() {
     // identical and is what InventoryEditor expects.
     const existing = (doc.annexedOffices ?? []).find((a) => a.office.displayLabel === key) as Annex1FilePayload | undefined;
     if (!existing) { router.replace("/editor/annex1"); return null; }
+    // Snapshot the scope office id at render time; the closure below can't see the
+    // narrowed `doc` (TS conservatively widens it back to nullable inside a nested fn).
+    const scopeOfficeId = doc.editScope?.office.id;
+    const stamp = (payload: Annex1FilePayload): Annex1FilePayload =>
+      scopeOfficeId ? { ...payload, officeId: scopeOfficeId } : payload;
 
     function handleUpdate(payload: Annex1FilePayload) {
+      const stamped = stamp(payload);
       update((prev) => ({
         ...prev,
         annexedOffices: (prev.annexedOffices ?? []).map((a) =>
-          a.office.displayLabel === key ? payload : a
+          a.office.displayLabel === key ? stamped : a
         ),
       }));
+      updateSectionMeta("annexes/annex1", { lastEditedAt: new Date().toISOString() });
       toast.success("Office updated");
       return true;
     }
@@ -82,14 +100,20 @@ export function EditorAnnex1EditContent() {
     // Snapshot the attached list at render time; closures below can't see the narrowed
     // `doc` (TS conservatively widens it back to nullable inside a nested function).
     const attachedOffices = doc.annexedOffices ?? [];
+    // Scoped: stamp payload with this office's id so consolidate() can replace it.
+    const scopeOfficeId = doc.editScope?.office.id;
+    const stamp = (payload: Annex1FilePayload): Annex1FilePayload =>
+      scopeOfficeId ? { ...payload, officeId: scopeOfficeId } : payload;
 
     function handleAdd(payload: Annex1FilePayload) {
-      const dup = attachedOffices.some((a) => a.office.displayLabel === payload.office.displayLabel);
+      const stamped = stamp(payload);
+      const dup = attachedOffices.some((a) => a.office.displayLabel === stamped.office.displayLabel);
       if (dup) {
-        toast.error(`"${payload.office.displayLabel}" is already in the list`);
+        toast.error(`"${stamped.office.displayLabel}" is already in the list`);
         return false;
       }
-      update((prev) => ({ ...prev, annexedOffices: [...(prev.annexedOffices ?? []), payload] }));
+      update((prev) => ({ ...prev, annexedOffices: [...(prev.annexedOffices ?? []), stamped] }));
+      updateSectionMeta("annexes/annex1", { lastEditedAt: new Date().toISOString() });
       toast.success("Office added");
       return true;
     }

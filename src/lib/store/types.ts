@@ -1,3 +1,5 @@
+import type { EditScope } from "@/lib/scope/types";
+
 // ─── Agency ───────────────────────────────────────────────────────────────────
 
 export type AgencyType = "NGA" | "GOCC" | "LGU" | "OTHER";
@@ -53,6 +55,12 @@ export interface Stakeholder {
   id: string;
   name: string;
   services: StakeholderService[];
+  /**
+   * Provenance stamps for scoped files (Phase 3 consolidate() merge contract).
+   * Absent ⇒ secretariat/legacy-owned (unscoped docs never carry these).
+   */
+  rowId?: string;
+  officeId?: string;
 }
 
 export interface Part1Data {
@@ -394,6 +402,11 @@ export interface Annex1FilePayload {
   exportedAt: string;
   tool: "issp-platform";
   office: { type: string; region?: string; name: string; displayLabel: string };
+  /**
+   * Provenance stamp for scoped files (Phase 3 consolidate() replaces Annex 1
+   * payloads by officeId). Absent ⇒ secretariat/legacy-owned.
+   */
+  officeId?: string;
   annex1: {
     equipment: Array<{
       id: string; type: string; isCustom: boolean;
@@ -413,7 +426,7 @@ export interface IsspDocument {
   fileType: "issp-main";
   exportedAt: string;
   tool: "issp-platform";
-  /** Schema version for migration. 9 = current. */
+  /** Schema version for migration. 11 = current. */
   schemaVersion?: number;
   title: string;
   startYear: number;
@@ -437,6 +450,10 @@ export interface IsspDocument {
   definitions?: DefinitionTerm[];
   /** Annex 1 files attached by the CIO from regional/field offices. */
   annexedOffices?: Annex1FilePayload[];
+  /** Present ⇒ scoped file; editor hides/strips non-owned paths. */
+  editScope?: EditScope;
+  /** Section ids flagged for review after a consolidate() merge. */
+  consolidationFlags?: string[];
   part1: Part1Data;
   part2: Part2Data;
   part3: Part3Data;

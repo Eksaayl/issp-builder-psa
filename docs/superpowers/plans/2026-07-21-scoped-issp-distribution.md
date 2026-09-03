@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - **No test framework exists.** Verification uses two mechanisms: (1) runnable `.ts` scripts under `scripts/` executed with `npx tsx` using `node:assert` for pure logic (resolver/slice/consolidate), and (2) the `verify-feature` skill (typecheck + Puppeteer browser/PDF smoke + build + deploy) for UI. **Task 1 adds `tsx` as a devDependency.**
-- **Type gate:** `npm run build` (runs `tsc` via `next build`). Every task ends green on `npm run build` and `npm run lint`.
+- **Dev type-gate:** `npx tsc --noEmit` + `npm run lint` (+ Puppeteer smokes on :3000). ⚠️ **Do NOT run `npm run build` during dev** — it rewrites `.next` and desyncs the live pm2 prod process (manifest 500s; took prod down 2026-08-03 — see `AGENTS.md` → *Production & deploy safety*). `npm run build` is **deploy-only** (`git checkout main && npm run build && pm2 restart issp`). Any task step below that says `Run: npm run build` is **superseded** — use `npx tsc --noEmit` + `npm run lint` instead.
 - **Schema version:** bump `CURRENT_SCHEMA_VERSION` from **10 → 11** (`src/lib/migration-review.ts:1`). Also fix the stale comment at `src/lib/store/types.ts:417` ("9 = current" → "11 = current"). The data-model task uses the **`schema-change`** skill (its full checklist applies: types, defaults, migration, forms, PDF, section-fields map, demo file).
 - **Scoped files keep `fileType: "issp-main"`** (they are full `IsspDocument`s carrying `editScope`), so they pass `loadFromFile`'s existing gate (`index.tsx:122`) unchanged. No new `fileType`.
 - **Soft lock only** — no crypto/tamper-proofing (per spec non-goals).
@@ -338,7 +338,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 
 - [ ] **Step 1: Create the `useResolvedScope` hook**
 
-Create `src/hooks/use-resolved-scope.ts`:
+Create `src/hooks/use-resolved-scope.ts`. **`useIsspStore()` takes NO selector argument** (it returns the whole value via context — confirmed at `src/lib/store/index.tsx`); use the destructure form:
 ```ts
 import { useMemo } from "react";
 import { useIsspStore } from "@/lib/store";
@@ -346,14 +346,14 @@ import { resolveScope, type ResolvedScope } from "@/lib/scope/paths";
 
 /** Returns the resolved edit scope for the current doc, or null when unscoped. */
 export function useResolvedScope(): ResolvedScope | null {
-  const editScope = useIsspStore((s) => s.doc?.editScope);
+  const { doc } = useIsspStore();
+  const editScope = doc?.editScope;
   return useMemo(
     () => (editScope ? resolveScope(editScope.editable) : null),
     [editScope]
   );
 }
 ```
-> **Note:** confirm `useIsspStore` supports a selector (`useIsspStore((s) => ...)`). If it only returns the whole value, read `const { doc } = useIsspStore()` and derive — adjust Step 1 accordingly and keep the hook's return contract identical.
 
 - [ ] **Step 2: Filter the sidebar**
 
@@ -366,7 +366,7 @@ Import: `import { isSectionVisible } from "@/lib/scope/paths";` and `import { us
 
 - [ ] **Step 3: Filter overview cards**
 
-In `overview/part-card.tsx`, filter `PARTS` to those with ≥1 visible section (same predicate) before rendering the grid. Use `useResolvedScope()` + `isSectionVisible`.
+The overview grid's `PARTS.map` lives in **`src/app/editor/page.tsx:68`**, not `part-card.tsx` (which renders a single `part`). Filter at the map site — `PARTS.filter((p) => p.sections.some((s) => isSectionVisible(scope, s.id)))` — using `useResolvedScope()` + `isSectionVisible` in that page. (PartCard itself is unchanged.)
 
 - [ ] **Step 4: Prev/next nav skips hidden sections + route guard**
 
@@ -387,8 +387,17 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 
 ### Task 4: Field-level visibility in multi-field forms
 
-> **⚠️ RE-SYNC BEFORE EXECUTING — don't forget to nudge Claude.**
-> This task is intentionally left at **pattern** level, not exact JSX, because the section forms (`part1-a`, `part1-b`, `part2-b`, `part3-a`) are still evolving. Writing the verbatim JSX now would guarantee it goes stale. **Before executing Task 4, read those 4 forms fresh and write the exact wrapping JSX into this task.** Nudge Claude to re-sync it once the forms settle. Everything below is the stable pattern + field inventory; the per-field JSX gets filled in at re-sync time. (This is the *only* task at pattern-level — all others are exact code.)
+> **Re-synced 2026-08-03** against the current forms. Fields are not uniform `FormField` blocks — each maps to a specific element (a `FormField`, a bare input, a `<div>` block, or a whole `<Card>`). Wrap each element in its `can(key)` guard as specified below; do **not** modify the elements themselves.
+
+**Shared pattern (all four forms).** At the top of each component body:
+```ts
+import { useResolvedScope } from "@/hooks/use-resolved-scope";
+import { isFieldEditable } from "@/lib/scope/paths";
+// inside the component:
+const scope = useResolvedScope();
+const can = (k: string) => isFieldEditable(scope, SECTION_ID, k);  // SECTION_ID per form (matches the SectionShell sectionId)
+```
+Then wrap each field's element: `{can("fieldKey") && (<existingElement/>)}`.
 
 **Files:**
 - Modify: `src/components/issp-editor/part1/part1-a-form.tsx` (5 fields)
@@ -399,19 +408,28 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 **Interfaces:**
 - Consumes: `useResolvedScope()` (Task 3), `isFieldEditable` (Task 2). Each form knows its own `sectionId` (e.g. `"part1/b"`).
 
-- [ ] **Step 1: Wrap Part I-A fields**
+- [ ] **Step 1: Part I-A** (`sectionId="part1/a"`)
+  - `legalBasis` → the `<FormField label="Legal Basis">` block (A.1 card)
+  - `mandateFunction` → the `<FormField label="Mandate / Functions">` block (A.1 card)
+  - `visionStatement` → the `<FormField label="Vision Statement">` block (A.2–A.3 card)
+  - `missionStatement` → the `<FormField label="Mission Statement">` block (A.2–A.3 card)
+  - `orgOutcomes` → the **entire `{/* A.4 Org Outcomes */}` `<Card>`** (the outcomes list)
+  Wrap each in `{can("…") && (…)}`. (A card whose fields are all hidden renders empty — acceptable per spec; add no empty-state logic.)
 
-In `part1-a-form.tsx`, add `const scope = useResolvedScope();` and a local helper `const can = (k: string) => isFieldEditable(scope, "part1/a", k);`. Wrap each field's render in `{can("legalBasis") && (<FormField …>)}` for `legalBasis`, `mandateFunction`, `visionStatement`, `missionStatement`, `orgOutcomes`. (Read the file first; mirror its existing `FormField`/`Textarea` usage exactly — only adding the `can(...)` guard around each block.)
+- [ ] **Step 2: Part I-B** (`sectionId="part1/b"`) — the 12-field section
+  - **CIO + Focal person fields render through the `PersonFields` sub-component** (5 `FormField`s each: name, position, unit, email, contact). Add an optional `visibleKeys?: Set<string>` prop to `PersonFields` (a set of *generic* field names to show). Inside `PersonFields`, wrap each `<FormField>` in `{(!visibleKeys || visibleKeys.has("name")) && (…)}` etc. (no prop ⇒ all visible — preserves unscoped behavior). In `Part1BForm`, build the two sets from `scope`:
+    ```ts
+    const cap = (f: string) => f.charAt(0).toUpperCase() + f.slice(1);
+    const personKeys = (prefix: "cio" | "focal") =>
+      new Set(["name", "position", "unit", "email", "contact"].filter((f) => can(`${prefix}${cap(f)}`)));
+    ```
+    Pass `visibleKeys={personKeys("cio")}` to the CIO `<PersonFields>` and `personKeys("focal")` to the Focal one.
+  - `focalSameAsCio` → the "Concurrently held by the CIO" `<label>` checkbox block — wrap in `{can("focalSameAsCio") && (…)}`.
+  - `humanCapital` → the **entire `{/* B.2 Human Capital */}` `<Card>`** — wrap in `{can("humanCapital") && (…)}`.
 
-- [ ] **Step 2: Wrap Part I-B fields (the 12-field section)**
-
-In `part1-b-form.tsx`, `const scope = useResolvedScope(); const can = (k: string) => isFieldEditable(scope, "part1/b", k);`. The CIO/Focal fields render through `PersonFields` (lines 77–137) called at 266–277 (CIO) and 293–310 (Focal). Two options, pick the lower-risk:
-- **(Preferred)** Pass a `visibleKeys: Set<string>` prop into `PersonFields`; inside `PersonFields`, wrap each `<FormField>` in `visibleKeys.has("name") && (...)` etc. Build the set in `Part1BForm` from `scope` (CIO keys: `cioName,cioPosition,cioUnit,cioEmail,cioContact`; Focal keys: `focalName,focalPosition,focalUnit,focalEmail,focalContact`; plus `focalSameAsCio`).
-- For the human-capital table (lines 316–426), wrap the whole table block in `can("humanCapital") && (...)` — per-cell gating is out of scope (a partially-owned human-capital table is unlikely; if needed later, wrap individual `NumberInput` cells at 362–399).
-
-- [ ] **Step 3: Wrap Part II-B (3 fields) and Part III-A (3 fields)**
-
-Repeat the exact pattern in `part2-b-form.tsx` (`sectionId="part2/b"`, keys `networkDiagrams,networkDescription,cybersecurityControls`) and `part3-a-form.tsx` (`sectionId="part3/a"`, keys `proposedNetworkDataUrl,proposedNetworkDesc,proposedCybersecControls`).
+- [ ] **Step 3: Part II-B** (`sectionId="part2/b"`) and Part III-A (`sectionId="part3/a"`)
+  - Part II-B: `networkDescription` → the bare `<Textarea>` (B.1 card); `networkDiagrams` → the diagrams upload `<div className="space-y-3">` block (B.1 card); `cybersecurityControls` → the **entire `{/* B.2 Cybersecurity checklist */}` `<Card>`**.
+  - Part III-A: `proposedNetworkDesc` → the bare `<Textarea>` (A.1 card); `proposedNetworkDataUrl` → the `<DiagramUploadField>` (A.1 card); `proposedCybersecControls` → the **entire `{/* A.2 Cybersecurity */}` `<Card>`**.
 
 - [ ] **Step 4: Browser smoke + typecheck + commit**
 
@@ -484,30 +502,21 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 
 > This task adds two optional fields to existing row types — treat it under the same `schema-change` umbrella (Task 1). No migration of old rows (absent stamps ⇒ treated as secretariat/legacy-owned).
 
-- [ ] **Step 1: Add optional stamp fields to row types**
+- [ ] **Step 1: Add optional stamp fields**
 
-`Stakeholder` (`types.ts:52-56`): add `rowId?: string; officeId?: string;`.
-`EquipmentRow`/`SoftwareRow` (`src/lib/annex1/types.ts`): add the same two optional fields. (Remember the inline duplicate `Annex1FilePayload` at `types.ts:391-409` references these structurally — keep in sync.)
+`Stakeholder` (`src/lib/store/types.ts:52-56`): add `rowId?: string; officeId?: string;` (stakeholders row-merge across offices by `officeId`).
+`Annex1FilePayload` — add `officeId?: string;` to **both** definitions: canonical `src/lib/annex1/types.ts:81-88` AND the inline duplicate at `src/lib/store/types.ts:391-409` (the comment at :388 already warns to keep them in sync). This `officeId` is the key `consolidate()` replaces Annex 1 by (Task 9). **Do NOT stamp individual `EquipmentRow`/`SoftwareRow`** — Annex 1 merges at the payload level (one payload per office).
 
 - [ ] **Step 2: Stamp on add — stakeholders**
 
-In `part1-c-form.tsx`, find the "add stakeholder" handler (the function that creates a new `Stakeholder` and pushes it). When `doc.editScope` is present, stamp the new row:
-```ts
-import { useIsspStore } from "@/lib/store";
-// where a new stakeholder is created:
-const editScope = useIsspStore.getState?.().doc?.editScope; // or read via the form's existing store access
-const newStakeholder: Stakeholder = {
-  id: crypto.randomUUID(),
-  rowId: crypto.randomUUID(),
-  officeId: editScope?.office.id,
-  // ...existing fields
-};
-```
-> Match the form's existing store-access pattern (the agent confirmed forms use `useLocalSave`, not `useIsspStore` directly). Read the file to find how it obtains `editScope` — likely thread it via prop from the page, or add a minimal `useIsspStore()` read in the form for the office id. Prefer threading `officeId?: string` as a prop from `part1/c/page.tsx` to keep forms store-agnostic.
+`useIsspStore` has **no `.getState()`** (it's a React context hook). Thread the office id as a prop: in `src/app/editor/part1/c/page.tsx` (which reads the store) read `const officeId = doc?.editScope?.office.id;` and pass `officeId?: string` to `<Part1CForm>`. In `part1-c-form.tsx`, stamp new stakeholders in **both** creation paths — `addStakeholder` (table mode, ~:468) and the new-stakeholder branch of `handleDrawerSave` (list mode, ~:524-529). Cleanest: extend `makeStakeholder(officeId?)` to set `rowId: generateId(), officeId` when an officeId is passed, and pass `officeId` at both call sites. Unscoped (`officeId` undefined) ⇒ no stamps (unchanged behavior).
 
-- [ ] **Step 3: Stamp on add — Annex 1**
+- [ ] **Step 3: Stamp on add — Annex 1 (payload-level)**
 
-In `src/app/editor/annex1/page.tsx`, the add-equipment/add-software handlers (and the attach-flow at lines 25–64) must stamp `rowId` + `officeId` from `doc.editScope.office.id` on every new row when scoped. For the attach flow specifically: when attaching a returned scoped Annex 1 file, stamp its rows with the file's `editScope.office.id` if not already stamped.
+The Annex 1 editor was refactored: there are **no** per-row add handlers — rows are a fixed taxonomy filled in via `<InventoryEditor>`. The merge unit is the **`Annex1FilePayload`** (one per office), so stamp `officeId` on the *payload*, not on rows:
+- `src/app/editor/annex1/edit/content.tsx`: in `handleAdd` (~:86-95) and `handleUpdate` (~:40-49), when `doc.editScope` is set, spread `officeId: doc.editScope.office.id` onto the payload before pushing/replacing it in `doc.annexedOffices`.
+- `src/app/editor/annex1/page.tsx`: in `handleFiles` (attach flow, ~:39-60), when the current doc is scoped, stamp each attached payload with `officeId` from `doc.editScope.office.id` if the payload doesn't already carry one (a returned scoped file keeps its own `editScope.office.id`).
+- Both components already read `doc` via `useIsspStore()`.
 
 - [ ] **Step 4: Browser smoke + typecheck + commit**
 

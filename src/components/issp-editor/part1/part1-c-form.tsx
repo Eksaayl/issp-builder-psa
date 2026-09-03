@@ -40,10 +40,14 @@ interface Stakeholder {
   id: string;
   name: string;
   services: StakeholderService[];
+  rowId?: string;
+  officeId?: string;
 }
 
 interface Part1CFormProps {
   initialData: Stakeholder[];
+  /** When set (scoped doc), new stakeholders are stamped with rowId + officeId. */
+  officeId?: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -68,8 +72,11 @@ function makeService(): StakeholderService {
   return { id: generateId(), name: "", complexity: "Simple", direction: "" };
 }
 
-function makeStakeholder(): Stakeholder {
-  return { id: generateId(), name: "", services: [] };
+function makeStakeholder(officeId?: string): Stakeholder {
+  const base: Stakeholder = { id: generateId(), name: "", services: [] };
+  // Stamp provenance only in scoped mode — unscoped docs stay shape-identical.
+  if (officeId) return { ...base, rowId: generateId(), officeId };
+  return base;
 }
 
 // ─── Direction display (Incoming / Outgoing) ─────────────────────────────────
@@ -412,7 +419,7 @@ function ViewToggle({ mode, onChange }: { mode: ViewMode; onChange: (m: ViewMode
 
 // ─── Main Form ────────────────────────────────────────────────────────────────
 
-export function Part1CForm({ initialData }: Part1CFormProps) {
+export function Part1CForm({ initialData, officeId }: Part1CFormProps) {
   const [stakeholders, setStakeholders] = useState<Stakeholder[]>(() =>
     initialData.map((s) => ({
       ...s,
@@ -466,7 +473,7 @@ export function Part1CForm({ initialData }: Part1CFormProps) {
   // ── Table mode actions ──────────────────────────────────────────────────────
 
   function addStakeholder() {
-    const s = makeStakeholder();
+    const s = makeStakeholder(officeId);
     update([...stakeholders, s]);
     revealNewItem(s.id);
   }
@@ -523,10 +530,12 @@ export function Part1CForm({ initialData }: Part1CFormProps) {
 
   function handleDrawerSave(s: Stakeholder) {
     if (drawerIsNew) {
-      update([...stakeholders, s]);
+      // Stamp provenance on creation in scoped mode (matches addStakeholder).
+      const stamped = officeId ? { ...s, rowId: generateId(), officeId } : s;
+      update([...stakeholders, stamped]);
       // Visible consequence: land on the new row, expanded, not off-screen.
-      setOpenIds((prev) => new Set([...prev, s.id]));
-      revealNewItem(s.id);
+      setOpenIds((prev) => new Set([...prev, stamped.id]));
+      revealNewItem(stamped.id);
     } else {
       update(stakeholders.map((existing) => existing.id === s.id ? s : existing));
     }

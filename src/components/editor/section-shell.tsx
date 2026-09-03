@@ -2,13 +2,16 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Circle, ChevronLeft, ChevronRight, LayoutDashboard, Menu, AlertTriangle } from "lucide-react";
+import { CheckCircle2, Circle, ChevronLeft, ChevronRight, LayoutDashboard, Menu, AlertTriangle, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusDot } from "@/components/ui/status-dot";
 import { cn } from "@/lib/utils";
 import { useIsspStore } from "@/lib/store";
 import { ALL_SECTIONS, PARTS, computeStatus } from "@/lib/sections";
+import { useResolvedScope } from "@/hooks/use-resolved-scope";
+import { isSectionVisible } from "@/lib/scope/paths";
 import { useEditorMobileSidebar } from "./editor-mobile-sidebar-context";
+import { ScopeGuardPanel } from "./scope-guard-panel";
 
 // Header collapses past COLLAPSE_PX and only expands again once scrolled back
 // above EXPAND_PX. The gap between the two (hysteresis) stops the header from
@@ -39,8 +42,9 @@ export function SectionShell({
   children,
 }: SectionShellProps) {
   const router = useRouter();
-  const { doc, updateSectionMeta } = useIsspStore();
+  const { doc, updateSectionMeta, update } = useIsspStore();
   const mobileSidebar = useEditorMobileSidebar();
+  const scope = useResolvedScope();
 
   const headerRef = useRef<HTMLDivElement>(null);
   const [isCompact, setIsCompact] = useState(false);
@@ -61,27 +65,32 @@ export function SectionShell({
     return () => scrollContainer.removeEventListener("scroll", handleScroll);
   }, [sectionId]);
 
-  // Derive part + section from config
-  const sectionIndex = ALL_SECTIONS.findIndex((s) => s.id === sectionId);
-  const section = ALL_SECTIONS[sectionIndex];
+  // Derive part + section from config. Scoped docs restrict the prev/next
+  // chain to sections the office owns so navigation never lands on a hidden page.
+  const visibleSections = ALL_SECTIONS.filter((s) => isSectionVisible(scope, s.id));
+  const sectionIndex = visibleSections.findIndex((s) => s.id === sectionId);
+  const section = ALL_SECTIONS.find((s) => s.id === sectionId);
   // Front-matter sections (e.g. Definition of Terms) have no parent part
   const part = PARTS.find((p) => p.sections.some((s) => s.id === sectionId)) ?? null;
 
-  const prevSection = sectionIndex > 0 ? ALL_SECTIONS[sectionIndex - 1] : null;
+  const prevSection = sectionIndex > 0 ? visibleSections[sectionIndex - 1] : null;
   const prevPart = prevSection
     ? PARTS.find((p) => p.sections.some((s) => s.id === prevSection.id))
     : null;
   const nextSection =
-    sectionIndex < ALL_SECTIONS.length - 1 ? ALL_SECTIONS[sectionIndex + 1] : null;
+    sectionIndex >= 0 && sectionIndex < visibleSections.length - 1
+      ? visibleSections[sectionIndex + 1]
+      : null;
   const nextPart = nextSection
     ? PARTS.find((p) => p.sections.some((s) => s.id === nextSection.id))
     : null;
-  const isLast = sectionIndex === ALL_SECTIONS.length - 1;
+  const isLast = sectionIndex === visibleSections.length - 1;
 
   const meta = doc?.sectionMeta?.[sectionId];
   const status = computeStatus(meta);
   const isDone = meta?.userMarkedDone ?? false;
   const needsMigrationReview = doc?.migrationReview?.pendingSectionIds.includes(sectionId) ?? false;
+  const needsConsolidationReview = doc?.consolidationFlags?.includes(sectionId) ?? false;
   const sectionPrefix = section?.label.match(/^[A-Z][\d.]+/)?.[0] ?? null;
 
   const handleMarkDone = useCallback(
@@ -90,6 +99,28 @@ export function SectionShell({
     },
     [sectionId, updateSectionMeta]
   );
+
+  // Clear the per-section consolidation flag once the secretariat has reviewed
+  // the merged content. The merge engine sets consolidationFlags for list
+  // overlaps, multi-owner definitions, and scalar conflicts; the flag is purely
+  // a review nudge, so clearing it is safe and does not touch the data.
+  const handleMarkConsolidationReviewed = useCallback(() => {
+    update((prev) => {
+      if (!prev.consolidationFlags?.length) return prev;
+      const next = prev.consolidationFlags.filter((id) => id !== sectionId);
+      return {
+        ...prev,
+        consolidationFlags: next.length ? next : undefined,
+      };
+    });
+  }, [sectionId, update]);
+
+  // Route guard: a scoped user navigating directly to a hidden section gets a
+  // small notice instead of the form. Null scope ⇒ isSectionVisible is true ⇒
+  // this never renders, so unscoped behavior is unchanged.
+  if (!isSectionVisible(scope, sectionId)) {
+    return <ScopeGuardPanel />;
+  }
 
   return (
     <div className="space-y-8">
@@ -193,6 +224,29 @@ export function SectionShell({
             <p>
               Cross-check the entries from your older ISSP file against the current form, then mark this section as done again to clear the review flag.
             </p>
+          </div>
+        </div>
+      )}
+
+      {needsConsolidationReview && (
+        <div className="flex gap-3 rounded-lg border border-warning-border bg-warning-bg px-4 py-3 text-sm text-warning">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <div className="flex flex-1 flex-wrap items-start justify-between gap-3 leading-relaxed">
+            <div className="min-w-0">
+              <p className="font-semibold text-foreground">Flagged during consolidation</p>
+              <p>
+                Multiple scoped files contributed to this section — review for duplicates or conflicting entries, then clear the flag.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 shrink-0 gap-1.5 border-warning-border bg-background text-warning hover:bg-warning-border/30"
+              onClick={handleMarkConsolidationReviewed}
+            >
+              <Check className="h-3.5 w-3.5" />
+              Mark reviewed
+            </Button>
           </div>
         </div>
       )}
