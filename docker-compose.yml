@@ -1,0 +1,20 @@
+services:
+  issp:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_BASE_PATH: /issp
+        NEON_AUTH_COOKIE_SECRET: ${NEON_AUTH_COOKIE_SECRET}
+        NEON_AUTH_BASE_URL: ${NEON_AUTH_BASE_URL}
+        DATABASE_URL: ${DATABASE_URL}
+    container_name: issp-builder
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3100:3100"
+    shm_size: "1gb"
+    volumes:
+      - ./data:/app/.data
+    env_file:
+      - .env
+    environment:
+      APP_URL: "https://soid.psa.gov.ph"

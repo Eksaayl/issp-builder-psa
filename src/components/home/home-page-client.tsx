@@ -345,7 +345,7 @@ export default function HomePageClient() {
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <Image src="/PSA/PSA.webp" alt="PSA logo" width={28} height={28} className="h-7 w-7 object-contain" priority />
+            <Image src={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/PSA/PSA.webp`} alt="PSA logo" width={28} height={28} className="h-7 w-7 object-contain" priority unoptimized />
             <span className="font-display font-semibold text-sm tracking-tight">ISSP Builder</span>
           </div>
           <nav className="flex items-center gap-1">
@@ -360,7 +360,7 @@ export default function HomePageClient() {
         {/* Branding — anchored near the top of the first viewport */}
         <div className="w-full max-w-md mx-auto px-6 pt-12 text-center space-y-2">
           <div className="flex justify-center mb-4">
-            <Image src="/PSA/PSA.webp" alt="PSA logo" width={64} height={64} className="h-16 w-16 object-contain" priority />
+            <Image src={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/PSA/PSA.webp`} alt="PSA logo" width={64} height={64} className="h-16 w-16 object-contain" priority unoptimized />
           </div>
           <h1 className="font-display text-3xl font-bold tracking-tight">ISSP Builder</h1>
           <p className="text-sm text-muted-foreground">Build your agency&apos;s 3-year Information Systems Strategic Plan</p>
