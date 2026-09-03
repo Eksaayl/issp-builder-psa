@@ -1,9 +1,13 @@
+"use client";
+
 import Link from "next/link";
 import type { SectionMeta } from "@/lib/store";
 import { StatusDot } from "@/components/ui/status-dot";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { computeStatus, computePartStatus, type PartDef } from "@/lib/sections";
 import { AlertTriangle, Landmark, ClipboardCheck, Target, Wallet, type LucideIcon } from "lucide-react";
+import { useResolvedScope } from "@/hooks/use-resolved-scope";
+import { isSectionVisible } from "@/lib/scope/paths";
 
 // One icon per Part, tied to what each Part is actually about (not just decoration).
 const PART_ICONS: Record<PartDef["partNum"], LucideIcon> = {
@@ -22,8 +26,13 @@ export function PartCard({
   sectionMeta: Record<string, SectionMeta>;
   pendingSectionIds?: string[];
 }) {
-  const partStatus = computePartStatus(part.sections, sectionMeta);
-  const pendingCount = part.sections.filter((section) => pendingSectionIds.includes(section.id)).length;
+  const scope = useResolvedScope();
+  // Filter sections the office can't edit so the card never surfaces a link to
+  // a hidden section. Null scope ⇒ isSectionVisible is always true ⇒ sections
+  // === part.sections and the card renders exactly as before.
+  const sections = part.sections.filter((s) => isSectionVisible(scope, s.id));
+  const partStatus = computePartStatus(sections, sectionMeta);
+  const pendingCount = sections.filter((section) => pendingSectionIds.includes(section.id)).length;
   const Icon = PART_ICONS[part.partNum];
 
   return (
@@ -38,7 +47,7 @@ export function PartCard({
             >
               Part {part.part}
             </span>
-            <span className="text-xs text-muted-foreground">{part.sections.length} sections</span>
+            <span className="text-xs text-muted-foreground">{sections.length} sections</span>
           </div>
           <div className="mt-1.5 flex items-center gap-2 sm:min-h-[2.75rem]">
             <Icon className="h-5 w-5 shrink-0" style={{ color: part.color }} aria-hidden="true" />
@@ -57,7 +66,7 @@ export function PartCard({
 
       {/* Section rows */}
       <ul className="pl-4 pr-4 py-2 space-y-0">
-        {part.sections.map((section) => {
+        {sections.map((section) => {
           const meta = sectionMeta[section.id];
           const status = computeStatus(meta);
           const needsReview = pendingSectionIds.includes(section.id);

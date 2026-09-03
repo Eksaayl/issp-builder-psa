@@ -11,6 +11,8 @@ import { ChevronDown } from "lucide-react";
 import { SectionShell } from "@/components/editor/section-shell";
 import { DiagramUploadField } from "@/components/issp-editor/diagram-upload-field";
 import { CYBER_GROUPS, type CyberControlGroup } from "@/lib/cyber-controls";
+import { useResolvedScope } from "@/hooks/use-resolved-scope";
+import { isFieldEditable } from "@/lib/scope/paths";
 
 type CyberControls = Record<string, Record<string, boolean>>;
 
@@ -154,6 +156,9 @@ export function Part3AForm({ initialData }: { initialData: Part3AData }) {
 
   const { debouncedSave } = useLocalSave("part3", "part3/a");
 
+  const scope = useResolvedScope();
+  const can = (k: string) => isFieldEditable(scope, "part3/a", k);
+
   const triggerSave = useCallback(
     (desc: string, ctrl: CyberControls) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -184,6 +189,7 @@ export function Part3AForm({ initialData }: { initialData: Part3AData }) {
     >
 
       {/* A.1 Network */}
+      {(can("proposedNetworkDesc") || can("proposedNetworkDataUrl")) && (
       <Card>
         <CardHeader className="pb-4">
           <CardTitle className="text-base">A.1 Proposed Network Infrastructure</CardTitle>
@@ -204,27 +210,33 @@ export function Part3AForm({ initialData }: { initialData: Part3AData }) {
           {initialData.currentNetworkDesc && (
             <CurrentNetworkDisclosure description={initialData.currentNetworkDesc} />
           )}
-          <Textarea
-            placeholder="Describe proposed network infrastructure improvements, new equipment, topology changes, cloud migrations, etc."
-            value={networkDesc}
-            onChange={(e) => {
-              setNetworkDesc(e.target.value);
-              triggerSave(e.target.value, controls);
-            }}
-            rows={5}
-          />
-          <DiagramUploadField
-            value={networkDataUrl}
-            onChange={handleNetworkDiagramChange}
-            title="Proposed Network Diagram"
-            emptyTitle="Click to upload a proposed network diagram"
-            emptyDescription="PNG, JPG, WebP, or SVG - max 10 MB"
-            alt="Proposed network diagram"
-          />
+          {can("proposedNetworkDesc") && (
+            <Textarea
+              placeholder="Describe proposed network infrastructure improvements, new equipment, topology changes, cloud migrations, etc."
+              value={networkDesc}
+              onChange={(e) => {
+                setNetworkDesc(e.target.value);
+                triggerSave(e.target.value, controls);
+              }}
+              rows={5}
+            />
+          )}
+          {can("proposedNetworkDataUrl") && (
+            <DiagramUploadField
+              value={networkDataUrl}
+              onChange={handleNetworkDiagramChange}
+              title="Proposed Network Diagram"
+              emptyTitle="Click to upload a proposed network diagram"
+              emptyDescription="PNG, JPG, WebP, or SVG - max 10 MB"
+              alt="Proposed network diagram"
+            />
+          )}
         </CardContent>
       </Card>
+      )}
 
       {/* A.2 Cybersecurity */}
+      {can("proposedCybersecControls") && (
       <Card>
         <CardHeader className="pb-4">
           <CardTitle className="text-base">A.2 Proposed Cybersecurity Controls</CardTitle>
@@ -247,6 +259,7 @@ export function Part3AForm({ initialData }: { initialData: Part3AData }) {
           </div>
         </CardContent>
       </Card>
+      )}
 
     </SectionShell>
   );

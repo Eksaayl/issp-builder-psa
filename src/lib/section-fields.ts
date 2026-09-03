@@ -147,6 +147,29 @@ export function getChangedFields(
     }
   }
 
+  // Annex 1 office inventory lives at doc.annexedOffices (not under a part key).
+  // Surface each office that was added, edited, or removed since the snapshot.
+  if (sectionId === "annexes/annex1") {
+    const cur = current.annexedOffices ?? [];
+    const snap = snapshot.annexedOffices ?? [];
+    const curByKey = new Map(cur.map((o) => [o.office.displayLabel, o]));
+    // Added or edited
+    for (const o of cur) {
+      const prev = snap.find((s) => s.office.displayLabel === o.office.displayLabel);
+      if (!prev) {
+        changed.push({ key: `annex1:add:${o.office.displayLabel}`, label: `${o.office.displayLabel} — added` });
+      } else if (JSON.stringify(prev.annex1) !== JSON.stringify(o.annex1) || JSON.stringify(prev.office) !== JSON.stringify(o.office)) {
+        changed.push({ key: `annex1:edit:${o.office.displayLabel}`, label: `${o.office.displayLabel} — edited` });
+      }
+    }
+    // Removed
+    for (const o of snap) {
+      if (!curByKey.has(o.office.displayLabel)) {
+        changed.push({ key: `annex1:del:${o.office.displayLabel}`, label: `${o.office.displayLabel} — removed` });
+      }
+    }
+  }
+
   if (def && def.fields.length > 0) {
     const currentPart = current[def.partKey] as unknown as Record<string, unknown>;
     const snapshotPart = snapshot[def.partKey] as unknown as Record<string, unknown>;

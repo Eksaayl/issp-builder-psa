@@ -93,16 +93,28 @@ export function computePartStatus(
   return "in_progress";
 }
 
-/** Returns the section to continue from: most recent lastEditedAt → first section */
-export function findContinueTarget(sectionMeta: Record<string, SectionMeta>): {
+/** Returns the section to continue from: most recent lastEditedAt → first section
+ *
+ * Pass `visibleSectionIds` to restrict the candidate pool (e.g. scoped docs whose
+ * office only owns some sections). Omit it (or pass null) to consider every part
+ * section — the unscoped behavior.
+ */
+export function findContinueTarget(
+  sectionMeta: Record<string, SectionMeta>,
+  visibleSectionIds?: Set<string> | null
+): {
   section: SectionDef;
   part: PartDef;
   lastEditedAt: string | null;
 } {
+  // Default to "every part section is eligible" — preserves the original behavior
+  // for unscoped callers, and avoids recomputing the set when not needed.
+  const allow = (id: string) => !visibleSectionIds || visibleSectionIds.has(id);
   let latest: { section: SectionDef; part: PartDef; ts: string } | null = null;
 
   for (const part of PARTS) {
     for (const section of part.sections) {
+      if (!allow(section.id)) continue;
       const ts = sectionMeta[section.id]?.lastEditedAt;
       if (ts && (!latest || ts > latest.ts)) {
         latest = { section, part, ts };
@@ -111,5 +123,13 @@ export function findContinueTarget(sectionMeta: Record<string, SectionMeta>): {
   }
 
   if (latest) return { section: latest.section, part: latest.part, lastEditedAt: latest.ts };
+  // No edits (or none in the visible pool) → fall back to the first eligible
+  // section. When a scope leaves no part sections visible at all (shouldn't
+  // happen in practice — every office owns at least one), drop back to Part I §A.
+  for (const part of PARTS) {
+    for (const section of part.sections) {
+      if (allow(section.id)) return { section, part, lastEditedAt: null };
+    }
+  }
   return { section: PARTS[0].sections[0], part: PARTS[0], lastEditedAt: null };
 }
