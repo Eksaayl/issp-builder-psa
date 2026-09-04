@@ -128,6 +128,10 @@ export default async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
+    // The pattern below compiles to a path-to-regexp group that will not match
+    // an empty segment, so the landing path has to be listed on its own or it
+    // slips past the gate entirely.
+    "/",
     // Anything with a static-asset extension is served as-is: gating `.json`
     // in particular broke client fetches that parse the response as JSON and
     // memoize the result, poisoning the cache for the whole page session.
