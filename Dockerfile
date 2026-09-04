@@ -46,6 +46,8 @@ COPY --from=builder --chown=appuser:appuser /app/public ./public
 COPY --from=builder --chown=appuser:appuser /app/node_modules ./node_modules
 COPY --from=builder --chown=appuser:appuser /app/package.json ./package.json
 COPY --from=builder --chown=appuser:appuser /app/next.config.ts ./next.config.ts
+COPY --from=builder --chown=appuser:appuser /app/src/app/og-fonts ./src/app/og-fonts
+COPY --from=builder --chown=appuser:appuser /app/src/app/og-assets ./src/app/og-assets
 
 USER appuser
 EXPOSE 3100
