@@ -65,15 +65,14 @@ export const metadata: Metadata = {
     canonical: SITE_URL,
   },
   category: "technology",
+  // Every route sits behind the PSA sign-in gate, so there is nothing a
+  // crawler could reach and index anyway.
   robots: {
-    index: true,
-    follow: true,
+    index: false,
+    follow: false,
     googleBot: {
-      index: true,
-      follow: true,
-      "max-video-preview": -1,
-      "max-image-preview": "large",
-      "max-snippet": -1,
+      index: false,
+      follow: false,
     },
   },
   openGraph: {

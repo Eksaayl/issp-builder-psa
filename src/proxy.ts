@@ -15,7 +15,6 @@ const PUBLIC_ROUTES = new Set([
   "/twitter-image",
   "/icon",
   "/apple-icon",
-  "/sitemap.xml",
   "/robots.txt",
 ]);
 
