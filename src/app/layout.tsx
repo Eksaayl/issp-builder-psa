@@ -115,11 +115,16 @@ export default function RootLayout({
         {/* Google is the only way in: email/password sign-in and self-serve
             sign-up are both disabled, so the @psa.gov.ph restriction can't be
             sidestepped by registering with an arbitrary address. */}
+        {/* The OAuth callback URL is built as `${baseURL}${redirectTo}` by the
+            auth UI, which knows nothing about Next's basePath. Left at its "/"
+            default the callback lands on the domain root, which in production
+            is a different application behind the same host. */}
         <NeonAuthUIProvider
           authClient={authClient}
           social={{ providers: ["google"] }}
           signUp={false}
           credentials={false}
+          redirectTo={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/`}
         >
           <ThemeProvider>
             <IsspStoreProvider>
