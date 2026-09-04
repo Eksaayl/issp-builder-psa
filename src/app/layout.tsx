@@ -113,7 +113,15 @@ export default function RootLayout({
         <script suppressHydrationWarning dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="min-h-full flex flex-col">
-        <NeonAuthUIProvider authClient={authClient} social={{ providers: ["google"] }} signUp={true}>
+        {/* Google is the only way in: email/password sign-in and self-serve
+            sign-up are both disabled, so the @psa.gov.ph restriction can't be
+            sidestepped by registering with an arbitrary address. */}
+        <NeonAuthUIProvider
+          authClient={authClient}
+          social={{ providers: ["google"] }}
+          signUp={false}
+          credentials={false}
+        >
           <ThemeProvider>
             <IsspStoreProvider>
               {children}
