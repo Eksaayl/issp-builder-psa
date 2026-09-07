@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,13 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { useIsspStore } from "@/lib/store";
 import type { AgencyType, IsspScope } from "@/lib/store";
-import {
-  LOGO_ACCEPT,
-  getLogoUploadError,
-  readFileAsDataUrl,
-} from "@/lib/diagram-upload";
-import { toast } from "sonner";
-import { ImagePlus, Trash2, Loader2 } from "lucide-react";
+import { loadPsaLogoDataUrl, psaLogoUrl } from "@/lib/psa-logo";
 
 // ─── Lookup tables ────────────────────────────────────────────────────────────
 
@@ -110,25 +104,21 @@ export function IsspFormFields({
   idPrefix?: string;
 }) {
   const id = (name: string) => `${idPrefix}${name}`;
-  const logoInputRef = useRef<HTMLInputElement>(null);
-  const [logoLoading, setLogoLoading] = useState(false);
 
-  async function handleLogoFile(file: File | undefined) {
-    if (!file) return;
-    const error = getLogoUploadError(file);
-    if (error) {
-      toast.error(error);
-      return;
-    }
-    setLogoLoading(true);
-    try {
-      set("agencyLogo", await readFileAsDataUrl(file));
-    } catch {
-      toast.error("Failed to read the image. Please try another file.");
-    } finally {
-      setLogoLoading(false);
-    }
-  }
+  // The logo is no longer uploaded, but it is still *stored* on the document,
+  // so seed the form with it as though it had been. Seeding unconditionally
+  // means an older file carrying a different logo is brought in line with the
+  // rest of the PSA build the next time it is saved.
+  const seededLogo = useRef(false);
+  useEffect(() => {
+    if (seededLogo.current) return;
+    seededLogo.current = true;
+    loadPsaLogoDataUrl()
+      .then((dataUrl) => set("agencyLogo", dataUrl))
+      // Leaving it null is the pre-existing no-logo path: the PDF falls back to
+      // the agency name. Not worth interrupting the user over.
+      .catch(() => {});
+  }, [set]);
 
   return (
     <div className="space-y-4 py-1">
@@ -202,70 +192,26 @@ export function IsspFormFields({
             />
           </div>
 
+          {/* Fixed, like the agency name and acronym above. Shown rather than
+              hidden so the logo can be confirmed before exporting a PDF. */}
           <div className="space-y-1.5">
-            <Label>
-              Agency Logo{" "}
-              <span className="text-muted-foreground font-normal">
-                (optional)
-              </span>
-            </Label>
-            <input
-              ref={logoInputRef}
-              type="file"
-              accept={LOGO_ACCEPT}
-              className="hidden"
-              onChange={(e) => {
-                void handleLogoFile(e.target.files?.[0]);
-                e.target.value = "";
-              }}
-            />
-            <div className="flex items-center gap-3">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted/30">
-                {logoLoading ? (
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                ) : form.agencyLogo ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={form.agencyLogo}
-                    alt="Agency logo"
-                    className="h-full w-full object-contain"
-                  />
-                ) : (
-                  <ImagePlus className="h-5 w-5 text-muted-foreground" />
-                )}
+            <Label>Agency Logo</Label>
+            <div className="flex items-center gap-3 rounded-md border bg-muted px-3 py-2.5">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-background">
+                {/* Rendered from the URL, not the stored data URL, so it paints
+                    immediately and does not wait on the seeding fetch. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={psaLogoUrl()}
+                  alt="Philippine Statistics Authority logo"
+                  className="h-full w-full object-contain"
+                />
               </div>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={logoLoading}
-                  onClick={() => logoInputRef.current?.click()}
-                >
-                  {logoLoading
-                    ? "Reading…"
-                    : form.agencyLogo
-                      ? "Replace"
-                      : "Upload logo"}
-                </Button>
-                {form.agencyLogo && !logoLoading && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="text-muted-foreground hover:text-destructive"
-                    onClick={() => set("agencyLogo", null)}
-                  >
-                    <Trash2 className="mr-1 h-3.5 w-3.5" />
-                    Remove
-                  </Button>
-                )}
-              </div>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Fixed for PSA documents. Appears on the PDF cover and in the page
+                header of Parts I&ndash;IV.
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Replaces the DICT logo in the PDF cover and page header. PNG, JPG,
-              WebP, or SVG, up to 2 MB.
-            </p>
           </div>
         </div>
       </div>

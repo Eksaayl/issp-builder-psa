@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { AuthView } from "@neondatabase/auth-ui";
+import { PSA_LOGO_PATH } from "@/lib/psa-logo";
 
 export const dynamicParams = false;
 
@@ -29,7 +30,7 @@ export default async function AuthPage({
       <div className="w-full max-w-sm space-y-6">
         <div className="flex flex-col items-center gap-3 text-center">
           <Image
-            src={`${basePath}/PSA/PSA.webp`}
+            src={`${basePath}${PSA_LOGO_PATH}`}
             alt="Philippine Statistics Authority logo"
             width={56}
             height={56}
