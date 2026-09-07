@@ -99,7 +99,7 @@ export function ImportDefinitionsDialog({
 
   return (
     <Dialog open={open} onOpenChange={(next: boolean) => !next && resetAndClose()}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Import terms from CSV</DialogTitle>
           <DialogDescription>
@@ -108,7 +108,7 @@ export function ImportDefinitionsDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-1">
+        <div className="min-w-0 space-y-4 py-1">
           <input
             ref={fileInputRef}
             type="file"
@@ -117,10 +117,10 @@ export function ImportDefinitionsDialog({
             onChange={handleSelect}
           />
 
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 items-center gap-3">
             <Button
               variant="outline"
-              className="gap-2"
+              className="shrink-0 gap-2"
               disabled={reading}
               onClick={() => fileInputRef.current?.click()}
             >
@@ -139,7 +139,7 @@ export function ImportDefinitionsDialog({
           )}
 
           {preview && (
-            <div className="space-y-3 rounded-lg border px-4 py-3">
+            <div className="min-w-0 space-y-3 rounded-lg border px-4 py-3">
               <p className="text-sm font-medium">
                 {preview.toAdd.length === 0
                   ? "Nothing to add from this file."
@@ -147,9 +147,9 @@ export function ImportDefinitionsDialog({
               </p>
 
               {preview.toAdd.length > 0 && (
-                <ul className="max-h-40 space-y-1 overflow-y-auto text-sm text-muted-foreground">
+                <ul className="max-h-40 min-w-0 space-y-1 overflow-y-auto text-sm text-muted-foreground">
                   {preview.toAdd.map((t) => (
-                    <li key={t.term} className="truncate">
+                    <li key={t.term} className="break-words">
                       <span className="font-medium text-foreground">{t.term}</span> — {t.definition}
                     </li>
                   ))}
@@ -157,7 +157,7 @@ export function ImportDefinitionsDialog({
               )}
 
               {preview.skippedDuplicates.length > 0 && (
-                <p className="text-sm text-muted-foreground">
+                <p className="break-words text-sm text-muted-foreground">
                   {preview.skippedDuplicates.length} already in your list, skipped:{" "}
                   {preview.skippedDuplicates.map((d) => d.term).join(", ")}
                 </p>
@@ -169,7 +169,7 @@ export function ImportDefinitionsDialog({
                     <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
                     {preview.invalid.length} {preview.invalid.length === 1 ? "row" : "rows"} skipped
                   </p>
-                  <ul className="space-y-0.5 leading-snug">
+                  <ul className="space-y-0.5 break-words leading-snug">
                     {preview.invalid.map((r) => (
                       <li key={r.row}>
                         Row {r.row}: {r.reason}
