@@ -24,11 +24,13 @@ function internalUrl(path: string, request: NextRequest) {
 
 /**
  * Refuse the request. API callers get a 401 they can branch on; anything a
- * browser navigated to gets bounced to sign-in with the original destination
- * preserved, which is what the replaced `auth.middleware` used to do.
+ * browser navigated to gets bounced to sign-in. The attempted path is
+ * deliberately not carried along: sign-in always finishes on the home page
+ * (see the `redirectTo` pinned in the auth page), so a stashed destination
+ * would only be dead weight in the URL.
  */
 function deny(request: NextRequest, error?: string) {
-  const { pathname, search } = request.nextUrl;
+  const { pathname } = request.nextUrl;
 
   if (pathname.startsWith("/api/")) {
     // A redirect here would be followed by `fetch` and answered with sign-in
@@ -39,9 +41,6 @@ function deny(request: NextRequest, error?: string) {
   const signInUrl = internalUrl("/auth/sign-in", request);
   if (error) {
     signInUrl.searchParams.set("error", error);
-  }
-  if (pathname !== "/") {
-    signInUrl.searchParams.set("redirect", `${pathname}${search}`);
   }
   return NextResponse.redirect(signInUrl);
 }

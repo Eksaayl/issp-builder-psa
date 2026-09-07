@@ -15,6 +15,14 @@ export default async function AuthPage({
 
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
   const showDomainNote = path === "sign-in" || path === "sign-up";
+  // The auth UI resolves its post-success destination as
+  // `redirectTo prop || ?redirectTo= || provider default`, so anything that
+  // arrives carrying a `redirectTo` query param would outrank the provider's
+  // value. Passing it as a prop pins every successful sign-in to the home
+  // page. Sign-out is excluded: its `redirectTo` is where you land after the
+  // session is gone, and the home page is gated, so it keeps its own default
+  // of the sign-in screen.
+  const redirectTo = path === "sign-out" ? undefined : `${basePath}/`;
 
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center bg-secondary/40 px-6 py-12">
@@ -42,7 +50,7 @@ export default async function AuthPage({
         )}
 
         <div key={path} className="animate-auth-view-switch flex w-full flex-col items-center">
-          <AuthView path={path} />
+          <AuthView path={path} redirectTo={redirectTo} />
         </div>
 
         {showDomainNote && (
