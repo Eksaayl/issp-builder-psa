@@ -45,7 +45,6 @@ import {
   Home,
   Share2,
 } from "lucide-react";
-import { UserButton } from "@neondatabase/auth-ui";
 import { useIsspStore } from "@/lib/store";
 import { useFileSaveReminder } from "@/hooks/use-file-save-reminder";
 import { useNow } from "@/hooks/use-now";
@@ -265,7 +264,6 @@ function CollapsedSidebar({ onToggle }: { onToggle: () => void }) {
       </Button>
       <Separator className="mt-2" />
       <div className="flex-1" />
-      <UserButton size="icon" />
     </aside>
   );
 }
@@ -686,19 +684,15 @@ export function EditorSidebar({
                 {doc.amendmentNumber > 0 && ` · A${doc.amendmentNumber}`}
               </p>
             </div>
-            <div className="flex shrink-0 items-center gap-1">
-              {/* Account — the mobile footer row is already full, so it lives up here */}
-              <UserButton size="icon" />
-              <Button
-                size="icon"
-                variant="ghost"
-                aria-label="Close navigation"
-                onClick={onMobileClose}
-                className="h-7 w-7 shrink-0 text-foreground hover:bg-accent"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
+            <Button
+              size="icon"
+              variant="ghost"
+              aria-label="Close navigation"
+              onClick={onMobileClose}
+              className="h-7 w-7 shrink-0 text-foreground hover:bg-accent"
+            >
+              <X className="h-4 w-4" />
+            </Button>
           </div>
           {doc.editScope && (
             <div className="mt-2 rounded-md border border-info-border bg-info-bg px-2.5 py-1.5 text-xs text-info">
@@ -1090,11 +1084,6 @@ export function EditorSidebar({
               )}
             </>
           )}
-
-          {/* Account — the only way into account settings from inside the editor */}
-          <div className="flex items-center justify-end border-t pt-2">
-            <UserButton size="icon" />
-          </div>
         </div>
 
         {/* Hidden file input */}
