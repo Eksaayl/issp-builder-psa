@@ -1,21 +1,78 @@
 "use client";
 
 import { useState } from "react";
-import { AccountSettingsCards, SecuritySettingsCards, useAuthenticate } from "@neondatabase/auth-ui";
-import { ArrowLeftIcon, CheckIcon, DownloadIcon, MonitorIcon, TrashIcon } from "lucide-react";
+import { AccountSettingsCards, SessionsCard, useAuthenticate } from "@neondatabase/auth-ui";
+import { ArrowLeftIcon, CheckIcon, DownloadIcon, MonitorIcon, PaletteIcon, TrashIcon } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ClearDataFlow, type ClearDataStep } from "@/components/shared/clear-data-flow";
+import { ThemePreview } from "@/components/shared/theme-preview";
 import { useNow } from "@/hooks/use-now";
 import { formatTimeAgo } from "@/lib/format-time-ago";
 import { useIsspStore } from "@/lib/store";
+import { THEMES, useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 const TABS = [
   { path: "settings", label: "Account" },
   { path: "security", label: "Security" },
 ] as const;
+
+/**
+ * Theme picker.
+ *
+ * The editor's File menu has one of these, but it is a dropdown and it is only
+ * reachable with a document open. The only other control in the app is buried
+ * inside a collapsed section of the What's New dialog, so anyone who does not
+ * use the editor has no practical way to change theme. A settings page is
+ * where people look for this.
+ */
+function AppearanceCard() {
+  const { theme, setTheme } = useTheme();
+
+  return (
+    <div className="rounded-xl border bg-card p-6 space-y-4">
+      <div className="space-y-1.5">
+        <h3 className="flex items-center gap-2 font-semibold">
+          <PaletteIcon className="size-4 text-muted-foreground" />
+          Appearance
+        </h3>
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          Saved in this browser, not to your account — another computer will use its own
+          setting.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {THEMES.map((item) => {
+          const active = theme === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              // `aria-pressed` rather than colour alone, so the active theme is
+              // announced instead of only being visible.
+              aria-pressed={active}
+              onClick={() => setTheme(item.id)}
+              className={cn(
+                "flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm transition-colors",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                active
+                  ? "border-primary bg-accent font-medium text-foreground"
+                  : "text-muted-foreground hover:bg-accent hover:text-foreground",
+              )}
+            >
+              <ThemePreview theme={item.id} />
+              <span className="truncate">{item.name}</span>
+              {active && <CheckIcon className="ml-auto size-3.5 shrink-0" />}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 /**
  * What this browser is holding.
@@ -167,15 +224,20 @@ export function AccountSettingsView({ path }: { path: string }) {
           ))}
         </div>
         {activeTab === "security" ? (
-          // Reads the same auth context configured in `layout.tsx` and gates each
-          // card on it, so with `credentials={false}` there is no change-password
-          // card to offer a Google-only user, and with no `deleteUser` configured
-          // there is no delete-account card on a PSA-managed identity. What is
-          // left is the linked Google account and the active-session list.
-          <SecuritySettingsCards className="grow" />
+          // Composed by hand rather than using `SecuritySettingsCards`, which
+          // would also pull in `ProvidersCard` -- link/unlink controls that mean
+          // nothing for a Google-managed PSA identity. It gates that card on
+          // `social.providers`, and we cannot drop that config because it is
+          // what puts the Google button on the sign-in page.
+          //
+          // The trade-off is losing the bundle's automatic gating: if
+          // `credentials` or `deleteUser` are ever enabled in `layout.tsx`, the
+          // matching cards will not appear here on their own.
+          <SessionsCard className="grow" />
         ) : (
           <div className="flex grow flex-col gap-4 md:gap-6">
             <AccountSettingsCards />
+            <AppearanceCard />
             <ThisDeviceCard />
           </div>
         )}

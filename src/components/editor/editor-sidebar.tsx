@@ -59,7 +59,8 @@ import { StatusDot } from "@/components/ui/status-dot";
 import { IsspPropertiesDialog } from "./issp-properties-dialog";
 import { DistributeDialog } from "./distribute-dialog";
 import { ConsolidateDialog } from "./consolidate-dialog";
-import { THEMES, isThemeId, useTheme, type ThemeId } from "@/lib/theme";
+import { THEMES, isThemeId, useTheme } from "@/lib/theme";
+import { ThemePreview } from "@/components/shared/theme-preview";
 import { toast } from "sonner";
 
 type ExportState =
@@ -114,23 +115,6 @@ function ThemeMenuItems({ onThemeSelected }: { onThemeSelected?: () => void }) {
         </Fragment>
       ))}
     </DropdownMenuRadioGroup>
-  );
-}
-
-function ThemePreview({ theme }: { theme: ThemeId }) {
-  const item = THEMES.find((candidate) => candidate.id === theme)!;
-
-  return (
-    <span
-      aria-hidden="true"
-      className="inline-flex h-4 w-4 items-center justify-center rounded-full border"
-      style={{ backgroundColor: item.background, borderColor: item.border }}
-    >
-      <span
-        className="h-2 w-2 rounded-full border border-black/10"
-        style={{ backgroundColor: item.secondary }}
-      />
-    </span>
   );
 }
 

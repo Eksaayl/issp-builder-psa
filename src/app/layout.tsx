@@ -135,6 +135,10 @@ export default function RootLayout({
           redirectTo={`${BASE_PATH}/`}
           basePath={`${BASE_PATH}/auth`}
           account={{ basePath: `${BASE_PATH}/account` }}
+          // PSA identities are Google-managed, so the address is not the
+          // user's to change here. This is the only thing the flag gates: it
+          // drops `ChangeEmailCard` from the account page and nothing else.
+          changeEmail={false}
         >
           <ThemeProvider>
             <IsspStoreProvider>
