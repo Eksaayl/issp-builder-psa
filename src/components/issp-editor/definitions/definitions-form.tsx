@@ -6,13 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Callout } from "@/components/ui/callout";
-import { Plus, RotateCcw } from "lucide-react";
+import { Plus, RotateCcw, Download, FileUp } from "lucide-react";
 import { ConfirmDeleteButton } from "@/components/ui/confirm-delete-button";
 import { SectionShell } from "@/components/editor/section-shell";
 import { useIsspStore } from "@/lib/store";
 import type { DefinitionTerm } from "@/lib/store/types";
 import { STANDARD_DEFINITIONS, makeStandardDefinitions } from "@/lib/store/defaults";
 import { revealNewItem } from "@/lib/reveal";
+import { definitionsTemplateCsv } from "@/lib/definitions-csv";
+import { ImportDefinitionsDialog } from "./import-definitions-dialog";
 
 function generateId() {
   return Math.random().toString(36).slice(2, 10);
@@ -23,6 +25,7 @@ export function DefinitionsForm({ initialData }: { initialData: DefinitionTerm[]
   const [terms, setTerms] = useState<DefinitionTerm[]>(
     () => initialData ?? makeStandardDefinitions()
   );
+  const [importOpen, setImportOpen] = useState(false);
 
   function commit(next: DefinitionTerm[]) {
     setTerms(next);
@@ -53,6 +56,25 @@ export function DefinitionsForm({ initialData }: { initialData: DefinitionTerm[]
       ...terms,
       ...missingStandard.map((std) => ({ id: generateId(), ...std })),
     ]);
+  }
+
+  function importTerms(rows: { term: string; definition: string }[]) {
+    const added = rows.map((r) => ({ id: generateId(), ...r }));
+    commit([...terms, ...added]);
+    // Land on the first import rather than pulsing every new card at once.
+    if (added.length > 0) revealNewItem(added[0].id);
+  }
+
+  function downloadTemplate() {
+    const blob = new Blob([definitionsTemplateCsv()], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "definition-of-terms-template.csv";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
   }
 
   return (
@@ -106,12 +128,25 @@ export function DefinitionsForm({ initialData }: { initialData: DefinitionTerm[]
         <Button variant="outline" onClick={addTerm} className="gap-1.5">
           <Plus className="h-4 w-4" /> Add term
         </Button>
+        <Button variant="outline" onClick={() => setImportOpen(true)} className="gap-1.5">
+          <FileUp className="h-4 w-4" /> Import CSV
+        </Button>
+        <Button variant="ghost" onClick={downloadTemplate} className="gap-1.5 text-muted-foreground">
+          <Download className="h-4 w-4" /> Download template
+        </Button>
         {missingStandard.length > 0 && (
           <Button variant="ghost" onClick={restoreStandard} className="gap-1.5 text-muted-foreground">
             <RotateCcw className="h-4 w-4" /> Restore standard terms ({missingStandard.length})
           </Button>
         )}
       </div>
+
+      <ImportDefinitionsDialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        terms={terms}
+        onImport={importTerms}
+      />
     </SectionShell>
   );
 }
