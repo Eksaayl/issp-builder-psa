@@ -94,6 +94,14 @@ export const metadata: Metadata = {
   },
 };
 
+// The auth UI builds its own links -- the account tabs, the sign-out link, the
+// bounce to sign-in when a session lapses -- as `${basePath}/${view}`, and hands
+// them to `window.location`. It knows nothing about Next's basePath, so at the
+// defaults of "/auth" and "/account" those all point at the domain root, which
+// in production is a different application. Both have to be prefixed for the
+// account screens to stay under /issp.
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -124,7 +132,9 @@ export default function RootLayout({
           social={{ providers: ["google"] }}
           signUp={false}
           credentials={false}
-          redirectTo={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/`}
+          redirectTo={`${BASE_PATH}/`}
+          basePath={`${BASE_PATH}/auth`}
+          account={{ basePath: `${BASE_PATH}/account` }}
         >
           <ThemeProvider>
             <IsspStoreProvider>
