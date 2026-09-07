@@ -45,9 +45,13 @@ import {
   Home,
   Share2,
 } from "lucide-react";
+import { UserButton } from "@neondatabase/auth-ui";
 import { useIsspStore } from "@/lib/store";
 import { useFileSaveReminder } from "@/hooks/use-file-save-reminder";
+import { useNow } from "@/hooks/use-now";
 import { useResolvedScope } from "@/hooks/use-resolved-scope";
+import { formatTimeAgo } from "@/lib/format-time-ago";
+import { ClearDataFlow, type ClearDataStep } from "@/components/shared/clear-data-flow";
 import { isSectionVisible } from "@/lib/scope/paths";
 import { PARTS, FRONT_MATTER_SECTIONS, ANNEX_SECTIONS, computeStatus, type SectionDef, type PartDef } from "@/lib/sections";
 import { getChangedFields, type SectionField } from "@/lib/section-fields";
@@ -73,26 +77,6 @@ function parseSseEvent(raw: string): { event: string; data: string } | null {
     else if (line.startsWith("data:")) data += line.slice(5).trimStart();
   }
   return data ? { event, data } : null;
-}
-
-function formatTimeAgo(isoString: string, now: number): string {
-  const diff = now - new Date(isoString).getTime();
-  const minutes = Math.floor(diff / 60_000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes} min ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} hr ago`;
-  const days = Math.floor(hours / 24);
-  return `${days} day${days > 1 ? "s" : ""} ago`;
-}
-
-function useNow(intervalMs = 60_000): number {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), intervalMs);
-    return () => clearInterval(id);
-  }, [intervalMs]);
-  return now;
 }
 
 function useIsMobileViewport(): boolean {
@@ -297,6 +281,7 @@ function CollapsedSidebar({ onToggle }: { onToggle: () => void }) {
       </Button>
       <Separator className="mt-2" />
       <div className="flex-1" />
+      <UserButton size="icon" />
     </aside>
   );
 }
@@ -329,7 +314,7 @@ export function EditorSidebar({
   const [distributeOpen, setDistributeOpen] = useState(false);
   const [consolidateOpen, setConsolidateOpen] = useState(false);
   const [exportState, setExportState] = useState<ExportState>({ status: "idle" });
-  const [clearStep, setClearStep] = useState<"idle" | "step1" | "step2">("idle");
+  const [clearStep, setClearStep] = useState<ClearDataStep>("idle");
   const [showChanges, setShowChanges] = useState(false);
   const [themeNudgeDismissed, setThemeNudgeDismissed] = useState(() =>
     typeof window !== "undefined" && localStorage.getItem("issp-theme-nudge-dismissed") === "true"
@@ -717,15 +702,19 @@ export function EditorSidebar({
                 {doc.amendmentNumber > 0 && ` · A${doc.amendmentNumber}`}
               </p>
             </div>
-            <Button
-              size="icon"
-              variant="ghost"
-              aria-label="Close navigation"
-              onClick={onMobileClose}
-              className="h-7 w-7 shrink-0 text-foreground hover:bg-accent"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+            <div className="flex shrink-0 items-center gap-1">
+              {/* Account — the mobile footer row is already full, so it lives up here */}
+              <UserButton size="icon" />
+              <Button
+                size="icon"
+                variant="ghost"
+                aria-label="Close navigation"
+                onClick={onMobileClose}
+                className="h-7 w-7 shrink-0 text-foreground hover:bg-accent"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
           {doc.editScope && (
             <div className="mt-2 rounded-md border border-info-border bg-info-bg px-2.5 py-1.5 text-xs text-info">
@@ -741,53 +730,14 @@ export function EditorSidebar({
 
         {/* Compact footer */}
         <div className="border-t border-border/50 px-3 py-2.5 shrink-0">
-          {clearStep === "step1" && (
-            <div className="rounded-lg border border-border bg-card px-3 py-2.5 space-y-2.5">
-              <div className="space-y-1">
-                <p className="text-sm font-semibold text-foreground">Clear editor data?</p>
-                <p className="text-xs leading-snug text-muted-foreground">
-                  This will permanently remove your ISSP from this browser.
-                </p>
-              </div>
-              {unsavedToFile && (
-                <div className="rounded-md border border-warning-border bg-warning-bg px-2.5 py-2 text-xs text-warning space-y-2">
-                  <p className="font-medium">You have unsaved changes.</p>
-                  <p className="leading-snug">Save your file before clearing.</p>
-                  <Button size="sm" variant="outline" className={cn("h-7 text-xs px-2", sidebarControlClass)} onClick={handleSaveToFile}>
-                    <Download className="h-3.5 w-3.5" />
-                    Save .issp file
-                  </Button>
-                </div>
-              )}
-              <div className="flex gap-2">
-                <Button size="sm" className="h-7 flex-1 text-xs px-3" onClick={() => setClearStep("step2")}>
-                  Continue
-                </Button>
-                <Button size="sm" variant="outline" className={cn("h-7 flex-1 text-xs px-3", sidebarControlClass)} onClick={() => setClearStep("idle")}>
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {clearStep === "step2" && (
-            <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5 space-y-2.5 text-destructive">
-              <div className="space-y-1">
-                <p className="text-sm font-semibold">This action is irreversible.</p>
-                <p className="text-xs leading-snug">
-                  Your ISSP will be permanently deleted from this browser. There is no undo.
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button size="sm" variant="destructive" className="h-7 flex-1 text-xs px-3" onClick={handleClear}>
-                  Delete permanently
-                </Button>
-                <Button size="sm" variant="outline" className={cn("h-7 flex-1 text-xs px-3", sidebarControlClass)} onClick={() => setClearStep("step1")}>
-                  Go back
-                </Button>
-              </div>
-            </div>
-          )}
+          <ClearDataFlow
+            step={clearStep}
+            unsavedToFile={unsavedToFile}
+            onSave={handleSaveToFile}
+            onStepChange={setClearStep}
+            onConfirm={handleClear}
+            controlClassName={sidebarControlClass}
+          />
 
           {clearStep === "idle" && exportState.status !== "idle" && (
             <ExportProgressCard state={exportState} onDismiss={() => setExportState({ status: "idle" })} />
@@ -1007,53 +957,14 @@ export function EditorSidebar({
           </div>
 
           {/* Clear editor flow */}
-          {clearStep === "step1" && (
-            <div className="rounded-lg border border-border bg-card px-3 py-2.5 space-y-2.5">
-              <div className="space-y-1">
-                <p className="text-sm font-semibold text-foreground">Clear editor data?</p>
-                <p className="text-xs leading-snug text-muted-foreground">
-                  This will permanently remove your ISSP from this browser.
-                </p>
-              </div>
-              {unsavedToFile && (
-                <div className="rounded-md border border-warning-border bg-warning-bg px-2.5 py-2 text-xs text-warning space-y-2">
-                  <p className="font-medium">You have unsaved changes.</p>
-                  <p className="leading-snug">Save your file before clearing.</p>
-                  <Button size="sm" variant="outline" className={cn("h-7 text-xs px-2", sidebarControlClass)} onClick={handleSaveToFile}>
-                    <Download className="h-3.5 w-3.5" />
-                    Save .issp file
-                  </Button>
-                </div>
-              )}
-              <div className="flex gap-2">
-                <Button size="sm" className="h-7 flex-1 text-xs px-3" onClick={() => setClearStep("step2")}>
-                  Continue
-                </Button>
-                <Button size="sm" variant="outline" className={cn("h-7 flex-1 text-xs px-3", sidebarControlClass)} onClick={() => setClearStep("idle")}>
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {clearStep === "step2" && (
-            <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5 space-y-2.5 text-destructive">
-              <div className="space-y-1">
-                <p className="text-sm font-semibold">This action is irreversible.</p>
-                <p className="text-xs leading-snug">
-                  Your ISSP will be permanently deleted from this browser. There is no undo.
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button size="sm" variant="destructive" className="h-7 flex-1 text-xs px-3" onClick={handleClear}>
-                  Delete permanently
-                </Button>
-                <Button size="sm" variant="outline" className={cn("h-7 flex-1 text-xs px-3", sidebarControlClass)} onClick={() => setClearStep("step1")}>
-                  Go back
-                </Button>
-              </div>
-            </div>
-          )}
+          <ClearDataFlow
+            step={clearStep}
+            unsavedToFile={unsavedToFile}
+            onSave={handleSaveToFile}
+            onStepChange={setClearStep}
+            onConfirm={handleClear}
+            controlClassName={sidebarControlClass}
+          />
 
           {clearStep === "idle" && exportState.status !== "idle" && (
             <ExportProgressCard state={exportState} onDismiss={() => setExportState({ status: "idle" })} />
@@ -1195,6 +1106,11 @@ export function EditorSidebar({
               )}
             </>
           )}
+
+          {/* Account — the only way into account settings from inside the editor */}
+          <div className="flex items-center justify-end border-t pt-2">
+            <UserButton size="icon" />
+          </div>
         </div>
 
         {/* Hidden file input */}
