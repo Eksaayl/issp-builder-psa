@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { AccountSettingsCards, SessionsCard, useAuthenticate } from "@neondatabase/auth-ui";
 import { ArrowLeftIcon, CheckIcon, DownloadIcon, MonitorIcon, PaletteIcon, TrashIcon } from "lucide-react";
 import Link from "next/link";
@@ -19,6 +19,9 @@ const TABS = [
   { path: "security", label: "Security" },
 ] as const;
 
+/** Never changes after hydration, so there is nothing to subscribe to. */
+const subscribeNoop = () => () => {};
+
 /**
  * Theme picker.
  *
@@ -30,6 +33,17 @@ const TABS = [
  */
 function AppearanceCard() {
   const { theme, setTheme } = useTheme();
+  // `useTheme` seeds itself from localStorage, which the server cannot see, so
+  // the active theme differs between the SSR pass and the first client render
+  // and React discards the tree. Mark nothing active until hydration has
+  // happened, so both passes agree, then let the re-render light up the real
+  // one. The sidebar's theme menu dodges this only because a dropdown does not
+  // render until it is opened, long after hydration.
+  const hydrated = useSyncExternalStore(
+    subscribeNoop,
+    () => true,
+    () => false,
+  );
 
   return (
     <div className="rounded-xl border bg-card p-6 space-y-4">
@@ -46,7 +60,7 @@ function AppearanceCard() {
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {THEMES.map((item) => {
-          const active = theme === item.id;
+          const active = hydrated && theme === item.id;
           return (
             <button
               key={item.id}
