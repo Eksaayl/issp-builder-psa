@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { handleAuthProxyRequest } from "@neondatabase/auth/server";
 
 const ALLOWED_EMAIL_DOMAIN = "@psa.gov.ph";
+
+const AUTH_BASE_URL = process.env.NEON_AUTH_BASE_URL!;
+const AUTH_COOKIE_SECRET = process.env.NEON_AUTH_COOKIE_SECRET!;
 
 // Production serves the app under a sub-path (see NEXT_PUBLIC_BASE_PATH in the
 // Dockerfile). Middleware sees `nextUrl.pathname` with that prefix already
@@ -20,6 +24,39 @@ const PUBLIC_ROUTES = new Set([
 
 function internalUrl(path: string, request: NextRequest) {
   return new URL(`${BASE_PATH}${path}`, request.url);
+}
+
+/**
+ * Talk to the Neon Auth API the way the app's own `/api/auth/[...path]` route
+ * does, but in-process.
+ *
+ * This deliberately does NOT go through that route over HTTP. Doing so meant
+ * the container issuing a request to its own public hostname on every gated
+ * navigation, which only works if the box can reach itself back through the
+ * reverse proxy. In the container the app actually ships in that round trip
+ * has to leave the Docker network, resolve the public host and come back in
+ * through nginx; when any of that fails the `catch` below fails closed and
+ * every route -- including the OAuth landing -- bounces to sign-in. This
+ * helper reaches `NEON_AUTH_BASE_URL` directly instead, so the gate no longer
+ * depends on the deployment's ability to call itself.
+ *
+ * `url` is passed through because the helper forwards its query string
+ * upstream, and on the OAuth landing that query string carries the
+ * `neon_auth_session_verifier` that gets exchanged for the session cookies.
+ */
+function callAuthApi(path: string, url: URL | string, cookie: string, body?: string) {
+  return handleAuthProxyRequest({
+    request: new Request(url, {
+      method: body === undefined ? "GET" : "POST",
+      headers: body === undefined
+        ? { cookie }
+        : { cookie, "Content-Type": "application/json" },
+      body,
+    }),
+    path,
+    baseUrl: AUTH_BASE_URL,
+    cookieSecret: AUTH_COOKIE_SECRET,
+  });
 }
 
 /**
@@ -62,21 +99,19 @@ export default async function proxy(request: NextRequest) {
 
   // On the OAuth landing the session cookie does not exist yet — the
   // `neon_auth_session_verifier` query param is the token that gets exchanged
-  // for it. Forward that param so the session resolves on this very request;
+  // for it. `request.url` still carries it here, and `callAuthApi` forwards
+  // the query string upstream, so the session resolves on this very request;
   // without it the landing looks signed-out and would be bounced back to
   // sign-in, breaking the flow before it can finish.
-  const sessionUrl = internalUrl("/api/auth/get-session", request);
   const verifier = request.nextUrl.searchParams.get("neon_auth_session_verifier");
-  if (verifier) {
-    sessionUrl.searchParams.set("neon_auth_session_verifier", verifier);
-  }
 
   let sessionRes: Response;
   try {
-    sessionRes = await fetch(sessionUrl, { headers: { cookie } });
+    sessionRes = await callAuthApi("get-session", request.url, cookie);
   } catch {
-    // The loopback request can fail on its own (DNS, TLS, proxy). Letting that
-    // throw would turn every matched route into a 500, so fail closed instead.
+    // Reaching Neon Auth can still fail on its own (DNS, TLS, upstream down).
+    // Letting that throw would turn every matched route into a 500, so fail
+    // closed instead.
     return deny(request);
   }
 
@@ -91,11 +126,12 @@ export default async function proxy(request: NextRequest) {
   if (email && !email.toLowerCase().endsWith(ALLOWED_EMAIL_DOMAIN)) {
     const response = deny(request, "domain_not_allowed");
     try {
-      const signOutRes = await fetch(internalUrl("/api/auth/sign-out", request), {
-        method: "POST",
-        headers: { cookie, "Content-Type": "application/json" },
-        body: "{}",
-      });
+      const signOutRes = await callAuthApi(
+        "sign-out",
+        internalUrl("/api/auth/sign-out", request),
+        cookie,
+        "{}",
+      );
       // Forward the cleared session cookies so the browser drops them
       // immediately instead of relying on a second round trip.
       for (const setCookie of signOutRes.headers.getSetCookie?.() ?? []) {
@@ -116,6 +152,30 @@ export default async function proxy(request: NextRequest) {
       response.headers.append("Set-Cookie", setCookie);
     }
     return response;
+  }
+
+  // The verifier is single-use: exchanging it above both minted the session
+  // cookies and consumed the challenge. Letting it stay in the address bar
+  // leaves the client adapter permanently broken on this page -- it skips its
+  // session cache for as long as the param is present and keeps replaying the
+  // spent verifier, so every client-side session read comes back signed-out
+  // even though the cookies are good. Bounce once to the clean URL, carrying
+  // the cookies, which is what the library's own middleware does.
+  if (verifier) {
+    // Built through `internalUrl` rather than from `request.url` so the
+    // basePath is re-applied the same way every other absolute URL here is,
+    // instead of depending on whether the runtime left it on `request.url`.
+    const cleanUrl = internalUrl(pathname, request);
+    for (const [key, value] of request.nextUrl.searchParams) {
+      if (key !== "neon_auth_session_verifier") {
+        cleanUrl.searchParams.append(key, value);
+      }
+    }
+    const redirect = NextResponse.redirect(cleanUrl);
+    for (const setCookie of sessionCookies) {
+      redirect.headers.append("Set-Cookie", setCookie);
+    }
+    return redirect;
   }
 
   const response = NextResponse.next();
