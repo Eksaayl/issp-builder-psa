@@ -92,11 +92,16 @@ function AppearanceCard() {
 /**
  * What this browser is holding.
  *
- * The ISSP never leaves the device -- it lives in IndexedDB with no server
- * copy -- so "your data" is really "this browser's data". The editor sidebar
- * and the home page's continue card both show it too, but only while a
- * document is open; this is the one place that answers the question when
- * nothing is loaded, which is what matters on a shared workstation.
+ * Editing happens against IndexedDB, so "your data" is really "this browser's
+ * data" -- but it is no longer the only copy: the editor can upload the ISSP to
+ * the shared PSA server, and that copy is readable by every signed-in PSA user.
+ * The wording below has to say both things, because a claim that nothing leaves
+ * the device would now be false.
+ *
+ * The editor sidebar and the home page's continue card show the local document
+ * too, but only while one is open; this is the one place that answers the
+ * question when nothing is loaded, which is what matters on a shared
+ * workstation.
  */
 function ThisDeviceCard() {
   const { doc, fileSavedAt, unsavedToFile, saveToFile, clearDoc } = useIsspStore();
@@ -127,9 +132,11 @@ function ThisDeviceCard() {
           This device
         </h3>
         <p className="text-sm text-muted-foreground leading-relaxed">
-          Your ISSP is stored in this browser only — it is never uploaded. Clearing this
-          browser&apos;s data, or using a different computer, means starting from your last
-          saved <code className="rounded bg-muted px-1 py-0.5 text-xs">.issp</code> file.
+          Editing happens in this browser. Clearing its data, or using a different computer,
+          means starting from your last saved{" "}
+          <code className="rounded bg-muted px-1 py-0.5 text-xs">.issp</code> file — unless you
+          upload the ISSP to the PSA server from the editor&apos;s file menu, which keeps a copy
+          every signed-in PSA user can open and replace.
         </p>
       </div>
 

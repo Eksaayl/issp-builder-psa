@@ -1,6 +1,6 @@
 # ISSP Builder
 
-A local-first web tool that lets Philippine government agencies fill, validate, and export their three-year Information Systems Strategic Plan (ISSP) as a PDF, per the DICT 2026 template. There are no accounts and no server-side storage; each user's data lives in their browser and is shared as a `.issp` file.
+A web tool that lets Philippine government agencies fill, validate, and export their three-year Information Systems Strategic Plan (ISSP) as a PDF, per the DICT 2026 template. Sign-in is required and restricted to `@psa.gov.ph`. Editing happens in the browser against IndexedDB, and a document is shared either as a `.issp` file or by uploading it to the shared PSA copy on the server, which any signed-in PSA user can read and replace.
 
 ## Language
 

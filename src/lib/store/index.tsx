@@ -16,6 +16,7 @@ import { CURRENT_SCHEMA_VERSION, getRequiredMigrationReviewSectionIds } from "@/
 import { recordIsspUsage } from "@/lib/record-usage";
 import { consolidate, type ScalarConflict } from "@/lib/scope/consolidate";
 import { SECTION_FIELDS } from "@/lib/section-fields";
+import { fetchServerDocument, uploadServerDocument } from "@/lib/server-document";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -77,6 +78,16 @@ export interface IsspStoreValue {
     files: File[],
     resolutions?: Record<string, unknown>
   ) => Promise<ConsolidateActionResult>;
+  /**
+   * Row timestamp of the server copy this session last read or wrote, or null
+   * if the server has not been contacted. Sent back as the precondition on the
+   * next upload so a stale tab cannot overwrite a newer version.
+   */
+  serverUpdatedAt: string | null;
+  /** Replace the shared server copy with this document. */
+  uploadToServer: () => Promise<StoreActionResult>;
+  /** Replace the local document with the shared server copy. */
+  restoreFromServer: () => Promise<StoreActionResult>;
 }
 
 const MAX_ISSP_FILE_SIZE_BYTES = 50 * 1024 * 1024;
@@ -808,6 +819,9 @@ export function IsspStoreProvider({ children }: { children: ReactNode }) {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [fileSavedAt, setFileSavedAt] = useState<string | null>(null);
   const [savedSnapshot, setSavedSnapshot] = useState<IsspDocument | null>(null);
+  // Not persisted: a reload has to re-read the server before it may write to
+  // it, which is exactly the precondition this value exists to enforce.
+  const [serverUpdatedAt, setServerUpdatedAt] = useState<string | null>(null);
   const [migrationNotice, setMigrationNotice] = useState<MigrationReview | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -991,6 +1005,36 @@ export function IsspStoreProvider({ children }: { children: ReactNode }) {
     }
   }, [clearSaveTimers, doc]);
 
+  /**
+   * Validate, migrate and adopt a parsed document.
+   *
+   * Shared by the file loader and the server restore so both go through the
+   * same gauntlet. `fileSavedAt` is a parameter rather than always taken from
+   * `exportedAt` because it means "a .issp exists on this machine": a file load
+   * proves that, a server restore does not.
+   */
+  const adoptParsedDoc = useCallback(
+    async (
+      parsed: unknown,
+      options: { fileSavedAt: string | null; recordUsage?: boolean }
+    ): Promise<StoreActionResult> => {
+      const normalized = normalizeImportShape(parsed);
+      if (!normalized.success) return normalized;
+      const imageValidation = validateEmbeddedImages(normalized.doc);
+      if (!imageValidation.success) return imageValidation;
+      const migrated = migrateLegacyDoc(normalized.doc);
+      const migrationReview = migrated.migrationReview;
+      setDoc(migrated);
+      setFileSavedAt(options.fileSavedAt);
+      setSavedSnapshot(structuredClone(migrated));
+      await idbSave(migrated);
+      setMigrationNotice(migrationReview?.pendingSectionIds.length ? migrationReview : null);
+      if (options.recordUsage !== false) recordIsspUsage("loaded", migrated.agency);
+      return { success: true, migrationReview };
+    },
+    []
+  );
+
   const loadFromFile = useCallback(
     async (file: File, options?: LoadFromFileOptions): Promise<StoreActionResult> => {
       try {
@@ -999,20 +1043,12 @@ export function IsspStoreProvider({ children }: { children: ReactNode }) {
         }
         const text = await file.text();
         const parsed = JSON.parse(text) as unknown;
-        const normalized = normalizeImportShape(parsed);
-        if (!normalized.success) return normalized;
-        const imageValidation = validateEmbeddedImages(normalized.doc);
-        if (!imageValidation.success) return imageValidation;
-        const migrated = migrateLegacyDoc(normalized.doc);
-        const migrationReview = migrated.migrationReview;
-        setDoc(migrated);
-        // Treat the file's exportedAt as the last known file save
-        setFileSavedAt(migrated.exportedAt);
-        setSavedSnapshot(structuredClone(migrated));
-        await idbSave(migrated);
-        setMigrationNotice(migrationReview?.pendingSectionIds.length ? migrationReview : null);
-        if (options?.recordUsage !== false) recordIsspUsage("loaded", migrated.agency);
-        return { success: true, migrationReview };
+        const exportedAt = (parsed as Partial<IsspDocument> | null)?.exportedAt ?? null;
+        // Treat the file's exportedAt as the last known file save.
+        return await adoptParsedDoc(parsed, {
+          fileSavedAt: exportedAt,
+          recordUsage: options?.recordUsage,
+        });
       } catch {
         return {
           success: false,
@@ -1020,8 +1056,43 @@ export function IsspStoreProvider({ children }: { children: ReactNode }) {
         };
       }
     },
-    []
+    [adoptParsedDoc]
   );
+
+  const uploadToServer = useCallback(async (): Promise<StoreActionResult> => {
+    if (!doc) return { success: false, error: "There is no ISSP to upload." };
+    const result = await uploadServerDocument(doc, serverUpdatedAt);
+    if (result.status === "ok") {
+      setServerUpdatedAt(result.updatedAt);
+      return { success: true };
+    }
+    if (result.status === "conflict") {
+      setServerUpdatedAt(result.serverUpdatedAt);
+      return {
+        success: false,
+        error: "Someone else uploaded a newer ISSP. Restore from the server first, then re-apply your changes.",
+      };
+    }
+    return { success: false, error: result.error };
+  }, [doc, serverUpdatedAt]);
+
+  const restoreFromServer = useCallback(async (): Promise<StoreActionResult> => {
+    const result = await fetchServerDocument();
+    if (result.status === "empty") {
+      return { success: false, error: "No ISSP has been uploaded to the server yet." };
+    }
+    if (result.status === "error") return { success: false, error: result.error };
+
+    // Adopted before the timestamp is recorded: if the document is rejected as
+    // malformed, this session must not go on believing it holds that version.
+    const adopted = await adoptParsedDoc(result.payload.content, {
+      fileSavedAt: null,
+      recordUsage: false,
+    });
+    if (!adopted.success) return adopted;
+    setServerUpdatedAt(result.payload.updatedAt);
+    return adopted;
+  }, [adoptParsedDoc]);
 
   const acknowledgeMigrationNotice = useCallback(() => {
     setMigrationNotice(null);
@@ -1131,6 +1202,9 @@ export function IsspStoreProvider({ children }: { children: ReactNode }) {
         saveToFile,
         loadFromFile,
         consolidateFiles,
+        serverUpdatedAt,
+        uploadToServer,
+        restoreFromServer,
       }}
     >
       {children}

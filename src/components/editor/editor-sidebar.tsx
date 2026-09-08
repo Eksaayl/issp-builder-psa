@@ -44,6 +44,8 @@ import {
   AlertTriangle,
   Home,
   Share2,
+  CloudUpload,
+  CloudDownload,
 } from "lucide-react";
 import { useIsspStore } from "@/lib/store";
 import { useFileSaveReminder } from "@/hooks/use-file-save-reminder";
@@ -286,7 +288,7 @@ export function EditorSidebar({
   onToggle: () => void;
   onMobileClose: () => void;
 }) {
-  const { doc, saveToFile, loadFromFile, fileSavedAt, savedSnapshot, unsavedToFile, clearDoc, saveStatus, saveError } = useIsspStore();
+  const { doc, saveToFile, loadFromFile, fileSavedAt, savedSnapshot, unsavedToFile, clearDoc, saveStatus, saveError, uploadToServer, restoreFromServer } = useIsspStore();
   const scope = useResolvedScope();
   const now = useNow();
   const isMobileViewport = useIsMobileViewport();
@@ -380,6 +382,34 @@ export function EditorSidebar({
   function handleFileMenuOpenChange(open: boolean) {
     setFileMenuOpen(open);
     if (!open) setThemeSubmenuOpen(false);
+  }
+
+  // Server actions are explicit, never automatic: uploading replaces the copy
+  // every PSA user shares, and restoring replaces the local one. Neither should
+  // happen because a background timer fired.
+  const [serverBusy, setServerBusy] = useState(false);
+
+  async function handleUploadToServer() {
+    if (serverBusy) return;
+    setServerBusy(true);
+    const result = await uploadToServer();
+    setServerBusy(false);
+    if (result.success) toast.success("Uploaded to the PSA server.");
+    else toast.error(result.error);
+  }
+
+  async function handleRestoreFromServer() {
+    if (serverBusy) return;
+    // The local document is about to be replaced, so make the trade explicit
+    // rather than discovering it afterwards.
+    if (unsavedToFile && !window.confirm(
+      "Restoring replaces the ISSP in this browser with the server's copy. Unsaved changes will be lost. Continue?"
+    )) return;
+    setServerBusy(true);
+    const result = await restoreFromServer();
+    setServerBusy(false);
+    if (result.success) toast.success("Restored the ISSP from the server.");
+    else toast.error(result.error);
   }
 
   async function handleSaveToFile() {
@@ -793,6 +823,16 @@ export function EditorSidebar({
                     <FolderOpen className="h-3.5 w-3.5 mr-2" />
                     Load different ISSP…
                   </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleUploadToServer} disabled={serverBusy}>
+                    <CloudUpload className="h-3.5 w-3.5 mr-2" />
+                    Upload to PSA server
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleRestoreFromServer} disabled={serverBusy}>
+                    <CloudDownload className="h-3.5 w-3.5 mr-2" />
+                    Restore from server…
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger>
                       <Palette className="h-3.5 w-3.5 mr-2" />
@@ -1025,6 +1065,16 @@ export function EditorSidebar({
                       <FolderOpen className="h-3.5 w-3.5 mr-2" />
                       Load different ISSP…
                     </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleUploadToServer} disabled={serverBusy}>
+                      <CloudUpload className="h-3.5 w-3.5 mr-2" />
+                      Upload to PSA server
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleRestoreFromServer} disabled={serverBusy}>
+                      <CloudDownload className="h-3.5 w-3.5 mr-2" />
+                      Restore from server…
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
                     <DropdownMenuSub open={themeSubmenuOpen} onOpenChange={setThemeSubmenuOpen}>
                       <DropdownMenuSubTrigger
                         className={cn(

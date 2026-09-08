@@ -49,6 +49,17 @@ COPY --from=builder --chown=appuser:appuser /app/next.config.ts ./next.config.ts
 COPY --from=builder --chown=appuser:appuser /app/src/app/og-fonts ./src/app/og-fonts
 COPY --from=builder --chown=appuser:appuser /app/src/app/og-assets ./src/app/og-assets
 
+# The Prisma client is generated into src/, not node_modules, and the app is not
+# built as `output: standalone`, so neither the generated client nor the schema
+# reaches the runner on its own. `migrate deploy` also needs the migrations at
+# run time, since nothing else applies them.
+COPY --from=builder --chown=appuser:appuser /app/src/generated/prisma ./src/generated/prisma
+COPY --from=builder --chown=appuser:appuser /app/prisma ./prisma
+COPY --from=builder --chown=appuser:appuser /app/prisma.config.ts ./prisma.config.ts
+
 USER appuser
 EXPOSE 3100
-CMD ["npx", "next", "start", "-p", "3100"]
+# Apply pending migrations before serving. `migrate deploy` is idempotent, so a
+# restart with nothing pending is a no-op, and a failure here stops the
+# container rather than letting it serve against a schema it does not match.
+CMD ["sh", "-c", "npx prisma migrate deploy && npx next start -p 3100"]

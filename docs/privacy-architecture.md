@@ -1,4 +1,15 @@
 # Privacy Architecture Notes
+
+> **Superseded — September 2026.** This document records the local-first design as it
+> stood before server storage was added, and parts of it are no longer true of the
+> shipping app. Specifically: sign-in is now required and restricted to `@psa.gov.ph`;
+> the app has a Postgres database, and the editor can upload the full ISSP to a shared
+> row that every signed-in PSA user can read and replace. The claims below that no
+> account is needed, that no server database exists, and that data never leaves the
+> client describe the earlier architecture, not the current one. The compliance scope
+> argument that follows from them — the limited PIA, VAPT and NPC positions — has to be
+> reassessed rather than relied on.
+
 ## ISSP Builder — Local-First Redesign
 
 > **Status:** Decisions finalized 2026-05-18. Implementation not yet started.
