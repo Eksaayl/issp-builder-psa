@@ -65,6 +65,39 @@ function rejectionReason(doc: unknown): string | null {
   return null;
 }
 
+/**
+ * Turn a database failure into something the caller can act on.
+ *
+ * A bare 500 with a generic message makes the three most likely setup failures
+ * -- wrong credentials, unreachable host, un-applied migration -- look
+ * identical, so the first thing anyone sees is an unexplained error. The full
+ * error goes to the server log; the caller gets the short version.
+ */
+function describeDbError(error: unknown, action: string): Response {
+  console.error(`[api/documents] ${action} failed:`, error);
+  const code = (error as { code?: string } | null)?.code;
+
+  if (code === "P1000") {
+    return Response.json(
+      { error: "The database rejected the server's credentials. DATABASE_URL needs a valid connection string." },
+      { status: 503 }
+    );
+  }
+  if (code === "P1001" || code === "P1002") {
+    return Response.json(
+      { error: "The database is unreachable. It may be suspended, or the network is blocking it." },
+      { status: 503 }
+    );
+  }
+  if (code === "P2021") {
+    return Response.json(
+      { error: "The ISSP table does not exist yet. Run `prisma migrate deploy` against this database." },
+      { status: 503 }
+    );
+  }
+  return Response.json({ error: `Could not ${action} the ISSP in the database.` }, { status: 500 });
+}
+
 export async function GET() {
   const userId = await requireUserId();
   if (!userId) return Response.json({ error: "Not signed in." }, { status: 401 });
@@ -80,8 +113,8 @@ export async function GET() {
       updatedAt: row.updatedAt.toISOString(),
       lastEditedBy: row.ownerId,
     });
-  } catch {
-    return Response.json({ error: "Could not read the ISSP from the database." }, { status: 500 });
+  } catch (error) {
+    return describeDbError(error, "read");
   }
 }
 
@@ -105,9 +138,11 @@ export async function PUT(req: Request) {
 
   const doc = body.doc as IsspDocument;
   const baseUpdatedAt = body.baseUpdatedAt ?? null;
-  const prisma = getPrisma();
 
   try {
+    // Inside the try: a missing DATABASE_URL throws here, and that should be
+    // reported like any other database failure rather than as an unhandled 500.
+    const prisma = getPrisma();
     const existing = await prisma.isspDocument.findUnique({
       where: { id: SHARED_DOCUMENT_ID },
       select: { updatedAt: true },
@@ -155,7 +190,7 @@ export async function PUT(req: Request) {
       select: { updatedAt: true },
     });
     return Response.json({ updatedAt: saved?.updatedAt.toISOString() ?? new Date().toISOString() });
-  } catch {
-    return Response.json({ error: "Could not save the ISSP to the database." }, { status: 500 });
+  } catch (error) {
+    return describeDbError(error, "save");
   }
 }
