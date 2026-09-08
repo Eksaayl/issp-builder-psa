@@ -104,9 +104,14 @@ function ThemeMenuItems({ onThemeSelected }: { onThemeSelected?: () => void }) {
 
   return (
     <DropdownMenuRadioGroup value={theme} onValueChange={handleThemeChange}>
-      {THEMES.map((item) => (
+      {THEMES.map((item, index) => (
         <Fragment key={item.id}>
-          {item.id === "warm-light" && <DropdownMenuSeparator />}
+          {/* A rule between colour families (the light/dark pair of each), so a
+              ten-item menu still reads as a short list of choices. */}
+          {index > 0 &&
+            item.id.split("-")[0] !== THEMES[index - 1].id.split("-")[0] && (
+              <DropdownMenuSeparator />
+            )}
           <DropdownMenuRadioItem value={item.id} className="gap-2">
             <ThemePreview theme={item.id} />
             {item.name}

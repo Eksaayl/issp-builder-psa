@@ -111,6 +111,7 @@ function DownloadablesModal({ open, onClose }: { open: boolean; onClose: () => v
         <div className="px-6 py-5 flex flex-col gap-3">
           <DownloadableRow title="Manual" description="Guide to using the ISSP Builder." href={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/PSA/Manual.pdf`} />
           <DownloadableRow title="Handout" description="Quick-reference handout." href={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/PSA/Handout.pdf`} />
+          <DownloadableRow title="Previous ISSP" description="Signed ISSP from 2027-2029 (for reference)." href={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/PSA/ISSP2027-2029.pdf`} />
         </div>
       </DialogContent>
     </Dialog>
@@ -628,7 +629,6 @@ export default function HomePageClient() {
         </div>
       </section>
 
-      {/* ── CTA ── */}
       <section className="py-16" style={{ background: "#1C1C1E" }}>
         <div className="max-w-6xl mx-auto px-6 text-center">
           <div className="flex justify-center gap-1.5 mb-6">
@@ -673,13 +673,11 @@ export default function HomePageClient() {
         </div>
       </footer>
 
-      {/* ── Dialogs ── */}
       <NcwtrIntroModal open={sampleIntroOpen} onClose={() => setSampleIntroOpen(false)}
         onConfirm={() => { setSampleIntroOpen(false); handleLoadSample(); }} loading={sampleLoading} />
       <NewIsspDialog open={newDialogOpen} onClose={() => setNewDialogOpen(false)} onCreated={() => { setNavigating(true); router.push("/editor"); }} />
       <DownloadablesModal open={downloadablesOpen} onClose={() => setDownloadablesOpen(false)} />
 
-      {/* What's New modal */}
       <Dialog open={whatsNewOpen} onOpenChange={setWhatsNewOpen}>
         <DialogContent className="sm:max-w-lg max-h-[82vh] flex flex-col p-0 gap-0">
           <DialogHeader className="px-6 pt-5 pb-4 border-b flex-shrink-0">
@@ -691,7 +689,6 @@ export default function HomePageClient() {
           <div ref={whatsNewScrollRef} className="overflow-y-auto px-6 py-5 space-y-5 text-sm text-muted-foreground leading-relaxed">
             <div tabIndex={0} className="h-0 w-0 overflow-hidden outline-none" aria-hidden="true" />
 
-            {/* July 15 Writeshop — headline update */}
             <div className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3.5 space-y-1.5">
               <p className="text-xs font-semibold text-primary uppercase tracking-wide">Rechecked After the July 15 ISSP Caravan Writeshop</p>
               <p>
@@ -704,7 +701,6 @@ export default function HomePageClient() {
               </p>
             </div>
 
-            {/* Compatibility and review guidance */}
             <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3.5 space-y-1.5">
               <p className="text-xs font-semibold text-foreground uppercase tracking-wide">Your Existing .issp Files Still Work</p>
               <p>
@@ -717,7 +713,6 @@ export default function HomePageClient() {
               </p>
             </div>
 
-            {/* Form alignment */}
             <div className="space-y-1.5">
               <p className="text-xs font-semibold text-foreground uppercase tracking-wide">The Forms Now Ask What the Template Actually Asks</p>
               <p>
@@ -726,7 +721,6 @@ export default function HomePageClient() {
               </p>
             </div>
 
-            {/* PDF improvements */}
             <div className="space-y-1.5">
               <p className="text-xs font-semibold text-foreground uppercase tracking-wide">The PDF Learned Some Navigation</p>
               <p>
@@ -734,7 +728,6 @@ export default function HomePageClient() {
               </p>
             </div>
 
-            {/* Overview — responsive grid + sticky collapsing header */}
             <div className="space-y-1.5">
               <p className="text-xs font-semibold text-foreground uppercase tracking-wide">The Overview Stays With You</p>
               <p>
@@ -742,7 +735,6 @@ export default function HomePageClient() {
               </p>
             </div>
 
-            {/* Part IV — validation + restyled cards */}
             <div className="space-y-1.5">
               <p className="text-xs font-semibold text-foreground uppercase tracking-wide">Part IV Catches Half-Filled Items</p>
               <p>
@@ -750,7 +742,6 @@ export default function HomePageClient() {
               </p>
             </div>
 
-            {/* Drag-and-drop loading on the home page */}
             <div className="space-y-1.5">
               <p className="text-xs font-semibold text-foreground uppercase tracking-wide">Drop a File Anywhere to Open It</p>
               <p>
@@ -833,7 +824,7 @@ export default function HomePageClient() {
                 </div>
                 <p><span className="text-foreground font-medium">Coverage period locked</span> — all ISSPs cover FY 2028–2030 per MITHI Resolution 2026-02; the fields are no longer editable.</p>
                 <div className="space-y-1.5">
-                  <p><span className="text-foreground font-medium">Themes</span> — four color themes. Dark mode people: you&apos;re welcome. Warm mode people: also you.</p>
+                  <p><span className="text-foreground font-medium">Themes</span> — ten color themes. Dark mode people: you&apos;re welcome. Warm mode people: also you. Ocean, Forest and Rose: new, and each comes both ways.</p>
                   <div className="flex flex-wrap items-center gap-2 pt-0.5">
                     {THEMES.map((t) => (
                       <button

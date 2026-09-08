@@ -5,6 +5,9 @@ import { NeonAuthUIProvider } from "@neondatabase/auth-ui";
 import { authClient } from "@/lib/auth/client";
 import { IsspStoreProvider } from "@/lib/store";
 import { ThemeProvider } from "@/lib/theme";
+// From the plain module, not the client one: a value imported from a
+// "use client" file arrives here as a client reference, not the array.
+import { DEFAULT_THEME, THEMES, THEME_STORAGE_KEY } from "@/lib/themes";
 import { StructuredData } from "@/components/seo/structured-data";
 import {
   CREATOR_NAME,
@@ -34,17 +37,19 @@ const ibmPlexMono = IBM_Plex_Mono({
   weight: ["400", "500"],
 });
 
+// The list is inlined from THEMES rather than hand-written, so adding a theme
+// there can never leave this pre-hydration script behind.
 const themeScript = `
 (function() {
   try {
-    var themes = ['system-light', 'system-dark', 'warm-light', 'warm-dark'];
-    var stored = localStorage.getItem('issp-theme');
-    var theme = themes.indexOf(stored) === -1 ? 'system-light' : stored;
+    var themes = ${JSON.stringify(THEMES.map((theme) => theme.id))};
+    var stored = localStorage.getItem('${THEME_STORAGE_KEY}');
+    var theme = themes.indexOf(stored) === -1 ? '${DEFAULT_THEME}' : stored;
     var root = document.documentElement;
     for (var i = 0; i < themes.length; i++) root.classList.remove('theme-' + themes[i]);
     root.classList.add('theme-' + theme);
   } catch (e) {
-    document.documentElement.classList.add('theme-system-light');
+    document.documentElement.classList.add('theme-${DEFAULT_THEME}');
   }
 })();`;
 
@@ -111,7 +116,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${fraunces.variable} ${ibmPlexSans.variable} ${ibmPlexMono.variable} theme-system-light h-full antialiased`}
+      className={`${fraunces.variable} ${ibmPlexSans.variable} ${ibmPlexMono.variable} theme-${DEFAULT_THEME} h-full antialiased`}
     >
       <head>
         <StructuredData />
