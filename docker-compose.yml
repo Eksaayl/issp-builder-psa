@@ -1,4 +1,34 @@
 services:
+  # The ISSP database, on PSA hardware.
+  #
+  # Not published to the host by default: the app reaches it over the internal
+  # Docker network as `db:5432`, so nothing has to be exposed. Uncomment the
+  # ports block below only when you need psql or a GUI against it, and note it
+  # binds to 127.0.0.1 so it is never reachable from outside the box.
+  db:
+    image: postgres:17-alpine
+    container_name: issp-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-issp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-issp}
+      # Deterministic collation, so index ordering does not shift if the image's
+      # locale defaults change under us on a future rebuild.
+      POSTGRES_INITDB_ARGS: "--locale=C --encoding=UTF8"
+    volumes:
+      - issp-db-data:/var/lib/postgresql/data
+    # ports:
+    #   - "127.0.0.1:5433:5432"
+    healthcheck:
+      # The app's migrations run at container start, so "started" is not good
+      # enough -- Postgres has to be accepting connections first.
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-issp} -d ${POSTGRES_DB:-issp}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
   issp:
     build:
       context: .
@@ -6,9 +36,13 @@ services:
         NEXT_PUBLIC_BASE_PATH: /issp
         NEON_AUTH_COOKIE_SECRET: ${NEON_AUTH_COOKIE_SECRET}
         NEON_AUTH_BASE_URL: ${NEON_AUTH_BASE_URL}
+        # Only `prisma generate` reads this at build time, and it never connects.
         DATABASE_URL: ${DATABASE_URL}
     container_name: issp-builder
     restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
     ports:
       - "127.0.0.1:3100:3100"
     shm_size: "1gb"
@@ -18,3 +52,9 @@ services:
       - .env
     environment:
       APP_URL: "https://soid.psa.gov.ph"
+      # Overrides whatever .env holds: inside the network the database is `db`,
+      # regardless of the host-facing URL a developer keeps in their own .env.
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-issp}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-issp}?schema=public"
+
+volumes:
+  issp-db-data:
