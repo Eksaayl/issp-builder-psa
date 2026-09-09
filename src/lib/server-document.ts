@@ -40,6 +40,34 @@ function apiUrl(path: string): string {
   return `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}${path}`;
 }
 
+export type HeadResult =
+  | { status: "ok"; updatedAt: string; lastEditedBy: string }
+  | { status: "empty" }
+  | { status: "error" };
+
+/**
+ * The server copy's version, without the copy itself.
+ *
+ * Failures collapse to one case with no message. This runs on a timer, so a
+ * transient blip -- an expired session, a suspended database, a dropped
+ * connection -- must not surface as a toast or a visible error. The caller just
+ * tries again on the next tick.
+ */
+export async function fetchServerDocumentHead(): Promise<HeadResult> {
+  try {
+    const res = await fetch(apiUrl("/api/documents/head"), {
+      cache: "no-store",
+      credentials: "same-origin",
+    });
+    if (res.status === 404) return { status: "empty" };
+    if (!res.ok) return { status: "error" };
+    const body = (await res.json()) as { updatedAt: string; lastEditedBy: string };
+    return { status: "ok", updatedAt: body.updatedAt, lastEditedBy: body.lastEditedBy };
+  } catch {
+    return { status: "error" };
+  }
+}
+
 export async function fetchServerDocument(): Promise<DownloadResult> {
   try {
     const res = await fetch(apiUrl("/api/documents"), {

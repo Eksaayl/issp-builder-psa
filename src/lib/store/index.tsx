@@ -16,13 +16,29 @@ import { CURRENT_SCHEMA_VERSION, getRequiredMigrationReviewSectionIds } from "@/
 import { recordIsspUsage } from "@/lib/record-usage";
 import { consolidate, type ScalarConflict } from "@/lib/scope/consolidate";
 import { SECTION_FIELDS } from "@/lib/section-fields";
-import { fetchServerDocument, uploadServerDocument } from "@/lib/server-document";
+import { fetchServerDocument, fetchServerDocumentHead, uploadServerDocument } from "@/lib/server-document";
+import {
+  clearServerSyncMarker,
+  digestContent,
+  readServerSyncMarker,
+  writeServerSyncMarker,
+} from "./server-sync-marker";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 export type StoreActionResult = { success: true; migrationReview?: MigrationReview } | { success: false; error: string };
+
+/**
+ * An upload outcome. `conflict` is present when the write was refused because
+ * the server holds a version this session has not seen — the caller can confirm
+ * with the user and call again, which then carries the server's timestamp as
+ * its precondition.
+ */
+export type UploadActionResult =
+  | { success: true }
+  | { success: false; error: string; conflict?: { serverUpdatedAt: string } };
 export interface LoadFromFileOptions { recordUsage?: boolean }
 
 /**
@@ -46,6 +62,12 @@ export interface IsspStoreValue {
   savedSnapshot: IsspDocument | null;
   /** True when the doc has been edited since the last file save (or since creation for new docs). */
   unsavedToFile: boolean;
+  /**
+   * True when the document differs from what the server holds — what "Save
+   * changes" acts on. Distinct from {@link unsavedToFile}, which tracks the
+   * separate question of whether a `.issp` backup is current.
+   */
+  unsavedToServer: boolean;
   /** Migration notice opened only for an explicit legacy-file load in this session. */
   migrationNotice: MigrationReview | null;
   acknowledgeMigrationNotice: () => void;
@@ -85,9 +107,16 @@ export interface IsspStoreValue {
    */
   serverUpdatedAt: string | null;
   /** Replace the shared server copy with this document. */
-  uploadToServer: () => Promise<StoreActionResult>;
+  uploadToServer: () => Promise<UploadActionResult>;
   /** Replace the local document with the shared server copy. */
   restoreFromServer: () => Promise<StoreActionResult>;
+  /**
+   * The server holds a version this browser has not taken, and the local
+   * document has changes that adopting it would discard, so it was left alone.
+   * When there is nothing to lose the new version is taken automatically and
+   * this stays false.
+   */
+  serverUpdateAvailable: boolean;
 }
 
 const MAX_ISSP_FILE_SIZE_BYTES = 50 * 1024 * 1024;
@@ -808,6 +837,8 @@ function docContentHash(doc: IsspDocument): string {
 const IsspStoreContext = createContext<IsspStoreValue | null>(null);
 
 const SAVE_DEBOUNCE_MS = 1500;
+/** How often a visible tab asks the server for its version. */
+const SERVER_POLL_MS = 30_000;
 const SAVED_FLASH_MS = 2000;
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
@@ -821,7 +852,24 @@ export function IsspStoreProvider({ children }: { children: ReactNode }) {
   const [savedSnapshot, setSavedSnapshot] = useState<IsspDocument | null>(null);
   // Not persisted: a reload has to re-read the server before it may write to
   // it, which is exactly the precondition this value exists to enforce.
-  const [serverUpdatedAt, setServerUpdatedAt] = useState<string | null>(null);
+  // Seeded from the marker so a reload still knows which server version this
+  // browser holds -- without it, every reload would have to re-read the server
+  // before it could upload.
+  const [serverUpdatedAt, setServerUpdatedAt] = useState<string | null>(
+    () => readServerSyncMarker()?.updatedAt ?? null
+  );
+  const [serverUpdateAvailable, setServerUpdateAvailable] = useState(false);
+  /**
+   * The document as the server holds it, for the same reason `savedSnapshot`
+   * exists: comparing against it is what tells the UI whether there is anything
+   * to send. Null until this session has read from or written to the server, at
+   * which point anything local counts as unsent.
+   */
+  const [serverSnapshot, setServerSnapshot] = useState<IsspDocument | null>(null);
+  /** Latest doc, readable from the polling timer without restarting it. */
+  const docRef = useRef<IsspDocument | null>(null);
+  const serverUpdatedAtRef = useRef<string | null>(null);
+  const syncInFlightRef = useRef(false);
   const [migrationNotice, setMigrationNotice] = useState<MigrationReview | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -938,6 +986,11 @@ export function IsspStoreProvider({ children }: { children: ReactNode }) {
       setDoc(newDoc);
       scheduleSave(newDoc);
       setSavedSnapshot(structuredClone(newDoc));
+      // A brand new document is not the server's, so it must not be replaced by
+      // a poll -- and the editor is no longer deliberately empty.
+      clearServerSyncMarker();
+      setServerUpdateAvailable(false);
+      setServerSnapshot(null);
       recordIsspUsage("created", newDoc.agency);
     },
     [scheduleSave]
@@ -952,6 +1005,14 @@ export function IsspStoreProvider({ children }: { children: ReactNode }) {
       setDoc(null);
       setSaveStatus("idle");
       setSavedSnapshot(null);
+      // The marker describes a document that no longer exists here. The server
+      // copy is deliberately left alone -- clearing empties this browser, not
+      // the shared ISSP -- and the sync below will pull it back in, because an
+      // empty editor always takes the server's copy.
+      clearServerSyncMarker();
+      setServerUpdatedAt(null);
+      setServerUpdateAvailable(false);
+      setServerSnapshot(null);
       setFileSavedAt(null);
       setMigrationNotice(null);
       return { success: true };
@@ -1016,7 +1077,12 @@ export function IsspStoreProvider({ children }: { children: ReactNode }) {
   const adoptParsedDoc = useCallback(
     async (
       parsed: unknown,
-      options: { fileSavedAt: string | null; recordUsage?: boolean }
+      options: {
+        fileSavedAt: string | null;
+        recordUsage?: boolean;
+        /** Row timestamp when the document came from the server; omitted for a file. */
+        serverVersion?: string;
+      }
     ): Promise<StoreActionResult> => {
       const normalized = normalizeImportShape(parsed);
       if (!normalized.success) return normalized;
@@ -1027,6 +1093,24 @@ export function IsspStoreProvider({ children }: { children: ReactNode }) {
       setDoc(migrated);
       setFileSavedAt(options.fileSavedAt);
       setSavedSnapshot(structuredClone(migrated));
+
+      if (options.serverVersion) {
+        // Every byte now in the document came from the server, so the next
+        // version can be taken automatically until the user types.
+        setServerUpdatedAt(options.serverVersion);
+        setServerUpdateAvailable(false);
+        setServerSnapshot(structuredClone(migrated));
+        const digest = await digestContent(docContentHash(migrated));
+        if (digest) writeServerSyncMarker({ updatedAt: options.serverVersion, digest });
+        else clearServerSyncMarker();
+      } else {
+        // A file load deliberately diverges from the server: adopting a newer
+        // server version after this would silently undo the load, and the
+        // loaded document is by definition not what the server holds.
+        clearServerSyncMarker();
+        setServerSnapshot(null);
+      }
+
       await idbSave(migrated);
       setMigrationNotice(migrationReview?.pendingSectionIds.length ? migrationReview : null);
       if (options.recordUsage !== false) recordIsspUsage("loaded", migrated.agency);
@@ -1059,18 +1143,41 @@ export function IsspStoreProvider({ children }: { children: ReactNode }) {
     [adoptParsedDoc]
   );
 
-  const uploadToServer = useCallback(async (): Promise<StoreActionResult> => {
+  /**
+   * Write the document to the shared server copy.
+   *
+   * A refusal is not necessarily a problem to report: the common case is one
+   * person returning after a reload, where the version on the server is their
+   * own earlier upload. The server has no way to tell that from a colleague's
+   * write, so this reports the refusal as a `conflict` carrying the timestamp
+   * of what is actually there, and lets the caller ask. Forcing a restore --
+   * which discards the local document -- as the only way forward would destroy
+   * work in the ordinary case.
+   *
+   * The refusal also records the server's timestamp, so a confirmed retry is a
+   * normal precondition write rather than an unguarded overwrite: anything
+   * landing between the two attempts still refuses.
+   */
+  const uploadToServer = useCallback(async (): Promise<UploadActionResult> => {
     if (!doc) return { success: false, error: "There is no ISSP to upload." };
     const result = await uploadServerDocument(doc, serverUpdatedAt);
     if (result.status === "ok") {
       setServerUpdatedAt(result.updatedAt);
+      // What was just sent is what the server holds, so a later version can be
+      // adopted automatically until this document is edited again.
+      setServerUpdateAvailable(false);
+      setServerSnapshot(structuredClone(doc));
+      const digest = await digestContent(docContentHash(doc));
+      if (digest) writeServerSyncMarker({ updatedAt: result.updatedAt, digest });
+      else clearServerSyncMarker();
       return { success: true };
     }
     if (result.status === "conflict") {
       setServerUpdatedAt(result.serverUpdatedAt);
       return {
         success: false,
-        error: "Someone else uploaded a newer ISSP. Restore from the server first, then re-apply your changes.",
+        error: "The server already holds a different version of this ISSP.",
+        conflict: { serverUpdatedAt: result.serverUpdatedAt },
       };
     }
     return { success: false, error: result.error };
@@ -1085,13 +1192,11 @@ export function IsspStoreProvider({ children }: { children: ReactNode }) {
 
     // Adopted before the timestamp is recorded: if the document is rejected as
     // malformed, this session must not go on believing it holds that version.
-    const adopted = await adoptParsedDoc(result.payload.content, {
+    return await adoptParsedDoc(result.payload.content, {
       fileSavedAt: null,
       recordUsage: false,
+      serverVersion: result.payload.updatedAt,
     });
-    if (!adopted.success) return adopted;
-    setServerUpdatedAt(result.payload.updatedAt);
-    return adopted;
   }, [adoptParsedDoc]);
 
   const acknowledgeMigrationNotice = useCallback(() => {
@@ -1173,6 +1278,102 @@ export function IsspStoreProvider({ children }: { children: ReactNode }) {
     [doc]
   );
 
+  // Keep refs current so the poll below can read the latest values without
+  // being torn down and restarted on every keystroke. Written after commit
+  // rather than during render, which React forbids.
+  useEffect(() => {
+    docRef.current = doc;
+    serverUpdatedAtRef.current = serverUpdatedAt;
+  });
+
+  /**
+   * Take the server's version when doing so cannot lose anything.
+   *
+   * Three outcomes: nothing new (the common case, one cheap request); adopt,
+   * when this browser holds no document or holds exactly what the server last
+   * gave it; or stand down and raise `serverUpdateAvailable`, when the user has
+   * edited since. The last case is the whole point -- an automatic restore that
+   * could discard someone's unsaved work would be worse than no automatic
+   * restore at all.
+   */
+  const syncFromServer = useCallback(async () => {
+    if (syncInFlightRef.current) return;
+    syncInFlightRef.current = true;
+    try {
+      const head = await fetchServerDocumentHead();
+      if (head.status !== "ok") return;
+      if (head.updatedAt === serverUpdatedAtRef.current) return;
+
+      const current = docRef.current;
+      const marker = readServerSyncMarker();
+      let nothingToLose: boolean;
+
+      if (!current) {
+        // Nothing here to lose, whatever the reason it is empty.
+        nothingToLose = true;
+      } else if (!marker) {
+        // This browser's document did not come from the server -- a local draft,
+        // or a loaded file. Never replace it on a timer.
+        nothingToLose = false;
+      } else {
+        const digest = await digestContent(docContentHash(current));
+        nothingToLose = digest !== null && digest === marker.digest;
+      }
+
+      if (!nothingToLose) {
+        setServerUpdateAvailable(true);
+        return;
+      }
+
+      const full = await fetchServerDocument();
+      if (full.status !== "ok") return;
+      await adoptParsedDoc(full.payload.content, {
+        fileSavedAt: null,
+        recordUsage: false,
+        serverVersion: full.payload.updatedAt,
+      });
+    } finally {
+      syncInFlightRef.current = false;
+    }
+  }, [adoptParsedDoc]);
+
+  // An empty editor is the one state worth reacting to immediately rather than
+  // on the next tick: there is nothing to lose, and leaving someone looking at
+  // an empty app for half a minute when the ISSP is one request away is the
+  // whole problem this is meant to solve.
+  useEffect(() => {
+    if (loading || doc) return;
+    void syncFromServer();
+  }, [loading, doc, syncFromServer]);
+
+  useEffect(() => {
+    // Wait for the IndexedDB read: syncing before the local document is known
+    // would see `doc` as null and adopt the server copy over it.
+    if (loading) return undefined;
+
+    // A hidden tab has no one to show the update to, and polling one costs the
+    // same as polling a visible one.
+    const tick = () => {
+      if (document.visibilityState === "visible") void syncFromServer();
+    };
+
+    tick();
+    const interval = window.setInterval(tick, SERVER_POLL_MS);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", tick);
+    };
+  }, [loading, syncFromServer]);
+
+  // No snapshot means nothing of this document has reached the server, so all
+  // of it is unsent -- the same reasoning as the `savedSnapshot` fallback.
+  const unsavedToServer = !doc
+    ? false
+    : serverSnapshot
+    ? docContentHash(doc) !== docContentHash(serverSnapshot)
+    : true;
+
   const unsavedToFile = !doc
     ? false
     : savedSnapshot
@@ -1189,6 +1390,7 @@ export function IsspStoreProvider({ children }: { children: ReactNode }) {
         fileSavedAt,
         savedSnapshot,
         unsavedToFile,
+        unsavedToServer,
         migrationNotice,
         acknowledgeMigrationNotice,
         update,
@@ -1205,6 +1407,7 @@ export function IsspStoreProvider({ children }: { children: ReactNode }) {
         serverUpdatedAt,
         uploadToServer,
         restoreFromServer,
+        serverUpdateAvailable,
       }}
     >
       {children}

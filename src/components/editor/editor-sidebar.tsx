@@ -146,9 +146,9 @@ function SaveReminderCallout({
       <div className="relative z-10 flex items-start gap-2">
         <Download className="mt-0.5 h-3.5 w-3.5 shrink-0" />
         <div className="min-w-0 flex-1 space-y-1">
-          <p className="text-xs font-semibold leading-tight">Save a backup file</p>
+          <p className="text-xs font-semibold leading-tight">Save to the PSA server</p>
           <p className="text-[11px] leading-snug text-warning/80">
-            You have unsaved changes from the last 10 minutes. Download a .issp file to avoid losing work if this browser data is cleared.
+            You have changes from the last 10 minutes that only exist in this browser. Save them so they are not lost if this browser data is cleared.
           </p>
           <button
             type="button"
@@ -190,9 +190,9 @@ function SaveReminderDialog({
             <div className="mb-1 flex h-10 w-10 items-center justify-center rounded-lg bg-warning-bg text-warning ring-1 ring-warning-border">
               <Download className="h-5 w-5" />
             </div>
-            <DialogTitle>Save a backup file</DialogTitle>
+            <DialogTitle>Save to the PSA server</DialogTitle>
             <DialogDescription>
-              You have unsaved changes from the last 10 minutes. Your work is saved in this browser, but a .issp file protects it if browser data is cleared or you switch devices.
+              You have changes from the last 10 minutes that only exist in this browser. Saving them to the server keeps them if this browser&apos;s data is cleared or you switch devices.
             </DialogDescription>
           </DialogHeader>
         </div>
@@ -288,7 +288,7 @@ export function EditorSidebar({
   onToggle: () => void;
   onMobileClose: () => void;
 }) {
-  const { doc, saveToFile, loadFromFile, fileSavedAt, savedSnapshot, unsavedToFile, clearDoc, saveStatus, saveError, uploadToServer, restoreFromServer } = useIsspStore();
+  const { doc, saveToFile, loadFromFile, fileSavedAt, savedSnapshot, unsavedToFile, unsavedToServer, serverUpdatedAt, clearDoc, saveStatus, saveError, uploadToServer, restoreFromServer, serverUpdateAvailable } = useIsspStore();
   const scope = useResolvedScope();
   const now = useNow();
   const isMobileViewport = useIsMobileViewport();
@@ -310,8 +310,8 @@ export function EditorSidebar({
   );
   const [fileMenuOpen, setFileMenuOpen] = useState(false);
   const [themeSubmenuOpen, setThemeSubmenuOpen] = useState(false);
-  const { reminderDue: saveReminderDue, snoozeReminder: snoozeSaveReminder } = useFileSaveReminder(unsavedToFile);
-  const showSaveReminder = unsavedToFile && saveReminderDue;
+  const { reminderDue: saveReminderDue, snoozeReminder: snoozeSaveReminder } = useFileSaveReminder(unsavedToServer);
+  const showSaveReminder = unsavedToServer && saveReminderDue;
   const showMobileSaveReminder = showSaveReminder && isMobileViewport;
   const showDesktopSaveReminder = showSaveReminder && !isMobileViewport;
   const showThemeNudge = !!doc && theme === "system-light" && !themeNudgeDismissed && !showSaveReminder;
@@ -393,6 +393,28 @@ export function EditorSidebar({
     if (serverBusy) return;
     setServerBusy(true);
     const result = await uploadToServer();
+
+    // Refused because the server holds a version this tab has not seen. Usually
+    // that is the user's own upload from an earlier session -- a reload forgets
+    // which version the local copy came from -- so the answer is to say what is
+    // there and let them decide, not to make them restore and lose their work.
+    if (!result.success && result.conflict) {
+      const when = formatTimeAgo(result.conflict.serverUpdatedAt, Date.now());
+      const proceed = window.confirm(
+        `The server already has an ISSP, uploaded ${when}. If that was a colleague, replacing it will discard their version.\n\nReplace it with the ISSP in this browser?`
+      );
+      if (proceed) {
+        const retry = await uploadToServer();
+        setServerBusy(false);
+        if (retry.success) toast.success("Uploaded to the PSA server.");
+        else toast.error(retry.error);
+        return;
+      }
+      setServerBusy(false);
+      toast.message("Upload cancelled. The server copy was left as it is.");
+      return;
+    }
+
     setServerBusy(false);
     if (result.success) toast.success("Uploaded to the PSA server.");
     else toast.error(result.error);
@@ -402,7 +424,7 @@ export function EditorSidebar({
     if (serverBusy) return;
     // The local document is about to be replaced, so make the trade explicit
     // rather than discovering it afterwards.
-    if (unsavedToFile && !window.confirm(
+    if (unsavedToServer && !window.confirm(
       "Restoring replaces the ISSP in this browser with the server's copy. Unsaved changes will be lost. Continue?"
     )) return;
     setServerBusy(true);
@@ -428,7 +450,7 @@ export function EditorSidebar({
   }
 
   function handleGoHome() {
-    if (unsavedToFile) {
+    if (unsavedToServer) {
       setHomeConfirmOpen(true);
     } else {
       router.push("/");
@@ -739,14 +761,14 @@ export function EditorSidebar({
         {/* Nav */}
         {navContent}
 
-        <SaveReminderDialog open={showMobileSaveReminder} onSave={handleSaveToFile} onSnooze={handleSnoozeSaveReminder} />
+        <SaveReminderDialog open={showMobileSaveReminder} onSave={handleUploadToServer} onSnooze={handleSnoozeSaveReminder} />
 
         {/* Compact footer */}
         <div className="border-t border-border/50 px-3 py-2.5 shrink-0">
           <ClearDataFlow
             step={clearStep}
-            unsavedToFile={unsavedToFile}
-            onSave={handleSaveToFile}
+            unsavedToFile={unsavedToServer}
+            onSave={handleUploadToServer}
             onStepChange={setClearStep}
             onConfirm={handleClear}
             controlClassName={sidebarControlClass}
@@ -764,7 +786,7 @@ export function EditorSidebar({
                     <X className="h-3 w-3 shrink-0" />
                     Browser save failed
                   </span>
-                ) : unsavedToFile ? (
+                ) : unsavedToServer ? (
                   <span className="flex items-center gap-1.5 text-amber-600 font-medium truncate">
                     <span className="relative flex h-2 w-2 shrink-0">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
@@ -775,7 +797,7 @@ export function EditorSidebar({
                 ) : (
                   <span className="flex items-center gap-1.5 text-success truncate">
                     <Check className="h-3 w-3 shrink-0" />
-                    {fileSavedAt ? `Saved ${formatTimeAgo(fileSavedAt, now)}` : "Up to date"}
+                    {serverUpdatedAt ? `Saved ${formatTimeAgo(serverUpdatedAt, now)}` : "Up to date"}
                   </span>
                 )}
               </div>
@@ -785,12 +807,13 @@ export function EditorSidebar({
                 className={cn(
                   "h-7 gap-1.5 px-2.5 text-xs shrink-0",
                   sidebarControlClass,
-                  unsavedToFile && "bg-teal-600 text-white border-teal-600 hover:bg-teal-700",
+                  unsavedToServer && "bg-teal-600 text-white border-teal-600 hover:bg-teal-700",
                   showMobileSaveReminder && "save-reminder-target"
                 )}
-                onClick={handleSaveToFile}
+                onClick={handleUploadToServer}
+                disabled={!unsavedToServer || serverBusy}
               >
-                <Download className="h-3 w-3" />
+                <CloudUpload className="h-3 w-3" />
                 Save
               </Button>
               {!doc?.editScope && (
@@ -830,7 +853,7 @@ export function EditorSidebar({
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleRestoreFromServer} disabled={serverBusy}>
                     <CloudDownload className="h-3.5 w-3.5 mr-2" />
-                    Restore from server…
+                    {serverUpdateAvailable ? "Restore newer version…" : "Restore from server…"}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuSub>
@@ -921,7 +944,7 @@ export function EditorSidebar({
                 <X className="h-3 w-3 shrink-0" />
                 Browser save failed
               </span>
-            ) : unsavedToFile ? (
+            ) : unsavedToServer ? (
               <div>
                 <button
                   onClick={() => setShowChanges((v) => !v)}
@@ -974,7 +997,7 @@ export function EditorSidebar({
             ) : (
               <span className="flex items-center gap-1.5 text-success">
                 <Check className="h-3 w-3 shrink-0" />
-                {fileSavedAt ? `Saved ${formatTimeAgo(fileSavedAt, now)}` : "Up to date"}
+                {serverUpdatedAt ? `Saved ${formatTimeAgo(serverUpdatedAt, now)}` : "Up to date"}
               </span>
             )}
           </div>
@@ -982,8 +1005,8 @@ export function EditorSidebar({
           {/* Clear editor flow */}
           <ClearDataFlow
             step={clearStep}
-            unsavedToFile={unsavedToFile}
-            onSave={handleSaveToFile}
+            unsavedToFile={unsavedToServer}
+            onSave={handleUploadToServer}
             onStepChange={setClearStep}
             onConfirm={handleClear}
             controlClassName={sidebarControlClass}
@@ -999,7 +1022,7 @@ export function EditorSidebar({
               <div className="relative flex gap-1.5">
                 {showDesktopSaveReminder && (
                   <div className="absolute bottom-full right-0 z-20 mb-3 w-64">
-                    <SaveReminderCallout onSave={handleSaveToFile} onSnooze={snoozeSaveReminder} />
+                    <SaveReminderCallout onSave={handleUploadToServer} onSnooze={snoozeSaveReminder} />
                     <span className="absolute -bottom-1.5 right-16 h-3 w-3 rotate-45 border-b border-r border-warning-border bg-warning-bg" />
                   </div>
                 )}
@@ -1034,21 +1057,25 @@ export function EditorSidebar({
                 )}
                 <Button
                   variant="outline"
-                  disabled={!unsavedToFile}
+                  disabled={!unsavedToServer || serverBusy}
                   className={cn(
                     "h-9 flex-1 justify-start gap-2 text-sm disabled:cursor-not-allowed disabled:opacity-50",
                     sidebarControlClass,
-                    unsavedToFile && "bg-teal-600 hover:bg-teal-700 text-white border-teal-600",
+                    unsavedToServer && "bg-teal-600 hover:bg-teal-700 text-white border-teal-600",
                     showDesktopSaveReminder && "save-reminder-target"
                   )}
-                  onClick={handleSaveToFile}
+                  onClick={handleUploadToServer}
                 >
-                  <Download className="h-4 w-4" />
-                  {unsavedToFile ? "Save changes" : "No changes to save"}
+                  {serverBusy ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <CloudUpload className="h-4 w-4" />
+                  )}
+                  {unsavedToServer ? "Save changes" : "No changes to save"}
                 </Button>
                 <DropdownMenu open={fileMenuOpen} onOpenChange={handleFileMenuOpenChange}>
                   <DropdownMenuTrigger
-                    aria-label="More file actions"
+                    aria-label={serverUpdateAvailable ? "More file actions — a newer ISSP is on the server" : "More file actions"}
                     className={cn(
                       "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       sidebarControlClass
@@ -1072,7 +1099,7 @@ export function EditorSidebar({
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleRestoreFromServer} disabled={serverBusy}>
                       <CloudDownload className="h-3.5 w-3.5 mr-2" />
-                      Restore from server…
+                      {serverUpdateAvailable ? "Restore newer version…" : "Restore from server…"}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuSub open={themeSubmenuOpen} onOpenChange={setThemeSubmenuOpen}>

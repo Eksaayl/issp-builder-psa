@@ -805,8 +805,7 @@ export default function HomePageClient() {
                   <p><span className="text-foreground font-medium">eGov Checklist Follows the Template</span> — &ldquo;Not Utilizing&rdquo; reveals the official follow-up fields; unanswered cards are flagged instead of silently assumed &ldquo;No&rdquo;.</p>
                   <p><span className="text-foreground font-medium">Total Project Cost Computes Itself</span> — auto-calculated from Part III-E resource requirements. Peso fields format as you type.</p>
                   <p><span className="text-foreground font-medium">Mandatory Means Mandatory</span> — cybersecurity controls badge every DICT-required item; privacy questions are explicit Yes / No.</p>
-                  <p><span className="text-foreground font-medium">PDF Layout &amp; Accuracy</span> — Part I is Page 1, TOC shows real page numbers, checkboxes actually check, internal codes no longer leak into print.</p>
-                </div>
+                  <p><span className="text-foreground font-medium">PDF Layout &amp; Accuracy</span> — Part I is Page 1, TOC shows real page numbers, checkboxes actually check, internal codes no longer leak into print.</p></div>
               </div>
             </details>
 
