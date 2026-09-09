@@ -60,6 +60,12 @@ COPY --from=builder --chown=appuser:appuser /app/prisma.config.ts ./prisma.confi
 USER appuser
 EXPOSE 3100
 # Apply pending migrations before serving. `migrate deploy` is idempotent, so a
-# restart with nothing pending is a no-op, and a failure here stops the
-# container rather than letting it serve against a schema it does not match.
-CMD ["sh", "-c", "npx prisma migrate deploy && npx next start -p 3100"]
+# restart with nothing pending is a no-op.
+#
+# A failure here must NOT stop the container. Editing an ISSP runs entirely in
+# the browser against IndexedDB, so an unreachable database costs the upload and
+# restore actions and nothing else -- but exiting turns that into a restart loop
+# that takes the whole editor offline, which is far worse than the outage it is
+# reacting to. The failure is loud in the logs and the app reports it per
+# request; serving is not conditional on it.
+CMD ["sh", "-c", "npx prisma migrate deploy || echo '[startup] prisma migrate deploy failed - the app will start, but uploads and restores will fail until the database is reachable'; npx next start -p 3100"]
