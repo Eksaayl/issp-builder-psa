@@ -1,13 +1,12 @@
 {
   "version": "1.0",
   "fileType": "issp-main",
-  "exportedAt": "2026-06-14T17:29:03.628Z",
+  "exportedAt": "2026-09-14T09:46:05.947Z",
   "tool": "issp-platform",
-  "schemaVersion": 10,
+  "schemaVersion": 11,
   "title": "NCWTR Information Systems Strategic Plan 2026–2028",
   "startYear": 2026,
   "endYear": 2028,
-  "status": "DRAFT",
   "scope": "AGENCY_WITH_REGIONAL",
   "amendmentNumber": 0,
   "agencyHeadName": "Chairperson Maria Celeste R. Villanueva",
@@ -843,7 +842,6 @@
     "performanceFramework": {
       "proj-sikap": {
         "projectTitle": "Project SIKAP — Streamlined ICT for Konsolidadong Agency Platform",
-        "projectType": "IS-Driven",
         "rows": [
           {
             "id": "cdd811ce8b3e36f87b30df1",
@@ -854,7 +852,7 @@
             "year2Target": "60%",
             "year3Target": "100%",
             "dataCollectionMethod": "UQMP system-generated API submission logs",
-            "responsibility": "ICT Division / Monitoring Division"
+            "responsibleUnit": "ICT Division / Monitoring Division"
           },
           {
             "id": "c5b63cce9183c6a509ae6ea",
@@ -865,7 +863,7 @@
             "year2Target": "3 days",
             "year3Target": "0.08 days (2 hours)",
             "dataCollectionMethod": "UQMP automated report generation timestamp logs",
-            "responsibility": "ICT Division"
+            "responsibleUnit": "ICT Division"
           },
           {
             "id": "c67d67368908148205307a9",
@@ -876,7 +874,7 @@
             "year2Target": "65% online",
             "year3Target": "90% online",
             "dataCollectionMethod": "CFCP submission channel analytics",
-            "responsibility": "Complaints Management Division"
+            "responsibleUnit": "Complaints Management Division"
           },
           {
             "id": "ceb589ec53407cf3baea399",
@@ -887,13 +885,13 @@
             "year2Target": "1",
             "year3Target": "0 (ceremonially retired)",
             "dataCollectionMethod": "ICT inventory records",
-            "responsibility": "ICT Division"
+            "responsibleUnit": "ICT Division"
           }
-        ]
+        ],
+        "projectCategory": "internal"
       },
       "proj-bilis": {
         "projectTitle": "Project BILIS — Broadband Infrastructure for Linked Information Systems",
-        "projectType": "Infrastructure",
         "rows": [
           {
             "id": "cf393af50610a2a7f7111dd",
@@ -904,7 +902,7 @@
             "year2Target": "100 Mbps",
             "year3Target": "100 Mbps",
             "dataCollectionMethod": "Monthly network performance monitoring reports from regional offices",
-            "responsibility": "ICT Division — Infrastructure Section"
+            "responsibleUnit": "ICT Division — Infrastructure Section"
           },
           {
             "id": "cb53cd67140442f3cd51ac4",
@@ -915,7 +913,7 @@
             "year2Target": "< 2 minutes",
             "year3Target": "< 2 minutes",
             "dataCollectionMethod": "UQMP upload telemetry logs",
-            "responsibility": "ICT Division"
+            "responsibleUnit": "ICT Division"
           },
           {
             "id": "ccae22961e4640c996bf9b9",
@@ -926,13 +924,13 @@
             "year2Target": "17",
             "year3Target": "17",
             "dataCollectionMethod": "ISP-certified connection speed test reports",
-            "responsibility": "ICT Division — Infrastructure Section"
+            "responsibleUnit": "ICT Division — Infrastructure Section"
           }
-        ]
+        ],
+        "projectCategory": "internal"
       },
       "proj-handa": {
         "projectTitle": "Project HANDA — Human Resource and Administrative Network for Departmental Automation",
-        "projectType": "IS-Driven",
         "rows": [
           {
             "id": "cfdb31a5ca7d5440fec5cfa",
@@ -943,7 +941,7 @@
             "year2Target": "100%",
             "year3Target": "100%",
             "dataCollectionMethod": "iHRPS record count vs. HR Division official head count",
-            "responsibility": "Human Resources Division"
+            "responsibleUnit": "Human Resources Division"
           },
           {
             "id": "cc1afbe0f8f41b24ab16b69",
@@ -954,7 +952,7 @@
             "year2Target": "0",
             "year3Target": "0",
             "dataCollectionMethod": "ICT Division quarterly systems inventory audit",
-            "responsibility": "ICT Division / Human Resources Division"
+            "responsibleUnit": "ICT Division / Human Resources Division"
           },
           {
             "id": "c8224d355bf22d7a97095f6",
@@ -965,9 +963,10 @@
             "year2Target": "100%",
             "year3Target": "100%",
             "dataCollectionMethod": "iHRPS user activity logs per regional office",
-            "responsibility": "Human Resources Division"
+            "responsibleUnit": "Human Resources Division"
           }
-        ]
+        ],
+        "projectCategory": "internal"
       }
     }
   },

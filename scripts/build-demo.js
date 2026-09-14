@@ -10,6 +10,15 @@
  * pipeline (which depended on better-sqlite3 + dev.db and had drifted out of
  * sync with the served file). All data is inline; no database required.
  *
+ * 2026-09-14: realigned to schema 11. The inline data was ported from the
+ * hand-maintained demo file, which had drifted AHEAD of this generator (the
+ * generator still emitted pre-v8 EGP statuses + notes, deploymentType, no
+ * stakeholder-service direction, no proposed-system url, and a stale
+ * projectType key in performanceFramework). Fixes applied with the port:
+ * performanceFramework projectType -> projectCategory, KPI responsibility ->
+ * responsibleUnit (the old key was invisible to the editor), dead envelope
+ * "status" key dropped, schemaVersion -> 11.
+ *
  * Stable IDs are preserved across regenerations so internal references stay
  * consistent:
  *   - part1.orgOutcomes[].id            <- referenced by part2.strategicConcerns[].outcomeIds
@@ -27,17 +36,14 @@ const fs = require("fs");
 const path = require("path");
 
 const issp = {
-
-  // ─── Top-level metadata ────────────────────────────────────────────────────
   "version": "1.0",
   "fileType": "issp-main",
-  "exportedAt": new Date().toISOString(),
+  "exportedAt": "2026-06-14T17:29:03.628Z",
   "tool": "issp-platform",
   "schemaVersion": 11,
   "title": "NCWTR Information Systems Strategic Plan 2026–2028",
   "startYear": 2026,
   "endYear": 2028,
-  "status": "DRAFT",
   "scope": "AGENCY_WITH_REGIONAL",
   "amendmentNumber": 0,
   "agencyHeadName": "Chairperson Maria Celeste R. Villanueva",
@@ -46,11 +52,86 @@ const issp = {
     "agency": "DICT",
     "deadline": null
   },
-  "sectionMeta": {},
+  "sectionMeta": {
+    "definitions": {
+      "userMarkedDone": true,
+      "lastEditedAt": "2026-05-18 06:53:18"
+    },
+    "part1/a": {
+      "userMarkedDone": true,
+      "lastEditedAt": "2026-05-18 06:53:18"
+    },
+    "part1/b": {
+      "userMarkedDone": true,
+      "lastEditedAt": "2026-05-18 06:53:18"
+    },
+    "part1/c": {
+      "userMarkedDone": true,
+      "lastEditedAt": "2026-05-18 06:53:18"
+    },
+    "part2/a": {
+      "userMarkedDone": true,
+      "lastEditedAt": "2026-05-18 06:53:18"
+    },
+    "part2/b": {
+      "userMarkedDone": true,
+      "lastEditedAt": "2026-05-18 06:53:18"
+    },
+    "part2/c": {
+      "userMarkedDone": true,
+      "lastEditedAt": "2026-05-18 06:53:18"
+    },
+    "part2/d": {
+      "userMarkedDone": true,
+      "lastEditedAt": "2026-05-18 06:53:18"
+    },
+    "part3/a": {
+      "userMarkedDone": true,
+      "lastEditedAt": "2026-05-18 06:53:18"
+    },
+    "part3/b": {
+      "userMarkedDone": true,
+      "lastEditedAt": "2026-05-18 06:53:18"
+    },
+    "part3/c": {
+      "userMarkedDone": true,
+      "lastEditedAt": "2026-05-18 06:53:18"
+    },
+    "part3/d": {
+      "userMarkedDone": true,
+      "lastEditedAt": "2026-05-18 06:53:18"
+    },
+    "part3/e1": {
+      "userMarkedDone": true,
+      "lastEditedAt": "2026-05-18 06:53:18"
+    },
+    "part3/e2": {
+      "userMarkedDone": true,
+      "lastEditedAt": "2026-05-18 06:53:18"
+    },
+    "part3/f": {
+      "userMarkedDone": true,
+      "lastEditedAt": "2026-05-18 06:53:18"
+    },
+    "part4/year1": {
+      "userMarkedDone": true,
+      "lastEditedAt": "2026-05-18 06:53:18"
+    },
+    "part4/year2": {
+      "userMarkedDone": true,
+      "lastEditedAt": "2026-05-18 06:53:18"
+    },
+    "part4/year3": {
+      "userMarkedDone": true,
+      "lastEditedAt": "2026-05-18 06:53:18"
+    },
+    "part4/summary": {
+      "userMarkedDone": true,
+      "lastEditedAt": "2026-05-18 06:53:18"
+    }
+  },
   "createdAt": "2026-05-18 06:53:18",
   "updatedAt": "2026-05-18 06:53:18",
-
-  // ─── Agency ─────────────────────────────────────────────────────────────────
   "agency": {
     "name": "National Commission on Waiting Time Reduction",
     "acronym": "NCWTR",
@@ -58,8 +139,6 @@ const issp = {
     "websiteUrl": "https://www.ncwtr.gov.ph",
     "logoBase64": null
   },
-
-  // ─── Part 1: Agency Profile & Strategic Context ──────────────────────────────
   "part1": {
     "legalBasis": "Republic Act No. 12087, otherwise known as the \"Waiting Time Reduction and Queue Management Act of 2023,\" which established the National Commission on Waiting Time Reduction (NCWTR) as an attached agency of the Office of the President. The Commission draws additional authority from Republic Act No. 11032 (Ease of Doing Business and Efficient Government Service Delivery Act of 2018) and Executive Order No. 92, s. 2019 (Institutionalizing the Whole-of-Government Approach in the Delivery of Government Services).",
     "mandateFunction": "The NCWTR is mandated to establish, enforce, and continuously review standards for service delivery queuing across all national government agencies, government-owned and controlled corporations, and local government units. Its primary functions include: (1) monitoring compliance with queuing time standards through its network of 17 regional offices and 82 provincial field offices; (2) conducting annual and spot-audit reviews of government service delivery efficiency; (3) issuing compliance ratings and improvement directives to non-compliant agencies; (4) receiving and resolving citizen complaints regarding excessive government waiting times; and (5) publishing quarterly national waiting time indices.\n\nNotably, the Commission's own Central Office in Quezon City holds a Platinum Irony Award (self-bestowed) for maintaining the single most efficient complaint management process for offices with slow complaint management processes.",
@@ -145,12 +224,14 @@ const issp = {
           {
             "id": "s1a1b2c3d4e5f6a7b8c9d0e",
             "name": "Filing of complaints on government waiting time violations",
-            "complexity": "Simple"
+            "complexity": "Simple",
+            "direction": "INCOMING"
           },
           {
             "id": "s2a1b2c3d4e5f6a7b8c9d0e",
             "name": "Requesting queue compliance certificates",
-            "complexity": "Simple"
+            "complexity": "Simple",
+            "direction": "INCOMING"
           }
         ]
       },
@@ -161,12 +242,14 @@ const issp = {
           {
             "id": "s3a1b2c3d4e5f6a7b8c9d0e",
             "name": "Submission of monthly queue time reports and compliance audits",
-            "complexity": "Complex"
+            "complexity": "Complex",
+            "direction": "INCOMING"
           },
           {
             "id": "s4a1b2c3d4e5f6a7b8c9d0e",
             "name": "Receipt of improvement directives from NCWTR",
-            "complexity": "Simple"
+            "complexity": "Simple",
+            "direction": "OUTGOING"
           }
         ]
       },
@@ -177,7 +260,8 @@ const issp = {
           {
             "id": "s5a1b2c3d4e5f6a7b8c9d0e",
             "name": "Enrollment in NCWTR monitoring program and submission of service delivery data",
-            "complexity": "Complex"
+            "complexity": "Complex",
+            "direction": "INCOMING"
           }
         ]
       },
@@ -188,12 +272,14 @@ const issp = {
           {
             "id": "s6a1b2c3d4e5f6a7b8c9d0e",
             "name": "Joint policy formulation on government service standards",
-            "complexity": "Highly Technical"
+            "complexity": "Highly Technical",
+            "direction": "OUTGOING"
           },
           {
             "id": "s7a1b2c3d4e5f6a7b8c9d0e",
             "name": "Referral of non-compliant agencies and citizen feedback data sharing",
-            "complexity": "Complex"
+            "complexity": "Complex",
+            "direction": "OUTGOING"
           }
         ]
       },
@@ -204,7 +290,8 @@ const issp = {
           {
             "id": "s8a1b2c3d4e5f6a7b8c9d0e",
             "name": "Coordination on service delivery standards and joint training programs",
-            "complexity": "Complex"
+            "complexity": "Complex",
+            "direction": "OUTGOING"
           }
         ]
       },
@@ -215,12 +302,14 @@ const issp = {
           {
             "id": "s9a1b2c3d4e5f6a7b8c9d0e",
             "name": "Annual audit of NCWTR operations and fund utilization",
-            "complexity": "Complex"
+            "complexity": "Complex",
+            "direction": "INCOMING"
           },
           {
             "id": "saa1b2c3d4e5f6a7b8c9d0e",
             "name": "ICT expenditure review and compliance assessment",
-            "complexity": "Highly Technical"
+            "complexity": "Highly Technical",
+            "direction": "INCOMING"
           }
         ]
       },
@@ -231,12 +320,14 @@ const issp = {
           {
             "id": "sba1b2c3d4e5f6a7b8c9d0e",
             "name": "Budget deliberations and legislative oversight of NCWTR mandate",
-            "complexity": "Simple"
+            "complexity": "Simple",
+            "direction": "INCOMING"
           },
           {
             "id": "sca1b2c3d4e5f6a7b8c9d0e",
             "name": "Submission of annual performance reports and review",
-            "complexity": "Simple"
+            "complexity": "Simple",
+            "direction": "OUTGOING"
           }
         ]
       },
@@ -247,24 +338,25 @@ const issp = {
           {
             "id": "sda1b2c3d4e5f6a7b8c9d0e",
             "name": "Technical assistance for ICT project implementation",
-            "complexity": "Complex"
+            "complexity": "Complex",
+            "direction": "INCOMING"
           },
           {
             "id": "sea1b2c3d4e5f6a7b8c9d0e",
             "name": "Government cloud services provisioning",
-            "complexity": "Complex"
+            "complexity": "Complex",
+            "direction": "INCOMING"
           },
           {
             "id": "sfa1b2c3d4e5f6a7b8c9d0e",
             "name": "Cybersecurity advisories and compliance review",
-            "complexity": "Highly Technical"
+            "complexity": "Highly Technical",
+            "direction": "INCOMING"
           }
         ]
       }
     ]
   },
-
-  // ─── Part 2: Current ICT Assessment ──────────────────────────────────────────
   "part2": {
     "strategicConcerns": [
       {
@@ -357,7 +449,7 @@ const issp = {
         "name": "National Queue Monitoring System (NQMS)",
         "classification": "SUPPORT_TO_OPERATIONS",
         "frontline": false,
-        "deploymentType": "ON_PREMISE",
+        "frontlineAccessType": "",
         "url": "",
         "description": "The agency's flagship monitoring system, accepting manually re-encoded queue time data from 847 monitored agencies. Built on Visual Basic 6 with an MS Access 2007 backend. Operational on three Windows XP computers, each named NQMS-PC-1, NQMS-PC-2, and NQMS-PC-2-BACKUP (the distinction between the last two remains unclear). Last updated in 2014 when a consultant added a 'Print Report' button. Holds a special place in NCWTR institutional memory as the cause of the Great Data Loss of 2021, when a routine 'restart to apply updates' triggered an irreversible cascade that was resolved by restoring a backup from 2019.",
         "developmentStrategy": "IN_HOUSE",
@@ -385,7 +477,7 @@ const issp = {
         "name": "Electronic Complaints Logging and Archival System (eCLAS)",
         "classification": "OPERATIONS",
         "frontline": true,
-        "deploymentType": "ON_PREMISE",
+        "frontlineAccessType": "ONLINE",
         "url": "https://www.ncwtr.gov.ph/complaints",
         "description": "Accepts citizen complaints via fax, which are scanned, printed again for logging purposes, then re-scanned into eCLAS by a data encoder. The public-facing URL leads to a page that says 'Online complaints coming soon!' posted in 2019 alongside a stock photo of a smiling government employee. The 'Electronic' in the name refers to the computer used to view the faxes. Currently in User Acceptance Testing for its web-based upgrade — the UAT has been ongoing since Q3 2021 with 7 UAT reports generated and 0 UAT cycles completed.",
         "developmentStrategy": "COTS",
@@ -413,7 +505,7 @@ const issp = {
         "name": "Regional Office Management System (ROMS)",
         "classification": "GENERAL_ADMIN",
         "frontline": false,
-        "deploymentType": "ON_PREMISE",
+        "frontlineAccessType": "",
         "url": "",
         "description": "Seventeen separate ROMS instances — one per regional office — deployed between 2013 and 2020, each customized by different contractors using different technology stacks. ROMS-NCR (ASP Classic), ROMS-CAR (PHP/MySQL), ROMS-R3 (VB.NET/SQL Server Express), and so on. None can communicate with any other, nor with the Central Office. Attempts to standardize have failed three times, once resulting in an emergency ROMS-R11 restoration that took six working days. The regional offices refer to data consolidation as 'the reconciliation,' spoken in hushed tones.",
         "developmentStrategy": "OUTSOURCED",
@@ -441,7 +533,7 @@ const issp = {
         "name": "Agency Human Resources Information System (AHRIS)",
         "classification": "GENERAL_ADMIN",
         "frontline": false,
-        "deploymentType": "ON_PREMISE",
+        "frontlineAccessType": "",
         "url": "",
         "description": "Technically 47 Microsoft Excel workbooks in a shared folder, oldest dating to 2009 in Excel 2003 format (.xls). Named using a classification system understood by one (1) person, Ms. Leonora 'Nora' Baluyot, who has been with the agency since 2007. Ms. Baluyot has attempted to document the naming convention three times; each documentation attempt has itself been lost. The workbooks are inaccessible to the 17 regional offices, who maintain their own separate HR records in formats ranging from Excel to a printed binder labeled 'PERSONNEL' in the Cordillera Administrative Region office.",
         "developmentStrategy": "IN_HOUSE",
@@ -467,21 +559,18 @@ const issp = {
     ],
     "egpChecklist": {
       "eGovPay": {
-        "status": "not_utilizing",
-        "notes": "Assessed in 2022. Integration deferred pending procurement of a payment module for eCLAS. eCLAS procurement is pending UAT completion. UAT completion is pending budget allocation. Budget allocation is pending eCLAS procurement.",
+        "status": "no",
         "ifNo": {
           "manual": true,
           "proposedDevelopment": true
         }
       },
       "pnpki": {
-        "status": "proposed",
-        "adoptionPercentage": 15,
-        "notes": "Digital certificates issued for 12 senior officials. Remaining 85% of target staff are awaiting issuance pending completion of identity proofing forms (Form PNPKI-IP-001, Rev. 2020, 14 pages)."
+        "status": "",
+        "adoptionPercentage": 15
       },
       "hcmis": {
-        "status": "not_utilizing",
-        "notes": "NCWTR is registered with the CSC HRMIS but has not migrated data from AHRIS (the 47 Excel workbooks) due to concerns about data mapping complexity. A migration plan was drafted in 2023 and is under review.",
+        "status": "no",
         "ifNo": {
           "usingEquivalent": true,
           "proposedDevelopment": true
@@ -489,14 +578,12 @@ const issp = {
         "equivalentName": "AHRIS (Agency Human Resource Information System — 47 Excel workbooks)"
       },
       "ifmis": {
-        "status": "utilizing",
-        "url": "https://ifmis.dbm.gov.ph",
-        "notes": "Utilized for budget execution reporting. Central Office only; regional offices submit data to CO for encoding."
+        "status": "yes",
+        "url": "https://ifmis.dbm.gov.ph"
       },
       "onlinePortal": {
-        "status": "utilizing",
+        "status": "",
         "url": "https://www.ncwtr.gov.ph",
-        "notes": "Website is live and contains the organizational chart, agency mandate, downloadable forms (PDF), and a 'Coming Soon' section for e-services that has been coming soon since 2019. Feedback mechanisms (email, landline) are not connected to any online portal; CFCP (Part III-D) will consolidate them.",
         "mechanisms": {
           "website": true,
           "email": true,
@@ -507,22 +594,17 @@ const issp = {
         "connectedToPortal": "no"
       },
       "procurement": {
-        "status": "utilizing",
-        "url": "https://philgeps.gov.ph",
-        "notes": "All procurement posted on PhilGEPS. BAC secretariat manages postings manually. Agency is registered as observer in the Government Procurement Reform Act compliance program."
+        "status": "yes",
+        "url": "https://philgeps.gov.ph"
       },
       "recordsMgmt": {
-        "status": "not_utilizing",
-        "notes": "Records management is conducted through a combination of physical filing cabinets (6 four-drawer units in Central Office, described internally as 'the traditional cloud'), a shared network drive with no version control, and institutional memory. Transition to eDMS proposed for 2026."
+        "status": "no"
       },
       "pscp": {
-        "status": "not_utilizing",
-        "notes": "NCWTR is a monitoring and regulatory body with no direct service delivery to the public beyond complaint processing, which is currently fax-based."
+        "status": "no"
       }
     }
   },
-
-  // ─── Part 3: Proposed ICT Strategy ────────────────────────────────────────────
   "part3": {
     "proposedNetworkDataUrl": null,
     "proposedNetworkDesc": "NCWTR's target network architecture consolidates the current 17-silo infrastructure into a unified hub-and-spoke model with the Central Office as the primary hub and each regional office as a resilient spoke. All 17 regional offices will be connected via dedicated fiber (≥100 Mbps) or fixed wireless broadband, replacing DSL and LTE connections. The Central Office will upgrade to dual 1 Gbps fiber links with automatic failover. A government cloud environment (GovCloud PH) will host UQMP and CFCP, with a secondary disaster recovery node at the DICT GovCloud DR site in Davao City — the first time NCWTR has had a disaster recovery plan that does not consist of the phrase \"call the ICT Director.\"",
@@ -634,7 +716,7 @@ const issp = {
         "name": "Unified Queue Monitoring Platform (UQMP)",
         "classification": "SUPPORT_TO_OPERATIONS",
         "frontline": false,
-        "deploymentType": "CLOUD",
+        "frontlineAccessType": "",
         "status": "FOR_DEVELOPMENT",
         "enhancementDetails": "",
         "developmentStrategy": "OUTSOURCED",
@@ -656,14 +738,15 @@ const issp = {
           "processesPersonalInfo": "no",
           "piaRequired": false
         },
-        "description": "Cloud-hosted platform for collecting, consolidating, and reporting queue monitoring data from regional offices and partner service centers."
+        "description": "Cloud-hosted platform for collecting, consolidating, and reporting queue monitoring data from regional offices and partner service centers.",
+        "url": ""
       },
       {
         "id": "ps-cfcp",
         "name": "Citizen Feedback and Complaints Portal (CFCP)",
         "classification": "OPERATIONS",
         "frontline": true,
-        "deploymentType": "CLOUD",
+        "frontlineAccessType": "ONLINE",
         "status": "FOR_DEVELOPMENT",
         "enhancementDetails": "Replaces eCLAS and the fax machine.",
         "developmentStrategy": "OUTSOURCED",
@@ -685,14 +768,15 @@ const issp = {
           "processesPersonalInfo": "yes",
           "piaRequired": true
         },
-        "description": "Replaces eCLAS and the fax machine."
+        "description": "Replaces eCLAS and the fax machine.",
+        "url": ""
       },
       {
         "id": "ps-ihrps",
         "name": "Integrated Human Resources and Payroll System (iHRPS)",
         "classification": "GENERAL_ADMIN",
         "frontline": false,
-        "deploymentType": "CLOUD",
+        "frontlineAccessType": "",
         "status": "FOR_DEVELOPMENT",
         "enhancementDetails": "Replaces 47 Excel workbooks. Will finally resolve the Mystery of the Three USB-Recovered Employee Records.",
         "developmentStrategy": "COTS",
@@ -714,7 +798,8 @@ const issp = {
           "processesPersonalInfo": "yes",
           "piaRequired": true
         },
-        "description": "Replaces 47 Excel workbooks. Will finally resolve the Mystery of the Three USB-Recovered Employee Records."
+        "description": "Replaces 47 Excel workbooks. Will finally resolve the Mystery of the Three USB-Recovered Employee Records.",
+        "url": ""
       }
     ],
     "internalProjects": [
@@ -794,7 +879,6 @@ const issp = {
     "performanceFramework": {
       "proj-sikap": {
         "projectTitle": "Project SIKAP — Streamlined ICT for Konsolidadong Agency Platform",
-        "projectType": "IS-Driven",
         "rows": [
           {
             "id": "cdd811ce8b3e36f87b30df1",
@@ -805,7 +889,7 @@ const issp = {
             "year2Target": "60%",
             "year3Target": "100%",
             "dataCollectionMethod": "UQMP system-generated API submission logs",
-            "responsibility": "ICT Division / Monitoring Division"
+            "responsibleUnit": "ICT Division / Monitoring Division"
           },
           {
             "id": "c5b63cce9183c6a509ae6ea",
@@ -816,7 +900,7 @@ const issp = {
             "year2Target": "3 days",
             "year3Target": "0.08 days (2 hours)",
             "dataCollectionMethod": "UQMP automated report generation timestamp logs",
-            "responsibility": "ICT Division"
+            "responsibleUnit": "ICT Division"
           },
           {
             "id": "c67d67368908148205307a9",
@@ -827,7 +911,7 @@ const issp = {
             "year2Target": "65% online",
             "year3Target": "90% online",
             "dataCollectionMethod": "CFCP submission channel analytics",
-            "responsibility": "Complaints Management Division"
+            "responsibleUnit": "Complaints Management Division"
           },
           {
             "id": "ceb589ec53407cf3baea399",
@@ -838,13 +922,13 @@ const issp = {
             "year2Target": "1",
             "year3Target": "0 (ceremonially retired)",
             "dataCollectionMethod": "ICT inventory records",
-            "responsibility": "ICT Division"
+            "responsibleUnit": "ICT Division"
           }
-        ]
+        ],
+        "projectCategory": "internal"
       },
       "proj-bilis": {
         "projectTitle": "Project BILIS — Broadband Infrastructure for Linked Information Systems",
-        "projectType": "Infrastructure",
         "rows": [
           {
             "id": "cf393af50610a2a7f7111dd",
@@ -855,7 +939,7 @@ const issp = {
             "year2Target": "100 Mbps",
             "year3Target": "100 Mbps",
             "dataCollectionMethod": "Monthly network performance monitoring reports from regional offices",
-            "responsibility": "ICT Division — Infrastructure Section"
+            "responsibleUnit": "ICT Division — Infrastructure Section"
           },
           {
             "id": "cb53cd67140442f3cd51ac4",
@@ -866,7 +950,7 @@ const issp = {
             "year2Target": "< 2 minutes",
             "year3Target": "< 2 minutes",
             "dataCollectionMethod": "UQMP upload telemetry logs",
-            "responsibility": "ICT Division"
+            "responsibleUnit": "ICT Division"
           },
           {
             "id": "ccae22961e4640c996bf9b9",
@@ -877,13 +961,13 @@ const issp = {
             "year2Target": "17",
             "year3Target": "17",
             "dataCollectionMethod": "ISP-certified connection speed test reports",
-            "responsibility": "ICT Division — Infrastructure Section"
+            "responsibleUnit": "ICT Division — Infrastructure Section"
           }
-        ]
+        ],
+        "projectCategory": "internal"
       },
       "proj-handa": {
         "projectTitle": "Project HANDA — Human Resource and Administrative Network for Departmental Automation",
-        "projectType": "IS-Driven",
         "rows": [
           {
             "id": "cfdb31a5ca7d5440fec5cfa",
@@ -894,7 +978,7 @@ const issp = {
             "year2Target": "100%",
             "year3Target": "100%",
             "dataCollectionMethod": "iHRPS record count vs. HR Division official head count",
-            "responsibility": "Human Resources Division"
+            "responsibleUnit": "Human Resources Division"
           },
           {
             "id": "cc1afbe0f8f41b24ab16b69",
@@ -905,7 +989,7 @@ const issp = {
             "year2Target": "0",
             "year3Target": "0",
             "dataCollectionMethod": "ICT Division quarterly systems inventory audit",
-            "responsibility": "ICT Division / Human Resources Division"
+            "responsibleUnit": "ICT Division / Human Resources Division"
           },
           {
             "id": "c8224d355bf22d7a97095f6",
@@ -916,14 +1000,13 @@ const issp = {
             "year2Target": "100%",
             "year3Target": "100%",
             "dataCollectionMethod": "iHRPS user activity logs per regional office",
-            "responsibility": "Human Resources Division"
+            "responsibleUnit": "Human Resources Division"
           }
-        ]
+        ],
+        "projectCategory": "internal"
       }
     }
   },
-
-  // ─── Part 4: Resource Requirements ────────────────────────────────────────────
   "part4": {
     "year1": {
       "officeProductivity": {
@@ -1461,7 +1544,10 @@ const issp = {
   }
 };
 
+// `exportedAt` is the only field that changes between runs.
+issp.exportedAt = new Date().toISOString();
+
 const outPath = path.join(__dirname, "..", "public", "demo", "ncwtr-issp-2026-2028.issp");
 fs.writeFileSync(outPath, JSON.stringify(issp, null, 2) + "\n", "utf-8");
 console.log("\u2705 Written:", outPath);
-console.log("   Size:", (fs.statSync(outPath).size / 1024).toFixed(1), "KB");
+console.log("   Size:", (fs.statSync(outPath).size / 1024).toFixed(1), " KB");
