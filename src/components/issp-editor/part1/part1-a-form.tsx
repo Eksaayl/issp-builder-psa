@@ -15,13 +15,15 @@ import { SectionShell } from "@/components/editor/section-shell";
 import { revealNewItem } from "@/lib/reveal";
 import { useResolvedScope } from "@/hooks/use-resolved-scope";
 import { isFieldEditable } from "@/lib/scope/paths";
+import type { Program } from "@/lib/store/types";
+import { uuid } from "@/lib/uuid";
 
 type AgencyType = "NGA" | "GOCC" | "LGU" | "OTHER";
 
 interface OrgOutcome {
   id: string;
   name: string;
-  programs: string[];
+  programs: Program[];
 }
 
 interface Part1AData {
@@ -99,7 +101,19 @@ function FormField({
 }
 
 export function Part1AForm({ agencyType, initialData }: Part1AFormProps) {
-  const [data, setData] = useState<Part1AData>(initialData ?? DEFAULT_DATA);
+  const [data, setData] = useState<Part1AData>(() =>
+    initialData
+      ? {
+          ...initialData,
+          orgOutcomes: (initialData.orgOutcomes ?? []).map((o) => ({
+            ...o,
+            programs: (o.programs ?? []).map((pg, i) =>
+              typeof pg === "string" ? { id: `${o.id}-pg-${i + 1}`, name: pg } : pg
+            ),
+          })),
+        }
+      : DEFAULT_DATA
+  );
   const [expandedOOs, setExpandedOOs] = useState<Set<string>>(new Set());
 
   const { debouncedSave } = useLocalSave("part1", "part1/a");
@@ -119,7 +133,7 @@ export function Part1AForm({ agencyType, initialData }: Part1AFormProps) {
   );
 
   function addOutcome() {
-    const newOO: OrgOutcome = { id: generateId(), name: "", programs: [""] };
+    const newOO: OrgOutcome = { id: generateId(), name: "", programs: [] };
     const next = [...data.orgOutcomes, newOO];
     update("orgOutcomes", next);
     setExpandedOOs((prev) => new Set([...prev, newOO.id]));
@@ -143,24 +157,26 @@ export function Part1AForm({ agencyType, initialData }: Part1AFormProps) {
   function addProgram(ooId: string) {
     const oo = data.orgOutcomes.find((o) => o.id === ooId);
     if (!oo) return;
-    updateOutcome(ooId, "programs", [...oo.programs, ""]);
+    updateOutcome(ooId, "programs", [...oo.programs, { id: uuid(), name: "" }]);
   }
 
-  function updateProgram(ooId: string, idx: number, value: string) {
-    const oo = data.orgOutcomes.find((o) => o.id === ooId);
-    if (!oo) return;
-    const programs = [...oo.programs];
-    programs[idx] = value;
-    updateOutcome(ooId, "programs", programs);
-  }
-
-  function removeProgram(ooId: string, idx: number) {
+  function updateProgram(ooId: string, programId: string, value: string) {
     const oo = data.orgOutcomes.find((o) => o.id === ooId);
     if (!oo) return;
     updateOutcome(
       ooId,
       "programs",
-      oo.programs.filter((_, i) => i !== idx)
+      oo.programs.map((p) => (p.id === programId ? { ...p, name: value } : p))
+    );
+  }
+
+  function removeProgram(ooId: string, programId: string) {
+    const oo = data.orgOutcomes.find((o) => o.id === ooId);
+    if (!oo) return;
+    updateOutcome(
+      ooId,
+      "programs",
+      oo.programs.filter((p) => p.id !== programId)
     );
   }
 
@@ -366,12 +382,12 @@ export function Part1AForm({ agencyType, initialData }: Part1AFormProps) {
                             Add Program
                           </Button>
                         </div>
-                        {oo.programs.map((program, pIdx) => (
-                          <div key={pIdx} className="flex gap-2">
+                        {oo.programs.map((p, pIdx) => (
+                          <div key={p.id} className="flex gap-2">
                             <Input
                               placeholder={`Program ${pIdx + 1}...`}
-                              value={program}
-                              onChange={(e) => updateProgram(oo.id, pIdx, e.target.value)}
+                              value={p.name}
+                              onChange={(e) => updateProgram(oo.id, p.id, e.target.value)}
                               className="flex-1"
                             />
                             <Button
@@ -379,7 +395,7 @@ export function Part1AForm({ agencyType, initialData }: Part1AFormProps) {
                               size="icon"
                               aria-label="Remove program"
                               className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
-                              onClick={() => removeProgram(oo.id, pIdx)}
+                              onClick={() => removeProgram(oo.id, p.id)}
                               disabled={oo.programs.length === 1}
                             >
                               <Trash2 className="h-3.5 w-3.5" />
