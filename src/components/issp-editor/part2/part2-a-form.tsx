@@ -22,13 +22,15 @@ import { revealNewItem } from "@/lib/reveal";
 interface OrgOutcome {
   id: string;
   name: string;
-  programs: string[];
+  programs: { id: string; name: string }[];
 }
 
 interface StrategicConcern {
   id: string;
   /** OrgOutcome ids, or "general" */
   outcomeIds: string[];
+  /** Program ids (linked OrgOutcome.programs[].id) this concern pertains to. */
+  programIds: string[];
   criticalSystem: string;
   concern: string;
   desiredStrategy: string;
@@ -45,6 +47,7 @@ function generateId() {
 
 const DEFAULT_CONCERN: Omit<StrategicConcern, "id"> = {
   outcomeIds: ["general"],
+  programIds: [],
   criticalSystem: "",
   concern: "",
   desiredStrategy: "",
@@ -57,6 +60,7 @@ export function Part2AForm({ orgOutcomes, initialData }: Part2AFormProps) {
     return initialData.map((c: any) => ({
       ...c,
       outcomeIds: Array.isArray(c.outcomeIds) ? c.outcomeIds : (c.outcomeId ? [c.outcomeId] : []),
+      programIds: Array.isArray(c.programIds) ? c.programIds : [],
     }));
   });
 
@@ -158,7 +162,17 @@ export function Part2AForm({ orgOutcomes, initialData }: Part2AFormProps) {
             </div>
           )}
 
-          {concerns.map((concern, idx) => (
+          {concerns.map((concern, idx) => {
+            const selectedOutcomeIds = concern.outcomeIds.filter((id) => id !== "general");
+            const programOptions = orgOutcomes
+              .filter((oo) => selectedOutcomeIds.includes(oo.id))
+              .flatMap((oo) =>
+                oo.programs.map((p) => ({
+                  value: p.id,
+                  label: selectedOutcomeIds.length > 1 ? `${oo.name} — ${p.name}` : p.name,
+                }))
+              );
+            return (
             <div key={concern.id} data-reveal-id={concern.id} className="rounded-lg border bg-card overflow-hidden">
               {/* Concern header */}
               <div className="flex items-center gap-2 px-4 py-3 bg-muted/30">
@@ -197,6 +211,38 @@ export function Part2AForm({ orgOutcomes, initialData }: Part2AFormProps) {
                   </Select>
                 </div>
                 <div className="space-y-1.5 md:col-span-3">
+                  <Label className="text-sm font-medium">Programs (optional)</Label>
+                  {programOptions.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      Programs come from the linked OO/SO/MFO — define them in{" "}
+                      <Link href="/editor/part1/a" className="text-primary hover:underline">
+                        Part I-A.4
+                      </Link>
+                      . Appears in the PDF as “Program n: …” under the OO/SO/MFO.
+                    </p>
+                  ) : (
+                    <Select
+                      multiple
+                      items={programOptions}
+                      value={concern.programIds}
+                      onValueChange={(v: string[] | null) =>
+                        updateConcern(concern.id, "programIds", v || [])
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select programs…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {programOptions.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+                <div className="space-y-1.5 md:col-span-3">
                   <Label className="text-sm font-medium">Critical Management, Operating, or Business System</Label>
                   <Textarea
                     placeholder="Describe actual operations/activities performed..."
@@ -230,7 +276,8 @@ export function Part2AForm({ orgOutcomes, initialData }: Part2AFormProps) {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </CardContent>
       </Card>
     </SectionShell>
