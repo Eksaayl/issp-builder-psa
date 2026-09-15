@@ -33,7 +33,7 @@ The active app is a local-first ISSP editor for the DICT 2026 template, with mul
 
 ## Verification Status
 
-Last full gate: 2026-09-03 (tsc + lint + Puppeteer smokes; scoped-distribution round-trip 96/96 assertions).
+Last full gate: 2026-09-15 (tsc + lint + verify scripts + Puppeteer/PDF smokes; Part II-A program column, schema v12).
 
 | Check | Result | Notes |
 |---|---|---|

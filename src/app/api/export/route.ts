@@ -16,6 +16,7 @@ import type {
   KpiRow,
   PerformanceFramework,
   EgpChecklist,
+  Program,
 } from "@/lib/store/types";
 
 // ─── Field mapping helpers ────────────────────────────────────────────────────
@@ -200,7 +201,17 @@ function toRenderData(doc: IsspDocument): IsspData {
       mandateFunction: part1.mandateFunction,
       visionStatement: part1.visionStatement,
       missionStatement: part1.missionStatement,
-      orgOutcomes: part1.orgOutcomes.map((o) => ({ id: o.id, name: o.name, programs: o.programs })),
+      // Legacy v11 docs POSTed straight to the API still carry programs as
+      // plain strings. Normalize with the same deterministic id formula the
+      // migration uses, so I-A.4 names render and the ids match a later
+      // in-app load of the same file.
+      orgOutcomes: part1.orgOutcomes.map((o) => ({
+        id: o.id,
+        name: o.name,
+        programs: (o.programs ?? []).map((pg: string | Program, i: number) =>
+          typeof pg === "string" ? { id: `${o.id}-pg-${i + 1}`, name: pg } : pg
+        ),
+      })),
       cioName: part1.cioName,
       cioPosition: part1.cioPosition,
       cioUnit: part1.cioUnit,
