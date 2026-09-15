@@ -28,10 +28,17 @@ export type IsspScope =
 
 // ─── Part I ───────────────────────────────────────────────────────────────────
 
+/** A program under an Organizational Outcome (Part I-A.4). Id-addressed so
+ *  Part II-A concerns can reference it and renames propagate (principle 8). */
+export interface Program {
+  id: string;
+  name: string;
+}
+
 export interface OrgOutcome {
   id: string;
   name: string;
-  programs: string[];
+  programs: Program[];
 }
 
 export interface HumanCapital {
@@ -89,6 +96,8 @@ export interface Part1Data {
 export interface StrategicConcern {
   id: string;
   outcomeIds: string[];
+  /** Program ids (OrgOutcome.programs[].id) this concern pertains to. */
+  programIds: string[];
   criticalSystem: string;
   concern: string;
   desiredStrategy: string;
@@ -426,7 +435,7 @@ export interface IsspDocument {
   fileType: "issp-main";
   exportedAt: string;
   tool: "issp-platform";
-  /** Schema version for migration. 11 = current. */
+  /** Schema version for migration. 12 = current. */
   schemaVersion?: number;
   title: string;
   startYear: number;

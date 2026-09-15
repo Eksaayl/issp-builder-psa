@@ -9,7 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { IsspDocument, Part1Data, Part2Data, Part3Data, Part4Data, SectionMeta, HumanCapital, CyberControls, EgpChecklist, YearBudget, HCRow, StakeholderService, IsClassification, PiaProcessAnswer, MigrationReview } from "./types";
+import type { IsspDocument, Part1Data, Part2Data, Part3Data, Part4Data, SectionMeta, HumanCapital, CyberControls, EgpChecklist, YearBudget, HCRow, StakeholderService, IsClassification, PiaProcessAnswer, MigrationReview, Program } from "./types";
 import { createEmptyDocument, makeDefaultPart1, makeDefaultPart2, makeDefaultPart3, makeDefaultPart4, type NewDocOptions } from "./defaults";
 import { idbClear, idbLoad, idbSave } from "./idb";
 import { CURRENT_SCHEMA_VERSION, getRequiredMigrationReviewSectionIds } from "@/lib/migration-review";
@@ -697,6 +697,11 @@ export function migrateLegacyDoc(doc: IsspDocument): IsspDocument {
     base = { ...base, schemaVersion: 11 };
   }
 
+  // v11 → v12: programs become {id, name} objects; strategicConcerns gain programIds.
+  if ((base.schemaVersion ?? 1) < 12) {
+    base = { ...base, schemaVersion: 12 };
+  }
+
   // Idempotent normalizations — keep stored data in sync with what forms write on mount,
   // so that editing a field and reverting it produces a hash equal to the snapshot.
   let normalized: IsspDocument = {
@@ -717,6 +722,15 @@ export function migrateLegacyDoc(doc: IsspDocument): IsspDocument {
           direction: sv.direction ?? "",
         })),
       })),
+      // Programs: legacy string form → {id, name} with deterministic ids
+      // (mirrors part1-a-form's mount normalization — snapshot-sync rule).
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      orgOutcomes: base.part1.orgOutcomes.map((o: any) => ({
+        ...o,
+        programs: (o.programs ?? []).map((pg: string | Program, i: number) =>
+          typeof pg === "string" ? { id: `${o.id}-pg-${i + 1}`, name: pg } : pg
+        ),
+      })),
     },
     part2: {
       ...base.part2,
@@ -725,6 +739,7 @@ export function migrateLegacyDoc(doc: IsspDocument): IsspDocument {
       strategicConcerns: base.part2.strategicConcerns.map((c: any) => ({
         ...c,
         outcomeIds: Array.isArray(c.outcomeIds) ? c.outcomeIds : (c.outcomeId ? [c.outcomeId] : []),
+        programIds: Array.isArray(c.programIds) ? c.programIds : [],
       })),
     },
     part3: {
