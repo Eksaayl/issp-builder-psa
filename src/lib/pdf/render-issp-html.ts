@@ -17,7 +17,7 @@ interface Part1 {
   mandateFunction: string;
   visionStatement: string;
   missionStatement: string;
-  orgOutcomes: { name: string; programs: string[] }[];
+  orgOutcomes: { id: string; name: string; programs: { id: string; name: string }[] }[];
   cioName: string;
   cioPosition: string;
   cioUnit: string;
@@ -645,7 +645,7 @@ function renderPart1(issp: IsspData): string {
     <div class="subsection-block">${p.orgOutcomes.length === 0 ? "<p><em>None specified.</em></p>" :
       p.orgOutcomes.map((oo, i) => `<div class="avoid-break" style="margin-bottom:3mm;">
         <p style="font-weight:bold;">${i + 1}. ${esc(oo.name)}</p>
-        ${oo.programs?.length ? `<ul class="template-list">${oo.programs.map(pg => `<li>${esc(pg)}</li>`).join("")}</ul>` : ""}
+        ${oo.programs?.length ? `<ul class="template-list">${oo.programs.map(pg => `<li>${esc(pg.name)}</li>`).join("")}</ul>` : ""}
       </div>`).join("")
     }</div>
 
@@ -1001,10 +1001,10 @@ function renderPart2(issp: IsspData): string {
     <table>
       <thead>
         <tr>
-          <th style="width:20%">OO/SO/MFO</th>
-          <th style="width:25%">Critical Management, Operating, or Business System</th>
-          <th style="width:27%">Problem</th>
-          <th style="width:28%">Intended Use of ICT</th>
+          <th style="width:25%">OO/SO/MFO</th>
+          <th style="width:27%">CRITICAL MANAGEMENT, OPERATING, OR BUSINESS SYSTEM</th>
+          <th style="width:23%">PROBLEM</th>
+          <th style="width:23%">INTENDED USE OF ICT</th>
         </tr>
       </thead>
       <tbody>
