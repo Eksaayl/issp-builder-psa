@@ -55,6 +55,7 @@ Last full gate: 2026-09-03 (tsc + lint + Puppeteer smokes; scoped-distribution r
 | Part I-C view redesign | Done, 2026-07-18 | Table + List (Cards/Summary merged). Read-only defaults; edit via toggle/drawer (usability principle #2). |
 | Part IV project labeling | Done, 2026-07-23 | Projects numbered `Internal ICT Project #n` / `Cross-Agency ICT Project #n` on all surfaces; budget categories renamed Office Productivity / Internal ICT Projects / Cross-Agency ICT Projects / Continuing Costs; A/B/C letters retired. |
 | Part III-B guidance | Done, 2026-09-02 | References PGIF 2.0 (DICT) with link, replacing "Philippine EA Framework (PeGov)". |
+| Part II-A program column | Done, 2026-09-15 | Concerns link programs (programIds); PDF column 1 renders OO/SO/MFO + Program n:; programs are {id,name} (schema v12). |
 | Demo file | Done, with drift | Checked-in demo is schemaVersion 10 (still loads fine — migrates on load). `scripts/build-demo.js` embeds v6 and would emit a legacy file if re-run; regenerate or bump before reuse. |
 | PDF export | Done | Cover, interactive TOC/bookmarks, definitions, Parts I-IV, Annex 1, running header/footer, UACS budget tables, streaming progress (SSE), CSP-safe client decode. |
 | Usage analytics | Done | Create/load/restore events record only agency name, acronym, event, and server timestamp. |
