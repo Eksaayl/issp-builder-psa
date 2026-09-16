@@ -512,7 +512,7 @@ export default function HomePageClient({ aboutHtml, privacyHtml }: { aboutHtml: 
           <p className="chip-attr select-none rounded-full bg-foreground text-background/85 px-4 py-1.5 text-xs font-semibold text-center">
             Made with <span className="chip-heart">❤️</span> <em>para sa bayan</em> ·{" "}
             <a
-              href="https://www.instagram.com/carlosanton.io"
+              href="https://carlosanton.io"
               target="_blank"
               rel="noopener noreferrer"
               className="text-background underline underline-offset-2 hover:opacity-75 transition-opacity"

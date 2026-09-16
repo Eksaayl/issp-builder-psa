@@ -1185,12 +1185,12 @@ export function EditorSidebar({
             made with ❤️ <em>para sa bayan</em>
             {" · "}
             <a
-              href="https://www.instagram.com/carlosanton.io"
+              href="https://carlosanton.io"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-muted-foreground/70 transition-colors underline underline-offset-2"
             >
-              @carlosanton.io
+              carlosanton.io
             </a>
           </p>
         </div>
