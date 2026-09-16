@@ -871,7 +871,7 @@ export function Part1CForm({ initialData, officeId }: Part1CFormProps) {
                           onClick={() => toggleOpen(s.id)}
                           className="flex-1 min-w-0 flex items-center gap-2 text-left"
                         >
-                          <span className="text-sm font-medium truncate">
+                          <span className="text-sm font-medium line-clamp-2 break-words" title={s.name || undefined}>
                             {s.name || <span className="italic text-muted-foreground/60">Unnamed stakeholder</span>}
                           </span>
                         </button>

@@ -575,7 +575,7 @@ function ProjectCard({
                 onChange={(e) => onUpdate("implementingUnit", e.target.value)}
               />
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 sm:col-span-2">
               <Label className="text-xs text-muted-foreground uppercase tracking-wide">Duration</Label>
               <DurationPicker
                 value={(project as IctProject).duration ?? ""}

@@ -301,7 +301,7 @@ export function UacsCombobox({
           open && "ring-1 ring-ring border-ring"
         )}
       >
-        <span className={cn("truncate", !value && "text-muted-foreground")}>
+        <span className={cn("truncate", !value && "text-muted-foreground")} title={value ? selectedLabel : undefined}>
           {value ? selectedLabel : placeholder}
         </span>
         <span className="flex items-center gap-1 ml-2 shrink-0">
