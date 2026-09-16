@@ -2,11 +2,13 @@
 
 > Canonical tracker. This is the only document that should be treated as the current project state, backlog, and next-session plan. Older session logs, implementation plans, audits, and architecture notes are historical unless this file explicitly points to them.
 
-Last updated: 2026-09-03
+Last updated: 2026-09-16
 
 ## Current State
 
 The active app is a local-first ISSP editor for the DICT 2026 template, with multi-office scoped distribution.
+
+- **Part II-A program column (schema v12), deployed 2026-09-16:** programs are id-addressed `{id, name}` objects under each Part I-A.4 outcome; Part II-A concern cards carry an optional program multi-select (`programIds`); the PDF's II-A column 1 renders "→ Program N: …" lines under the outcome, and legacy string programs are normalized at export. Legacy docs migrate losslessly on load (strings → deterministic ids; `programIds` defaults to `[]`, which renders as outcome-only — no migration-review flag, by design). Shipped via `feat/part2a-program-column` (9 commits, fast-forward merged to `main`, pushed); design: `docs/superpowers/specs+plans/2026-09-15-part2a-program-column.md`.
 
 - Public editor at `/editor`; no login, no accounts, no server-side document storage.
 - One active `IsspDocument` is stored in browser IndexedDB via `src/lib/store/idb.ts`.
