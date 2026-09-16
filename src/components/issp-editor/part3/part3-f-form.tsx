@@ -302,7 +302,7 @@ function ProjectKpiTable({
           ) : (
             <>
               {/* Desktop: read table — text wraps, nothing clips */}
-              <div className="hidden md:block overflow-x-auto">
+              <div className="hidden md:block overflow-x-auto p-3">
                 <table className="w-full text-xs border-collapse">
                   <thead>
                     <tr className="bg-muted/40">
