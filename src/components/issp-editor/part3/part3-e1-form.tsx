@@ -27,6 +27,14 @@ import { ConfirmDeleteButton } from "@/components/ui/confirm-delete-button";
 import { cn, php } from "@/lib/utils";
 import type { ProposedSystem } from "./part3-d-form";
 import { SectionShell } from "@/components/editor/section-shell";
+import {
+  yearsBetween,
+  formatDuration,
+  parseDuration,
+  coveredYears,
+  endYearForRangeMode,
+  type DurationMode,
+} from "@/lib/duration";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -95,81 +103,63 @@ const FUNDING_OPTIONS = [
   "Other Income Generating Sources",
 ];
 
-type DurationMode = "single" | "range";
-
-function yearsBetween(startYear: number, endYear: number): string[] {
-  const start = Math.min(startYear, endYear);
-  const end = Math.max(startYear, endYear);
-  return Array.from({ length: end - start + 1 }, (_, index) => String(start + index));
-}
-
-function formatDuration(start: string, end?: string): string {
-  return end && end !== start ? `${start}–${end}` : start;
-}
-
-function parseDuration(value: string, planYears: string[]) {
-  const match = value.trim().match(/^(\d{4})(?:\s*[-–]\s*(\d{4}))?$/);
-  const firstYear = planYears[0] ?? "";
-  const lastYear = planYears[planYears.length - 1] ?? firstYear;
-
-  if (!match) {
-    return {
-      valid: value.trim() === "",
-      mode: "range" as DurationMode,
-      start: firstYear,
-      end: lastYear,
-    };
-  }
-
-  const parsedStart = match[1];
-  const parsedEnd = match[2] ?? parsedStart;
-  const start = planYears.includes(parsedStart) ? parsedStart : firstYear;
-  const end = planYears.includes(parsedEnd) ? parsedEnd : start;
-  const valid = planYears.includes(parsedStart) && planYears.includes(parsedEnd) && Number(end) >= Number(start);
-
-  return {
-    valid,
-    mode: end !== start ? "range" as DurationMode : "single" as DurationMode,
-    start,
-    end,
-  };
-}
-
 function DurationPicker({
   value,
   planYears,
   planDuration,
   onChange,
+  blockedYears = [],
 }: {
   value: string;
   planYears: string[];
   planDuration: string;
   onChange: (value: string) => void;
+  /** Plan years that already carry Part IV budget lines for this project. */
+  blockedYears?: string[];
 }) {
+  const [blockMessage, setBlockMessage] = useState<string | null>(null);
   const parsed = parseDuration(value, planYears);
   const startIndex = Math.max(planYears.indexOf(parsed.start), 0);
   const rangeEndOptions = planYears.slice(startIndex);
 
-  function setMode(mode: DurationMode) {
-    if (mode === "single") {
-      onChange(parsed.start);
+  /** Shrinking a duration is refused while the dropped years still carry
+   * Part IV lines — the user must move or remove those lines first. */
+  function guard(next: string) {
+    const current = coveredYears(value, planYears);
+    const upcoming = coveredYears(next, planYears);
+    const dropped = current.filter(
+      (y) => !upcoming.includes(y) && blockedYears.includes(y),
+    );
+    if (dropped.length > 0) {
+      const label = dropped.join(", ");
+      setBlockMessage(
+        `Cannot shorten: ${label} ${dropped.length > 1 ? "have" : "has"} budget lines for this project in Part IV. Remove or move ${dropped.length > 1 ? "them" : "it"} first.`,
+      );
       return;
     }
-    const end = Number(parsed.end) >= Number(parsed.start) ? parsed.end : planYears[planYears.length - 1];
-    onChange(formatDuration(parsed.start, end));
+    setBlockMessage(null);
+    onChange(next);
+  }
+
+  function setMode(mode: DurationMode) {
+    if (mode === "single") {
+      guard(parsed.start);
+      return;
+    }
+    guard(formatDuration(parsed.start, endYearForRangeMode(parsed, planYears)));
   }
 
   function setStart(start: string) {
     if (parsed.mode === "single") {
-      onChange(start);
+      guard(start);
       return;
     }
     const end = Number(parsed.end) >= Number(start) ? parsed.end : start;
-    onChange(formatDuration(start, end));
+    guard(formatDuration(start, end));
   }
 
   function setEnd(end: string) {
-    onChange(formatDuration(parsed.start, end));
+    guard(formatDuration(parsed.start, end));
   }
 
   return (
@@ -221,6 +211,9 @@ function DurationPicker({
           Saved duration &ldquo;{value}&rdquo; is not a valid year or year range for this ISSP period. Choose a value above to replace it.
         </p>
       )}
+      {blockMessage && (
+        <p className="text-xs text-warning" role="alert">{blockMessage}</p>
+      )}
       <p className="text-xs text-muted-foreground">Allowed values are a single year or a year range within {planDuration}.</p>
     </div>
   );
@@ -237,6 +230,7 @@ function ProjectCard({
   planYears,
   projectCost,
   linkOwners,
+  blockedYears = [],
   initiallyEditing = false,
   onUpdate,
   onRemove,
@@ -248,6 +242,8 @@ function ProjectCard({
   planDuration: string;
   planYears: string[];
   projectCost: number;
+  /** Plan years with Part IV lines for this project — blocks duration shrink. */
+  blockedYears?: string[];
   /** systemId → projects (any list) already linking it — powers the double-link warning. */
   linkOwners: Record<string, { id: string; title: string }[]>;
   /** New cards open straight into edit mode; existing ones start collapsed, read-only. */
@@ -586,6 +582,7 @@ function ProjectCard({
                 planYears={planYears}
                 planDuration={planDuration}
                 onChange={(duration) => onUpdate("duration", duration)}
+                blockedYears={blockedYears}
               />
             </div>
             <div className="space-y-1.5">
@@ -731,6 +728,7 @@ function ProjectList({
   planDuration,
   planYears,
   projectCosts,
+  part4,
   onSave,
 }: {
   proposedSystems: ProposedSystem[];
@@ -741,6 +739,7 @@ function ProjectList({
   planDuration: string;
   planYears: string[];
   projectCosts: Record<string, number>;
+  part4: Part4Data;
   onSave: (projects: IctProject[]) => void;
 }) {
   const [projects, setProjects] = useState<IctProject[]>(initialProjects);
@@ -753,6 +752,19 @@ function ProjectList({
       (linkOwners[sysId] ??= []).push({ id: proj.id, title: proj.title });
     }
   }
+
+  // projectId → plan years that carry Part IV lines (blocks duration shrink)
+  const bucketKey = isCrossAgency ? "crossAgencyProjects" : "internalProjects";
+  const linesByYear: Record<string, string[]> = {};
+  (["year1", "year2", "year3"] as const).forEach((yearKey, i) => {
+    const year = planYears[i];
+    const buckets = part4[yearKey]?.[bucketKey] ?? {};
+    for (const [pid, pb] of Object.entries(buckets)) {
+      if ((pb.capitalOutlay?.length ?? 0) + (pb.mooe?.length ?? 0) > 0) {
+        (linesByYear[pid] ??= []).push(year);
+      }
+    }
+  });
 
   function update(next: IctProject[]) {
     setProjects(next);
@@ -823,6 +835,7 @@ function ProjectList({
             planYears={planYears}
             projectCost={projectCosts[project.id] ?? 0}
             linkOwners={linkOwners}
+            blockedYears={linesByYear[project.id] ?? []}
             initiallyEditing={freshIds.has(project.id)}
             onUpdate={(field, value) => updateProject(project.id, field, value)}
             onRemove={() => removeProject(project.id)}
@@ -894,6 +907,7 @@ export function Part3E1Form({
         planDuration={planDuration}
         planYears={planYears}
         projectCosts={projectCosts}
+        part4={part4}
         onSave={save}
       />
     </SectionShell>
@@ -940,6 +954,7 @@ export function Part3E2Form({
         planDuration={planDuration}
         planYears={planYears}
         projectCosts={projectCosts}
+        part4={part4}
         onSave={save}
       />
     </SectionShell>

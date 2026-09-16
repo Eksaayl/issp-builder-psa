@@ -846,7 +846,7 @@ const issp = {
         "duration": "2026–2027",
         "year1Deliverables": "System design and architecture finalized; API specifications published; development contract awarded; UQMP v1.0 beta released for NCR pilot; eCLAS replacement module (CFCP) launched in public beta",
         "year2Deliverables": "UQMP v2.0 deployed nationally; all 17 ROMS instances decommissioned; CFCP fully operational with SMS notifications; monitored agency onboarding at 60%",
-        "year3Deliverables": "100% monitored agency onboarding; UQMP analytics dashboard fully operational; NQMS and Windows XP computers formally retired (ceremonial shutdown livestreamed)",
+        "year3Deliverables": "",
         "implementingUnit": "ICT Division",
         "fundingSource": "General Appropriations Act (GAA)"
       },
@@ -865,7 +865,7 @@ const issp = {
           "Resource Optimization",
           "Scalability and Sustainability"
         ],
-        "duration": "2026",
+        "duration": "2026–2028",
         "year1Deliverables": "ISP contracts awarded; fiber installations completed in 12 regional offices; fixed wireless deployed in 3 isolated offices; all connections tested and certified",
         "year2Deliverables": "Network monitoring dashboard operational; 99.5% uptime SLA compliance verified; redundant connection established for Central Office",
         "year3Deliverables": "Network refresh and capacity planning assessment; options for 10 Gbps Central Office upgrade evaluated",
@@ -1371,6 +1371,23 @@ const issp = {
           "projectTitle": "Project HANDA — Human Resource and Administrative Network for Departmental Automation",
           "capitalOutlay": [],
           "mooe": [
+
+          ]
+        }
+      },
+      "crossAgencyProjects": {},
+      "continuingCosts": {
+        "mooe": [
+          {
+            "id": "ettlnjd",
+            "item": "Cybersecurity vulnerability assessment — annual (Central Office and 5 pilot regional offices)",
+            "office": "ICT Division",
+            "uacsCode": "5021103001",
+            "uacsLabel": "ICT Consultancy Services",
+            "fundSource": "General Appropriations Act (GAA)",
+            "qty": 1,
+            "unitCost": 350000
+          },
             {
               "id": "bwx8n7h",
               "item": "iHRPS SaaS license — Year 2 renewal",
@@ -1391,22 +1408,6 @@ const issp = {
               "qty": 1,
               "unitCost": 180000
             }
-          ]
-        }
-      },
-      "crossAgencyProjects": {},
-      "continuingCosts": {
-        "mooe": [
-          {
-            "id": "ettlnjd",
-            "item": "Cybersecurity vulnerability assessment — annual (Central Office and 5 pilot regional offices)",
-            "office": "ICT Division",
-            "uacsCode": "5021103001",
-            "uacsLabel": "ICT Consultancy Services",
-            "fundSource": "General Appropriations Act (GAA)",
-            "qty": 1,
-            "unitCost": 350000
-          }
         ]
       }
     },
@@ -1452,36 +1453,7 @@ const issp = {
           "projectTitle": "Project SIKAP — Streamlined ICT for Konsolidadong Agency Platform",
           "capitalOutlay": [],
           "mooe": [
-            {
-              "id": "mi32nlg",
-              "item": "GovCloud PH hosting — UQMP/CFCP production (12 months, full load)",
-              "office": "ICT Division",
-              "uacsCode": "5020503000",
-              "uacsLabel": "Internet Subscription Expenses",
-              "fundSource": "General Appropriations Act (GAA)",
-              "qty": 12,
-              "unitCost": 72000
-            },
-            {
-              "id": "daszwvp",
-              "item": "UQMP system maintenance and enhancement (Year 3 — 100% agency onboarding drive)",
-              "office": "ICT Division",
-              "uacsCode": "5021103001",
-              "uacsLabel": "ICT Consultancy Services",
-              "fundSource": "General Appropriations Act (GAA)",
-              "qty": 1,
-              "unitCost": 480000
-            },
-            {
-              "id": "qmr9huo",
-              "item": "Ceremonial decommissioning of NQMS and XP workstations — event logistics",
-              "office": "ICT Division",
-              "uacsCode": "5020201002",
-              "uacsLabel": "Training Expenses",
-              "fundSource": "General Appropriations Act (GAA)",
-              "qty": 1,
-              "unitCost": 85000
-            }
+
           ]
         },
         "proj-bilis": {
@@ -1514,26 +1486,7 @@ const issp = {
           "projectTitle": "Project HANDA — Human Resource and Administrative Network for Departmental Automation",
           "capitalOutlay": [],
           "mooe": [
-            {
-              "id": "tcgxut2",
-              "item": "iHRPS SaaS license — Year 3 renewal",
-              "office": "Human Resources Division",
-              "uacsCode": "5021103001",
-              "uacsLabel": "ICT Consultancy Services",
-              "fundSource": "General Appropriations Act (GAA)",
-              "qty": 1,
-              "unitCost": 1200000
-            },
-            {
-              "id": "8kpdzl6",
-              "item": "iHRPS system administration training — succession planning documentation",
-              "office": "Human Resources Division",
-              "uacsCode": "5020201001",
-              "uacsLabel": "ICT Training Expenses",
-              "fundSource": "General Appropriations Act (GAA)",
-              "qty": 1,
-              "unitCost": 120000
-            }
+
           ]
         }
       },
@@ -1559,7 +1512,57 @@ const issp = {
             "fundSource": "General Appropriations Act (GAA)",
             "qty": 1,
             "unitCost": 480000
-          }
+          },
+            {
+              "id": "tcgxut2",
+              "item": "iHRPS SaaS license — Year 3 renewal",
+              "office": "Human Resources Division",
+              "uacsCode": "5021103001",
+              "uacsLabel": "ICT Consultancy Services",
+              "fundSource": "General Appropriations Act (GAA)",
+              "qty": 1,
+              "unitCost": 1200000
+            },
+            {
+              "id": "8kpdzl6",
+              "item": "iHRPS system administration training — succession planning documentation",
+              "office": "Human Resources Division",
+              "uacsCode": "5020201001",
+              "uacsLabel": "ICT Training Expenses",
+              "fundSource": "General Appropriations Act (GAA)",
+              "qty": 1,
+              "unitCost": 120000
+            },
+            {
+              "id": "mi32nlg",
+              "item": "GovCloud PH hosting — UQMP/CFCP production (12 months, full load)",
+              "office": "ICT Division",
+              "uacsCode": "5020503000",
+              "uacsLabel": "Internet Subscription Expenses",
+              "fundSource": "General Appropriations Act (GAA)",
+              "qty": 12,
+              "unitCost": 72000
+            },
+            {
+              "id": "daszwvp",
+              "item": "UQMP system maintenance and enhancement (Year 3 — 100% agency onboarding drive)",
+              "office": "ICT Division",
+              "uacsCode": "5021103001",
+              "uacsLabel": "ICT Consultancy Services",
+              "fundSource": "General Appropriations Act (GAA)",
+              "qty": 1,
+              "unitCost": 480000
+            },
+            {
+              "id": "qmr9huo",
+              "item": "Ceremonial decommissioning of NQMS and XP workstations — event logistics",
+              "office": "ICT Division",
+              "uacsCode": "5020201002",
+              "uacsLabel": "Training Expenses",
+              "fundSource": "General Appropriations Act (GAA)",
+              "qty": 1,
+              "unitCost": 85000
+            }
         ]
       }
     }

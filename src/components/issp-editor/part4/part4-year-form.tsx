@@ -623,18 +623,29 @@ export function Part4YearForm({
     [debouncedSave, yearKey]
   );
 
+  // Totals follow the sections this page renders (duration-filtered), not
+  // every bucket in state — legacy off-duration buckets must not count.
+  const bucketTotal = (pid: string) => {
+    const pb = budget.internalProjects[pid] ?? budget.crossAgencyProjects[pid];
+    return pb ? sumLines(pb.capitalOutlay) + sumLines(pb.mooe) : 0;
+  };
   const grandTotal =
     sumLines(budget.officeProductivity.capitalOutlay) +
     sumLines(budget.officeProductivity.mooe) +
-    Object.values(budget.internalProjects).reduce(
-      (s, p) => s + sumLines(p.capitalOutlay) + sumLines(p.mooe),
-      0
-    ) +
-    Object.values(budget.crossAgencyProjects).reduce(
-      (s, p) => s + sumLines(p.capitalOutlay) + sumLines(p.mooe),
-      0
-    ) +
+    internalProjects.reduce((s, p) => s + bucketTotal(p.id), 0) +
+    crossAgencyProjects.reduce((s, p) => s + bucketTotal(p.id), 0) +
     sumLines(budget.continuingCosts.mooe);
+
+  // Legacy data guard: lines whose project's Part III-E duration does not
+  // cover this year. The duration picker now blocks creating these; loaded
+  // files may still carry them — name them instead of silently dropping.
+  const orphanedBuckets = (Object.entries(initialData?.internalProjects ?? {}) as [string, ProjectBudget][])
+    .concat(Object.entries(initialData?.crossAgencyProjects ?? {}) as [string, ProjectBudget][])
+    .filter(([pid, pb]) =>
+      (pb.capitalOutlay?.length ?? 0) + (pb.mooe?.length ?? 0) > 0 &&
+      !internalProjects.some((p) => p.id === pid) &&
+      !crossAgencyProjects.some((p) => p.id === pid),
+    );
 
   const sectionTitle = `Resource Requirements — ${year}`;
   const sectionDesc = `Enter all ICT expenditures for ${year}. Totals are computed automatically.`;
@@ -651,6 +662,15 @@ export function Part4YearForm({
           <option key={office} value={office} />
         ))}
       </datalist>
+      {orphanedBuckets.length > 0 && (
+        <div className="rounded-lg border border-warning-border bg-warning-bg px-4 py-3 text-xs text-warning" role="alert">
+          <span className="font-medium">Outside project duration:</span>{" "}
+          {orphanedBuckets.map(([pid, pb]) => `${pb.projectTitle || pid} (${(pb.capitalOutlay?.length ?? 0) + (pb.mooe?.length ?? 0)} lines)`).join(", ")}.
+          These lines are hidden from {year} because the project&rsquo;s Part III-E duration does not cover it, and they are not counted in the year total.
+          Lengthen the duration in Part III-E or move the lines to another category.
+        </div>
+      )}
+
       {/* Legend + view toggle */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground rounded-lg border bg-muted/20 px-4 py-2.5">
         <span className="font-medium text-foreground/50">Legend:</span>

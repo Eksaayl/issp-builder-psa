@@ -1,6 +1,7 @@
 import { STANDARD_DEFINITIONS } from "@/lib/store/defaults";
 import { CYBER_GROUPS } from "@/lib/cyber-controls";
 import { isRichText, sanitizeRichText } from "@/lib/rich-text";
+import { durationCoversYear } from "@/lib/duration";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1466,6 +1467,9 @@ function renderPart4(issp: IsspData): string {
     return m;
   }
   const ua1 = byUacs(allY1), ua2 = byUacs(allY2), ua3 = byUacs(allY3);
+  const pdfPlanYears = Array.from({ length: 3 }, (_, i) => String(issp.startYear + i));
+  const inDuration = (proj: IctProject, label: number | string) =>
+    durationCoversYear(proj.duration ?? "", String(label), pdfPlanYears);
   const allUacs = Array.from(new Set([...ua1.keys(), ...ua2.keys(), ...ua3.keys()]));
 
   return `
@@ -1476,7 +1480,7 @@ function renderPart4(issp: IsspData): string {
         ${i === 0 ? `${tocMark("part4")}${tocMark("part4-a")}Part IV. Resource Requirements<br><span style="font-size:13pt">A. Detailed Resource Deployment and Cost Breakdown</span>` : ""}
       </div>
       <div class="subsection-heading">${tocMark(`part4-a${i + 1}`)}A.${i + 1}. [${label}]</div>
-      <div class="subsection-block">${renderYearTable(p[key], i + 1, label, internalProjects, crossAgencyProjects)}</div>
+      <div class="subsection-block">${renderYearTable(p[key], i + 1, label, internalProjects.filter((pr) => inDuration(pr, label)), crossAgencyProjects.filter((pr) => inDuration(pr, label)))}</div>
     </div>`).join("")}
 
     <div class="page-break">
