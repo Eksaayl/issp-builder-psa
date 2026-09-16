@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/sheet";
 import { ConfirmDeleteButton } from "@/components/ui/confirm-delete-button";
 import { useLocalSave } from "@/hooks/use-local-save";
-import { Plus, Pencil, Trash2, BarChart3, FolderKanban } from "lucide-react";
+import { Plus, Pencil, BarChart3, FolderKanban } from "lucide-react";
 import { SectionShell } from "@/components/editor/section-shell";
 import { revealNewItem } from "@/lib/reveal";
 
