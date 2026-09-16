@@ -38,3 +38,7 @@ Thumbs.db
 
 # Local fallback for server-side usage analytics
 .data/
+
+# Correspondence drafts (personal, not for repo)
+docs/dbm-letter-*
+docs/dbm-email-*
