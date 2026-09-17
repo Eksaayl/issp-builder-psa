@@ -45,6 +45,11 @@ export interface HumanCapital {
   plantilla: { it: { male: number; female: number }; nonIt: { male: number; female: number } };
   contractual: { it: { male: number; female: number }; nonIt: { male: number; female: number } };
   outsourced: { it: { male: number; female: number }; nonIt: { male: number; female: number } };
+  /**
+   * Official 09152026 template: unfilled plantilla positions. No sex
+   * breakdown — the template prints N/A in the Male/Female cells.
+   */
+  plantillaUnfilled: { it: number; nonIt: number };
 }
 
 export type ComplexityLevel = "Simple" | "Complex" | "Highly Technical";
@@ -314,6 +319,14 @@ export interface HCRow {
 export interface KpiRow {
   id: string;
   hierarchy: "Intermediate Outcome" | "Immediate Outcome" | "Output" | "";
+  /**
+   * The specific written result for the selected hierarchy level (Agency
+   * Guidelines, Performance Measurement Framework: "Write the hierarchy of
+   * outcomes of the ICT Project clustered into intermediate outcome,
+   * immediate outcome and outputs"). Rendered under the level name in the
+   * PDF's "Hierarchy of Targeted Results" column.
+   */
+  targetedResult: string;
   indicator: string;
   baseline: string;
   year1Target: string;

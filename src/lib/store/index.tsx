@@ -701,6 +701,13 @@ export function migrateLegacyDoc(doc: IsspDocument): IsspDocument {
     base = { ...base, schemaVersion: 12 };
   }
 
+  // v12 → v13: official 09152026 template alignment — Plantilla (Unfilled)
+  // counts in Part I-B and per-row targeted-result statements in Part III-F.
+  // Additive; the normalization pass below backfills the defaults.
+  if ((base.schemaVersion ?? 1) < 13) {
+    base = { ...base, schemaVersion: 13 };
+  }
+
   // Idempotent normalizations — keep stored data in sync with what forms write on mount,
   // so that editing a field and reverting it produces a hash equal to the snapshot.
   let normalized: IsspDocument = {
@@ -730,6 +737,10 @@ export function migrateLegacyDoc(doc: IsspDocument): IsspDocument {
           typeof pg === "string" ? { id: `${o.id}-pg-${i + 1}`, name: pg } : pg
         ),
       })),
+      humanCapital: {
+        ...base.part1.humanCapital,
+        plantillaUnfilled: base.part1.humanCapital.plantillaUnfilled ?? { it: 0, nonIt: 0 },
+      },
     },
     part2: {
       ...base.part2,
@@ -751,6 +762,9 @@ export function migrateLegacyDoc(doc: IsspDocument): IsspDocument {
         employmentStatus: (r.employmentStatus?.toUpperCase() ?? "") as HCRow["employmentStatus"],
         quantity: r.quantity ?? r.physicalCount ?? 1,
       })),
+      // v13: KPI rows carry a targeted-result statement; backfill "" on old docs
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      performanceFramework: Object.fromEntries(Object.entries(base.part3.performanceFramework).map(([k, e]: [string, any]) => [k, { ...e, rows: (e.rows ?? []).map((r: any) => ({ ...r, targetedResult: r.targetedResult ?? "" })) }])),
       // Normalize projectType: freeform pre-enum values → enum; derive IS_DRIVEN from
       // existing links so the gated "Linked Proposed Systems" picker isn't hidden on old docs
       internalProjects: base.part3.internalProjects.map(normalizeProjectType),

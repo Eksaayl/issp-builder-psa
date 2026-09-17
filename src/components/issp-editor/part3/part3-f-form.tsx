@@ -31,6 +31,7 @@ import { revealNewItem } from "@/lib/reveal";
 interface KpiRow {
   id: string;
   hierarchy: "Intermediate Outcome" | "Immediate Outcome" | "Output" | "";
+  targetedResult: string;
   indicator: string;
   baseline: string;
   year1Target: string;
@@ -60,6 +61,7 @@ function generateId() {
 
 const DEFAULT_ROW: Omit<KpiRow, "id"> = {
   hierarchy: "",
+  targetedResult: "",
   indicator: "",
   baseline: "",
   year1Target: "",

@@ -15,7 +15,7 @@ function proj(id: string, title: string, linked: string[]): IctProject {
   };
 }
 function kpi(id: string): KpiRow {
-  return { id, hierarchy: "Output", indicator: `indicator-${id}`, baseline: "",
+  return { id, hierarchy: "Output", targetedResult: "", indicator: `indicator-${id}`, baseline: "",
     year1Target: "", year2Target: "", year3Target: "", dataCollectionMethod: "",
     responsibleUnit: "" };
 }

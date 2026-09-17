@@ -26,6 +26,8 @@ interface HumanCapital {
     it: { male: number; female: number };
     nonIt: { male: number; female: number };
   };
+  // Official 09152026 template: unfilled plantilla positions (no sex breakdown).
+  plantillaUnfilled: { it: number; nonIt: number };
 }
 
 interface Part1BData {
@@ -47,6 +49,7 @@ const DEFAULT_HC: HumanCapital = {
   plantilla: { it: { male: 0, female: 0 }, nonIt: { male: 0, female: 0 } },
   contractual: { it: { male: 0, female: 0 }, nonIt: { male: 0, female: 0 } },
   outsourced: { it: { male: 0, female: 0 }, nonIt: { male: 0, female: 0 } },
+  plantillaUnfilled: { it: 0, nonIt: 0 },
 };
 
 const DEFAULT_DATA: Part1BData = {
@@ -212,6 +215,10 @@ export function Part1BForm({
       outsourced: {
         it:    { ...DEFAULT_HC.outsourced.it,    ...(saved.outsourced?.it    ?? {}) },
         nonIt: { ...DEFAULT_HC.outsourced.nonIt, ...(saved.outsourced?.nonIt ?? {}) },
+      },
+      plantillaUnfilled: {
+        it:    saved.plantillaUnfilled?.it    ?? 0,
+        nonIt: saved.plantillaUnfilled?.nonIt ?? 0,
       },
     };
     return { ...initialData, focalSameAsCio: initialData.focalSameAsCio ?? false, humanCapital: merged };

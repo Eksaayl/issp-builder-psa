@@ -24,8 +24,8 @@ function proj(id: string, title: string, linked: string[]): IctProject {
     year1Deliverables: "", year2Deliverables: "", year3Deliverables: "", duration: "2028" };
 }
 function kpiRow(id: string): KpiRow {
-  return { id, hierarchy: "Output", indicator: `ind-${id}`, baseline: "", year1Target: "",
-    year2Target: "", year3Target: "", dataCollectionMethod: "", responsibleUnit: "IMD" };
+  return { id, hierarchy: "Output", targetedResult: "", indicator: `ind-${id}`, baseline: "",
+    year1Target: "", year2Target: "", year3Target: "", dataCollectionMethod: "", responsibleUnit: "IMD" };
 }
 function line(id: string, item: string): LineItem {
   return { id, item, office: "IMD", uacsCode: "", uacsLabel: "",
