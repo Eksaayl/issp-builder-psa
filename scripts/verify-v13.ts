@@ -65,7 +65,16 @@ assert.strictEqual(
   "Consolidated queue monitoring capability"
 );
 
-// 3. New documents are born at 13 with both fields present
+// 3. A v13-shaped doc with a PARTIAL plantillaUnfilled ({it} only, no nonIt key —
+// hand-edited/tool-generated .issp) is field-level coerced: survives with both
+// keys numeric, never with nonIt: undefined.
+const partial = makeLegacyV12();
+partial.schemaVersion = 13;
+(partial.part1.humanCapital as unknown as Record<string, unknown>).plantillaUnfilled = { it: 4 };
+const coerced = migrateLegacyDoc(partial);
+assert.deepStrictEqual(coerced.part1.humanCapital.plantillaUnfilled, { it: 4, nonIt: 0 });
+
+// 4. New documents are born at 13 with both fields present
 assert.strictEqual(createEmptyDocument({
   title: "t", startYear: 2028, endYear: 2030, amendmentNumber: 0, scope: "AGENCY_WIDE",
   agencyHeadName: "h",

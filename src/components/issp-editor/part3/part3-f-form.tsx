@@ -338,7 +338,7 @@ function ProjectKpiTable({
                         <td className="border px-2 py-2 break-words">
                           {row.hierarchy ? <span className="font-medium">{row.hierarchy}</span> : <Empty />}
                           {row.targetedResult && (
-                            <p className="mt-0.5 text-muted-foreground break-words">{row.targetedResult}</p>
+                            <p className="mt-0.5 text-muted-foreground break-words whitespace-pre-wrap">{row.targetedResult}</p>
                           )}
                         </td>
                         <td className="border px-2 py-2">
@@ -394,7 +394,7 @@ function ProjectKpiTable({
                       </Button>
                     </div>
                     {row.targetedResult && (
-                      <p className="text-xs break-words">{row.targetedResult}</p>
+                      <p className="text-xs break-words whitespace-pre-wrap">{row.targetedResult}</p>
                     )}
                     <p className="text-xs break-words">{row.indicator || <Empty />}</p>
                     <p className="text-xs text-muted-foreground break-words">

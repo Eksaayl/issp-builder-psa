@@ -739,7 +739,13 @@ export function migrateLegacyDoc(doc: IsspDocument): IsspDocument {
       })),
       humanCapital: {
         ...base.part1.humanCapital,
-        plantillaUnfilled: base.part1.humanCapital.plantillaUnfilled ?? { it: 0, nonIt: 0 },
+        // Field-level coercion (not whole-object ??): a hand-edited or tool-generated
+        // .issp can carry a partial {it} with no nonIt key — backfill each side so it
+        // can never survive migration as {it, nonIt: undefined}.
+        plantillaUnfilled: {
+          it: base.part1.humanCapital.plantillaUnfilled?.it ?? 0,
+          nonIt: base.part1.humanCapital.plantillaUnfilled?.nonIt ?? 0,
+        },
       },
     },
     part2: {

@@ -616,10 +616,10 @@ function renderPart1(issp: IsspData): string {
   const unfilled = hc.plantillaUnfilled ?? { it: 0, nonIt: 0 };
   const itGrand = ["plantilla","contractual","outsourced"].reduce((s, k) => {
     const r = hc[k as "plantilla" | "contractual" | "outsourced"]; return s + (r.it.male||0) + (r.it.female||0);
-  }, 0) + unfilled.it;
+  }, 0) + (unfilled.it || 0);
   const nonItGrand = ["plantilla","contractual","outsourced"].reduce((s, k) => {
     const r = hc[k as "plantilla" | "contractual" | "outsourced"]; return s + (r.nonIt.male||0) + (r.nonIt.female||0);
-  }, 0) + unfilled.nonIt;
+  }, 0) + (unfilled.nonIt || 0);
   const maleGrand = ["plantilla","contractual","outsourced"].reduce((s, k) => {
     const r = hc[k as "plantilla" | "contractual" | "outsourced"]; return s + (r.it.male||0) + (r.nonIt.male||0);
   }, 0);
@@ -688,8 +688,8 @@ function renderPart1(issp: IsspData): string {
         ${hcRow("Plantilla (Filled)", "plantilla")}
         <tr class="avoid-break">
           <td style="font-weight:bold;text-align:center;">Plantilla (Unfilled)</td>
-          <td style="text-align:center;">${unfilled.it}</td>
-          <td style="text-align:center;">${unfilled.nonIt}</td>
+          <td style="text-align:center;">${unfilled.it || 0}</td>
+          <td style="text-align:center;">${unfilled.nonIt || 0}</td>
           <td style="text-align:center;">N/A</td>
           <td style="text-align:center;">N/A</td>
         </tr>
@@ -1231,7 +1231,7 @@ function renderPart3(issp: IsspData): string {
           </thead>
           <tbody>
             ${entry.rows.map(row => `<tr class="avoid-break">
-              <td style="font-weight:bold;">${esc(row.hierarchy)}${row.targetedResult ? `<br><span style="font-weight:normal;">${esc(row.targetedResult)}</span>` : ""}</td>
+              <td style="font-weight:bold;">${esc(row.hierarchy)}${row.targetedResult ? `<br><span style="font-weight:normal;">${nl2br(row.targetedResult)}</span>` : ""}</td>
               <td>${nl2br(row.kpi)}</td>
               <td>${nl2br(row.baselineData)}</td>
               <td>Y1: ${esc(row.targets?.year1)}<br>Y2: ${esc(row.targets?.year2)}<br>Y3: ${esc(row.targets?.year3)}</td>
@@ -1264,7 +1264,7 @@ function renderPart3(issp: IsspData): string {
           </thead>
           <tbody>
             ${entry.rows.map(row => `<tr class="avoid-break">
-              <td style="font-weight:bold;">${esc(row.hierarchy)}${row.targetedResult ? `<br><span style="font-weight:normal;">${esc(row.targetedResult)}</span>` : ""}</td>
+              <td style="font-weight:bold;">${esc(row.hierarchy)}${row.targetedResult ? `<br><span style="font-weight:normal;">${nl2br(row.targetedResult)}</span>` : ""}</td>
               <td>${nl2br(row.kpi)}</td>
               <td>${nl2br(row.baselineData)}</td>
               <td>Y1: ${esc(row.targets?.year1)}<br>Y2: ${esc(row.targets?.year2)}<br>Y3: ${esc(row.targets?.year3)}</td>
