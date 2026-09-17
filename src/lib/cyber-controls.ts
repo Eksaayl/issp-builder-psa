@@ -12,6 +12,13 @@ export interface CyberControlGroup {
   key: CyberGroupKey;
   label: string;
   items: CyberControlItem[];
+  /**
+   * All-optional group whose items the template still prints across BOTH column
+   * positions — with NO border between the cells (the docx sets nil tcBorders on
+   * the shared edge in II-B2 and III-A.2). Index where the left run ends; the
+   * split is text alignment, never a mandatory/optional classification.
+   */
+  noSeparatorSplit?: number;
 }
 
 export const CYBER_GROUPS: CyberControlGroup[] = [
@@ -19,19 +26,19 @@ export const CYBER_GROUPS: CyberControlGroup[] = [
     key: "physical",
     label: "Physical Security",
     items: [
-      { key: "perimeterProtection", label: "Perimeter protection (fences, barriers)", mandatory: true },
-      { key: "accessControl", label: "Physical access control (key cards, locks)", mandatory: true },
-      { key: "surveillance", label: "CCTV / surveillance cameras", mandatory: true },
-      { key: "detection", label: "Motion / intrusion detection systems", mandatory: false },
+      { key: "perimeterProtection", label: "Perimeter Protection", mandatory: true },
+      { key: "accessControl", label: "Access Control", mandatory: true },
+      { key: "surveillance", label: "Surveillance System", mandatory: true },
+      { key: "detection", label: "Detection System", mandatory: false },
     ],
   },
   {
     key: "perimeter",
     label: "Perimeter Security",
     items: [
-      { key: "ngfw", label: "Next-Generation Firewall (NGFW)", mandatory: true },
-      { key: "idsIps", label: "Intrusion Detection / Prevention System (IDS/IPS)", mandatory: true },
-      { key: "waf", label: "Web Application Firewall (WAF)", mandatory: true },
+      { key: "ngfw", label: "Next Generation Firewalls", mandatory: true },
+      { key: "idsIps", label: "Intrusion Detection/Prevention Systems (IDS/IPS)", mandatory: true },
+      { key: "waf", label: "Web Application Firewalls (WAFs)", mandatory: true },
       { key: "dmz", label: "Demilitarized Zone (DMZ)", mandatory: false },
     ],
   },
@@ -39,51 +46,52 @@ export const CYBER_GROUPS: CyberControlGroup[] = [
     key: "network",
     label: "Network Security",
     items: [
-      { key: "dataEncryption", label: "Data encryption in transit (TLS/SSL)", mandatory: true },
-      { key: "networkSegmentation", label: "Network segmentation / VLANs", mandatory: false },
+      { key: "dataEncryption", label: "Data Encryption", mandatory: true },
+      { key: "networkSegmentation", label: "Network Segmentation", mandatory: false },
     ],
   },
   {
     key: "endpoint",
     label: "Endpoint Security",
     items: [
-      { key: "antivirus", label: "Antivirus / Anti-malware", mandatory: true },
-      { key: "appControl", label: "Application whitelisting / control", mandatory: true },
-      { key: "byod", label: "BYOD policy and management", mandatory: true },
-      { key: "xdr", label: "Extended Detection & Response (XDR/EDR)", mandatory: false },
+      { key: "antivirus", label: "Anti-virus and Anti-malware Software", mandatory: true },
+      { key: "appControl", label: "Application Control", mandatory: true },
+      { key: "byod", label: "BYOD Security", mandatory: true },
+      { key: "xdr", label: "Extended Detection and Response (XDR)", mandatory: false },
     ],
   },
   {
     key: "data",
     label: "Data Security",
     items: [
-      { key: "dataClassification", label: "Data classification and labeling", mandatory: true },
+      { key: "dataClassification", label: "Data Classification", mandatory: true },
       { key: "dlp", label: "Data Loss Prevention (DLP)", mandatory: true },
-      { key: "backupRecovery", label: "Regular backup and disaster recovery", mandatory: true },
+      { key: "backupRecovery", label: "Data Backups and Recovery", mandatory: true },
     ],
   },
   {
     key: "application",
     label: "Application Security",
     items: [
-      { key: "securityScanning", label: "Security scanning / code review", mandatory: true },
+      { key: "securityScanning", label: "Regular Security Scanning and Testing", mandatory: true },
     ],
   },
   {
     key: "other",
-    label: "Other Security Measures",
+    label: "Other Measures",
+    noSeparatorSplit: 6,
     items: [
-      { key: "vulnAssessment", label: "Vulnerability assessment & management", mandatory: false },
-      { key: "patchMgmt", label: "Patch management program", mandatory: false },
-      { key: "strongPasswords", label: "Password policy (complexity, rotation)", mandatory: false },
+      { key: "vulnAssessment", label: "Vulnerability Assessment", mandatory: false },
+      { key: "patchMgmt", label: "Patch Management", mandatory: false },
+      { key: "strongPasswords", label: "Strong Password Policies", mandatory: false },
       { key: "mfa", label: "Multi-Factor Authentication (MFA)", mandatory: false },
-      { key: "accessReviews", label: "Periodic access reviews / recertification", mandatory: false },
-      { key: "securityLogs", label: "Security event logging", mandatory: false },
-      { key: "logAnalysis", label: "Log monitoring & analysis", mandatory: false },
-      { key: "incidentResponse", label: "Incident response plan", mandatory: false },
-      { key: "siem", label: "Security Information & Event Management (SIEM)", mandatory: false },
-      { key: "penTesting", label: "Penetration testing / red team exercises", mandatory: false },
-      { key: "secureSdlc", label: "Secure Software Development Lifecycle (SSDLC)", mandatory: false },
+      { key: "accessReviews", label: "Access Reviews", mandatory: false },
+      { key: "securityLogs", label: "Security Logs", mandatory: false },
+      { key: "logAnalysis", label: "Log Analysis", mandatory: false },
+      { key: "incidentResponse", label: "Incident Response Plan", mandatory: false },
+      { key: "siem", label: "Security Information and Event Management (SIEM)", mandatory: false },
+      { key: "penTesting", label: "Penetration Testing", mandatory: false },
+      { key: "secureSdlc", label: "Secure Software Development Life Cycle (SDLC)", mandatory: false },
     ],
   },
 ];

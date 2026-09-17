@@ -409,6 +409,10 @@ const CSS = `
   .cyber-table td.group-cell { font-weight: bold; background: #d9d9d9; vertical-align: middle; width: 22%; }
   .cyber-table td.mandatory-cell { width: 39%; }
   .cyber-table td.optional-cell { width: 39%; }
+  /* Other Measures row: template keeps both column positions but draws NO
+     border between them (nil tcBorders in the official docx). */
+  .cyber-table td.no-separator-left { border-right: none; }
+  .cyber-table td.no-separator-right { border-left: none; }
 
   /* ── IS card ── */
   .is-card { margin-bottom: 5mm; page-break-inside: avoid; }
@@ -748,6 +752,7 @@ function renderCyberTable(controls: CyberGroup): string {
     group: group.label.toUpperCase(),
     mandatory: group.items.filter((item) => item.mandatory),
     optional: group.items.filter((item) => !item.mandatory),
+    noSeparatorSplit: group.noSeparatorSplit,
     src: controls[group.key],
   }));
 
@@ -760,28 +765,28 @@ function renderCyberTable(controls: CyberGroup): string {
       </tr>
     </thead>
     <tbody>
-      ${rows.map(row => row.mandatory.length === 0
-        // Template renders all-optional groups (Other Measures) as ONE merged
-        // row — the official docx sets nil borders on the shared cell edge in
-        // both II-B2 and III-A.2, so no separator is drawn; the two-column
-        // placement of items is text alignment, not a mandatory/optional split.
-        ? `<tr class="avoid-break">
+      ${rows.map(row => {
+        // All-optional group (Other Measures): the template still prints the
+        // items across BOTH column positions — split at the alignment index,
+        // no border between the cells (official docx sets nil tcBorders on the
+        // shared edge in II-B2 and III-A.2). Never a mandatory/optional split.
+        const allOptional = row.mandatory.length === 0;
+        const split = allOptional ? (row.noSeparatorSplit ?? row.optional.length) : 0;
+        const left = allOptional ? row.optional.slice(0, split) : row.mandatory;
+        const right = allOptional ? row.optional.slice(split) : row.optional;
+        const leftCls = allOptional ? "optional-cell no-separator-left" : "mandatory-cell";
+        const rightCls = allOptional ? "optional-cell no-separator-right" : "optional-cell";
+        return `<tr class="avoid-break">
             <td class="group-cell">${esc(row.group)}</td>
-            <td class="optional-cell" colspan="2">
-              ${row.optional.map(m => `${chk(row.src[m.key] as boolean)} ${esc(m.label)}<br>`).join("")}
+            <td class="${leftCls}">
+              ${left.map(m => `${chk(row.src[m.key] as boolean)} ${esc(m.label)}<br>`).join("")}
+            </td>
+            <td class="${rightCls}">
+              ${right.map(m => `${chk(row.src[m.key] as boolean)} ${esc(m.label)}<br>`).join("")}
               &nbsp;
             </td>
-          </tr>`
-        : `<tr class="avoid-break">
-            <td class="group-cell">${esc(row.group)}</td>
-            <td class="mandatory-cell">
-              ${row.mandatory.map(m => `${chk(row.src[m.key] as boolean)} ${esc(m.label)}<br>`).join("")}
-            </td>
-            <td class="optional-cell">
-              ${row.optional.map(m => `${chk(row.src[m.key] as boolean)} ${esc(m.label)}<br>`).join("")}
-              &nbsp;
-            </td>
-          </tr>`).join("")}
+          </tr>`;
+      }).join("")}
     </tbody>
   </table>`;
 }
