@@ -139,13 +139,16 @@ Map critical business systems to specific problems and explain how ICT is intend
 |---|---|
 | Regular Security Scanning and Testing | **Mandatory** |
 
-#### Other Measures (all Optional/Best Practice)
+#### Other Measures (6 Mandatory, 5 Optional — corrected 2026-09-17 against the official template PDFs)
+Mandatory:
 - Vulnerability Assessment
 - Patch Management
 - Strong Password Policies
 - Multi-Factor Authentication (MFA)
 - Access Reviews
 - Security Logs
+
+Optional / Best Practice:
 - Log Analysis
 - Incident Response Plan
 - Security Information and Event Management (SIEM)

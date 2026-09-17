@@ -750,17 +750,7 @@ function renderCyberTable(controls: CyberGroup): string {
       </tr>
     </thead>
     <tbody>
-      ${rows.map(row => row.mandatory.length === 0
-        // Template renders all-optional groups (Other Security Measures) as one flat
-        // "all Optional/Best Practice" list — merge the Mandatory/Optional cells.
-        ? `<tr class="avoid-break">
-            <td class="group-cell">${esc(row.group)}</td>
-            <td class="optional-cell" colspan="2">
-              ${row.optional.map(m => `${chk(row.src[m.key] as boolean)} ${esc(m.label)}<br>`).join("")}
-              &nbsp;
-            </td>
-          </tr>`
-        : `<tr class="avoid-break">
+      ${rows.map(row => `<tr class="avoid-break">
             <td class="group-cell">${esc(row.group)}</td>
             <td class="mandatory-cell">
               ${row.mandatory.map(m => `${chk(row.src[m.key] as boolean)} ${esc(m.label)}<br>`).join("")}
@@ -769,8 +759,7 @@ function renderCyberTable(controls: CyberGroup): string {
               ${row.optional.map(m => `${chk(row.src[m.key] as boolean)} ${esc(m.label)}<br>`).join("")}
               &nbsp;
             </td>
-          </tr>`
-      ).join("")}
+          </tr>`).join("")}
     </tbody>
   </table>`;
 }
