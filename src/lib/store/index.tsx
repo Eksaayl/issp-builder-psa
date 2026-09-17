@@ -868,7 +868,18 @@ export function IsspStoreProvider({ children }: { children: ReactNode }) {
         recordIsspUsage("restored", migrated.agency);
         return migrated;
       })
-      .then(setDoc)
+      .then((migrated) => {
+        if (migrated) {
+          // Rehydrate the last-known-save marker so a page refresh doesn't
+          // reset it to null — without this, the sidebar's unsavedToFile
+          // fallback (no savedSnapshot yet on a fresh mount) treats every
+          // section with a lastEditedAt as changed, which is nearly all of
+          // them for an imported legacy file (deriveMetaFromContent backstamps
+          // lastEditedAt on every content-bearing section at import time).
+          setFileSavedAt(migrated.exportedAt);
+        }
+        setDoc(migrated);
+      })
       .catch((err) => markSaveError(err, "Could not load the browser-saved ISSP draft."))
       .finally(() => setLoading(false));
     return () => {
