@@ -34,7 +34,7 @@ export const MIGRATION_REVIEW_SECTIONS = [
     shortLabel: "I-B",
     label: "Part I-B · Organization Structure",
     href: "/editor/part1/b",
-    reason: "Plantilla positions now split into Filled and Unfilled counts, matching the current template — old files default Unfilled to 0.",
+    reason: "DICT quietly released an updated ISSP template on September 15 — Plantilla positions are now reported as Filled and Unfilled counts instead of one total. Old files default Unfilled to 0; please enter your agency's real vacancy count.",
   },
 ] as const;
 

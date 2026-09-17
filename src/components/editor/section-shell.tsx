@@ -10,6 +10,7 @@ import { useIsspStore } from "@/lib/store";
 import { ALL_SECTIONS, PARTS, computeStatus } from "@/lib/sections";
 import { useResolvedScope } from "@/hooks/use-resolved-scope";
 import { isSectionVisible } from "@/lib/scope/paths";
+import { getMigrationReviewSection } from "@/lib/migration-review";
 import { useEditorMobileSidebar } from "./editor-mobile-sidebar-context";
 import { ScopeGuardPanel } from "./scope-guard-panel";
 
@@ -221,9 +222,8 @@ export function SectionShell({
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <div className="leading-relaxed">
             <p className="font-semibold text-foreground">Review this migrated section</p>
-            <p>
-              Cross-check the entries from your older ISSP file against the current form, then mark this section as done again to clear the review flag.
-            </p>
+            <p>{getMigrationReviewSection(sectionId)?.reason ?? "Cross-check the entries from your older ISSP file against the current form."}</p>
+            <p>Once it looks right, mark this section as done again to clear the review flag.</p>
           </div>
         </div>
       )}

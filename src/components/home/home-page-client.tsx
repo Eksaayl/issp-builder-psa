@@ -697,11 +697,83 @@ export default function HomePageClient({ aboutHtml, privacyHtml }: { aboutHtml: 
           <DialogHeader className="px-6 pt-5 pb-4 border-b flex-shrink-0">
             <DialogTitle className="font-display text-lg flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-primary" />
-              What&apos;s new: Scoped / distributable ISSPs
+              What&apos;s new: New DICT Template + Per-Project Distribution
             </DialogTitle>
           </DialogHeader>
           <div ref={whatsNewScrollRef} className="overflow-y-auto px-6 py-5 space-y-5 text-sm text-muted-foreground leading-relaxed">
             <div tabIndex={0} className="h-0 w-0 overflow-hidden outline-none" aria-hidden="true" />
+
+            {/* DICT Sept 15 template update — headline */}
+            <div className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3.5 space-y-1.5">
+              <p className="text-xs font-semibold text-primary uppercase tracking-wide">Rechecked Against DICT&apos;s September 15 Template</p>
+              <p>
+                DICT quietly released an updated ISSP template on{" "}
+                <span className="text-foreground font-medium">September 15</span>. We went through it field by field. The headline change is in{" "}
+                <span className="text-foreground font-medium">Part I-B, Organization Structure</span> — Plantilla positions are now reported as two counts, Filled and Unfilled, instead of one. The builder&apos;s Human Capital table follows the same split, right below the Plantilla (Filled) row.
+              </p>
+              <p>
+                Part III-F&apos;s Performance Measurement Framework also gained a field: alongside each hierarchy level (Intermediate Outcome, Immediate Outcome, Output) you can now write the specific targeted-result statement the Agency Guidelines call for, not just pick the level.
+              </p>
+            </div>
+
+            {/* Compatibility and review guidance for the Sept 15 change */}
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3.5 space-y-1.5">
+              <p className="text-xs font-semibold text-foreground uppercase tracking-wide">Loading an Older File? Check Part I-B</p>
+              <p>
+                Files created before this update are upgraded automatically — the new Unfilled column starts at zero. That default is only a starting point, though: automatic migration cannot know your agency&apos;s actual vacancy count.
+              </p>
+              <p>
+                After loading an older file, the builder now opens a migration review notice and highlights{" "}
+                <span className="text-foreground font-medium">Part I-B</span> on the Overview and sidebar. Please cross-check the Unfilled counts, correct them, then{" "}
+                <span className="text-foreground font-medium">mark the section as done again</span>.
+              </p>
+            </div>
+
+            {/* Per-project scoped distribution — headline */}
+            <div className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3.5 space-y-1.5">
+              <p className="text-xs font-semibold text-primary uppercase tracking-wide">Distribute by Project, Not Just by Office</p>
+              <p>
+                A scoped office file can now be narrowed further to specific projects. In the{" "}
+                <span className="text-foreground font-medium">Distribute</span> dialog, each office can be given <span className="text-foreground font-medium">All projects</span>, <span className="text-foreground font-medium">Selected projects only</span>, or an empty slate to start their own — filtering Internal and Cross-Agency Projects, their Performance Framework KPIs, and the matching Part IV year budgets to just what that office owns.
+              </p>
+              <p>
+                On <span className="text-foreground font-medium">Consolidate</span>, project data merges back by project — an edited project replaces the master&apos;s copy, a new one is added with a review flag, and a project an office quietly dropped stays on the master, flagged for a second look rather than vanishing.
+              </p>
+            </div>
+
+            {/* Cybersecurity checklist wording */}
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold text-foreground uppercase tracking-wide">Cybersecurity Checklist, Word for Word</p>
+              <p>
+                Every control label in Part II-B / III-A now matches the official template&apos;s wording exactly instead of our own paraphrase. The &ldquo;Other Measures&rdquo; row also prints the way the template lays it out — two columns for alignment only, with the divider between them removed, since none of those controls are mandatory.
+              </p>
+            </div>
+
+            {/* Human Capital grid polish */}
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold text-foreground uppercase tracking-wide">Human Capital Table, Cleaned Up</p>
+              <p>
+                The Plantilla (Unfilled) row now sits right next to Plantilla (Filled) instead of at the bottom, and hovering its Male/Female cells explains why they read N/A — enter the count under Total instead. The column headers now read{" "}
+                <span className="text-foreground font-medium">IT Positions</span> and{" "}
+                <span className="text-foreground font-medium">Non-IT Positions</span>, matching the template, and center on the printed PDF.
+              </p>
+            </div>
+
+            {/* Smaller fixes */}
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold text-foreground uppercase tracking-wide">And the Small Things</p>
+              <p>
+                The &ldquo;Unsaved changes&rdquo; indicator no longer misfires on every previously-filled section right after a page refresh — it was comparing against a blank slate instead of your last known save. Part IV&apos;s Summary of Investments also correctly drops agency-wide budget rows from project-only files instead of double-counting them.
+              </p>
+            </div>
+
+            {/* Previously — September 3, 2026 entry, collapsed */}
+            <details className="group rounded-lg border bg-muted/30">
+              <summary className="flex cursor-pointer select-none items-center justify-between px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground list-none [&::-webkit-details-marker]:hidden">
+                Previously — September 3, 2026
+                <ChevronDown className="w-3.5 h-3.5 transition-transform group-open:rotate-180" />
+              </summary>
+              <div className="px-4 pb-4 pt-2 space-y-5">
 
             {/* Scoped distribution — headline update */}
             <div className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3.5 space-y-1.5">
@@ -749,6 +821,9 @@ export default function HomePageClient({ aboutHtml, privacyHtml }: { aboutHtml: 
                 <span className="text-foreground font-medium">Philippine Government Interoperability Framework (PGIF) 2.0</span>, and the Annex 1 &ldquo;Open form&rdquo; link — which worked in development but not on the live site — is fixed.
               </p>
             </div>
+
+              </div>
+            </details>
 
             {/* Previously — July 15–19 entry, collapsed */}
             <details className="group rounded-lg border bg-muted/30">

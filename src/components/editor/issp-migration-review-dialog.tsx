@@ -44,7 +44,7 @@ export function IsspMigrationReviewDialog() {
 
         <div className="max-h-[55dvh] overflow-y-auto px-6 py-5 space-y-4 text-sm leading-relaxed text-muted-foreground">
           <p>
-            Some questions changed after the July 15 ISSP Caravan Writeshop. The builder can translate the file structure, but it cannot confirm what your agency intended in the affected answers.
+            The ISSP template has changed since this file was created — see below for what and why. The builder can translate the file structure, but it cannot confirm what your agency intended in the affected answers.
           </p>
           <div className="space-y-2">
             {sections.map((section) => (
