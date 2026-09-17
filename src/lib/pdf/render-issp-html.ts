@@ -394,7 +394,7 @@ const CSS = `
   /* ── Tables ── */
   table { width: 100%; border-collapse: collapse; font-size: 10pt; margin-bottom: 4mm; }
   th, td { border: 1px solid #000; padding: 3px 6px; vertical-align: top; }
-  th { background: #d9d9d9; font-weight: bold; text-align: center; }
+  th { background: #d9d9d9; font-weight: bold; text-align: center; vertical-align: middle; }
   td.label-cell { background: #d9d9d9; font-weight: bold; width: 33%; }
 
   /* ── Part IV table ── */
