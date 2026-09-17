@@ -29,7 +29,11 @@ function OverviewView() {
   const doneCount = visibleSections.filter(
     (s) => computeStatus(sectionMeta[s.id]) === "done"
   ).length;
-  const pendingSectionIds = doc.migrationReview?.pendingSectionIds ?? [];
+  // A scoped office should only ever be told to review sections it actually
+  // owns — a section flagged by the migration but outside this office's
+  // scope is invisible to them (ScopeGuardPanel), so it must never inflate
+  // this count or be linked to. Null scope ⇒ isSectionVisible is always true.
+  const pendingSectionIds = (doc.migrationReview?.pendingSectionIds ?? []).filter((id) => isSectionVisible(scope, id));
   const firstPendingSection = getMigrationReviewSection(pendingSectionIds[0] ?? "");
   // Pass the visible set to the Continue card so it can't link to a hidden
   // section. Null scope ⇒ null set ⇒ findContinueTarget considers all sections.
