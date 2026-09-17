@@ -241,13 +241,10 @@ export function DistributeDialog({
   }
 
   // The Projects panel appears only when the office owns ≥1 project-bearing
-  // field AND the master actually has projects to pick. (`!!doc` guard: doc
-  // is nullable in the store and this runs before the early return below.)
-  const showProjectsPanel =
-    current &&
-    !!doc &&
-    doc.part3.internalProjects.length + doc.part3.crossAgencyProjects.length > 0 &&
-    [...PROJECT_BEARING_FIELDS].some((l) => current.leaves.has(l));
+  // field AND the master actually has projects to pick — exactly what
+  // panelAppliesTo decides (its `!!doc` guard covers the nullable store doc,
+  // which this runs against before the early return below).
+  const showProjectsPanel = !!current && panelAppliesTo(current);
 
   /** True when the Projects panel applies to this office (≥1 master project
    *  AND ≥1 project-bearing leaf owned). Gates both validation and the
@@ -583,7 +580,7 @@ export function DistributeDialog({
                         No fields selected
                       </span>
                     )}
-                    {e.projectMode !== "all" && (
+                    {panelAppliesTo(e) && e.projectMode !== "all" && (
                       <span className="block text-muted-foreground/70 truncate">
                         {e.projectMode === "empty"
                           ? "Projects: none (start empty)"

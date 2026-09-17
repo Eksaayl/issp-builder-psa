@@ -222,6 +222,8 @@ try {
     "editScope.projectIds = [proj-sikap]");
   assertE(scopedJson.part3.internalProjects.length === 1
     && scopedJson.part3.internalProjects[0].id === "proj-sikap", "E1 carries only SIKAP");
+  assertE(scopedJson.part3.crossAgencyProjects.length === 0,
+    "cross-agency projects stripped (unselected)");
   assertE(Object.keys(scopedJson.part3.performanceFramework).length === 1, "PF carries only SIKAP");
   assertE(Object.keys(scopedJson.part4.year1.internalProjects).length === 1, "year1 budget only SIKAP");
   assertE(scopedJson.part4.year1.officeProductivity.mooe.length === 1,
@@ -291,6 +293,8 @@ try {
   if (!titles.includes("Training Program")) fail("new project not unioned in");
   if (!merged.part4.year1.internalProjects["proj-sikap"].mooe.some((l) => l.id === "li-new"))
     fail("new budget line not merged");
+  assertE(merged.part4.year1.internalProjects["proj-sikap"].capitalOutlay.some((l) => l.id === "co-1"),
+    "existing capital line survived the merge");
   if (merged.part4.year1.officeProductivity.mooe.length !== 1)
     fail("officeProductivity corrupted");
   if (!(merged.consolidationFlags ?? []).includes("part3/e1"))

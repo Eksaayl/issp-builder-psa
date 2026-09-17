@@ -92,6 +92,14 @@ edits replace the master's rows, new projects union in with a review flag,
 and a project the recipient deleted is kept on the master and flagged —
 deletion never propagates silently.
 
+> **Mixed batches:** the by-project merge activates for the whole batch when
+> *any* selected file declares a project filter. Returns from offices that
+> got unfiltered files then also merge by project id — safer (rows missing
+> from their file are kept, not dropped), but a deliberate deletion made by
+> such an office will be silently retained, because without a declared filter
+> the merge cannot distinguish "deleted" from "added to the master after
+> distribution." Review those sections after applying if that matters.
+
 ## Things to keep in mind
 
 - **Coordinate distribution rounds.** Generating a scoped file for an office starts

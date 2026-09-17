@@ -128,6 +128,8 @@ function makeMaster() {
     "(b) PF unowned → stays at default (no context needed)");
   assert.deepEqual(Object.keys(s.part4.year1.internalProjects), ["proj-sikap"],
     "(b) year1 budget filtered to selected project");
+  assert.deepEqual(s.part3.proposedSystems.map((x) => x.id), ["sys-hris"],
+    "(b) linked-system context narrowed when E1+D unowned");
 }
 
 // ── (c) start-empty: projectIds [] strips every project row ─────────────────

@@ -242,6 +242,8 @@ function yearBudget(internals: Record<string, ProjectBudget>) {
   assert.equal(conflict!.values.length, 2, "(r) both offices recorded");
   assert.deepEqual(Object.keys(r.merged.part4.year1.internalProjects), ["p1", "p2"],
     "(r) project budgets still merged cleanly despite the sub-conflict");
+  assert.equal(r.merged.part4.year1.officeProductivity.mooe.length, 0,
+    "(r) conflicted sub-object stays at master's value");
   assert.ok(r.reviewFlags.includes("part4/year1"), "(r) year flagged for review");
   // agreed sub-object → no conflict (single distinct value)
   const b2 = scoped("b", ["part4/year1"], ["p2"], (d) => {
@@ -289,6 +291,43 @@ function yearBudget(internals: Record<string, ProjectBudget>) {
   assert.deepEqual(Object.keys(r.merged.part4.year1.internalProjects).sort(), ["p-new", "p1"],
     "(u) p1 kept (deletion does not propagate), p-new added");
   assert.ok(r.reviewFlags.includes("part4/year1"), "(u) year flagged");
+}
+
+// ── (v) continuingCosts symmetry: two filtered offices, differing sub-object ─
+{
+  const master = makeMaster();
+  master.part4.year1 = yearBudget({
+    p1: { projectTitle: "One", capitalOutlay: [], mooe: [] },
+    p2: { projectTitle: "Two", capitalOutlay: [], mooe: [] },
+  });
+  const a = scoped("a", ["part4/year1"], ["p1"], (d) => {
+    d.part4.year1 = yearBudget({ p1: { projectTitle: "One", capitalOutlay: [], mooe: [] } });
+    d.part4.year1.continuingCosts.mooe = [
+      { id: "x", item: "From A", office: "", uacsCode: "", uacsLabel: "",
+        fundSource: "General Appropriations Act (GAA)", qty: 1, unitCost: 1 },
+    ];
+  });
+  const b = scoped("b", ["part4/year1"], ["p2"], (d) => {
+    d.part4.year1 = yearBudget({ p2: { projectTitle: "Two", capitalOutlay: [], mooe: [] } });
+    d.part4.year1.continuingCosts.mooe = [
+      { id: "x", item: "From B", office: "", uacsCode: "", uacsLabel: "",
+        fundSource: "General Appropriations Act (GAA)", qty: 1, unitCost: 1 },
+    ];
+  });
+  const r = consolidate(master, [a, b]);
+  const conflict = r.scalarConflicts.find(
+    (c) => c.sectionId === "part4/year1" && c.fieldKey === "year1.continuingCosts"
+  );
+  assert.ok(conflict, "(v) continuingCosts sub-conflict surfaced with nested fieldKey");
+  assert.equal(
+    r.scalarConflicts.filter((c) => c.sectionId === "part4/year1").length, 1,
+    "(v) exactly one nested conflict (officeProductivity agreed)");
+  assert.equal(conflict!.values.length, 2, "(v) both offices recorded");
+  assert.deepEqual(Object.keys(r.merged.part4.year1.internalProjects), ["p1", "p2"],
+    "(v) project budgets still merged cleanly despite the sub-conflict");
+  assert.equal(r.merged.part4.year1.continuingCosts.mooe.length, 0,
+    "(v) conflicted sub-object stays at master's value");
+  assert.ok(r.reviewFlags.includes("part4/year1"), "(v) year flagged for review");
 }
 
 console.log("✓ project-consolidate (Part III + Part IV) verification passed");

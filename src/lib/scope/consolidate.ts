@@ -219,6 +219,7 @@ export function consolidate(master: IsspDocument, files: IsspDocument[]): Consol
         const values: { officeId: string; value: unknown }[] = [];
         for (const file of latestByKey.get(key)?.values() ?? []) {
           const yb = file.part4[fk as "year1" | "year2" | "year3"];
+          if (!yb) continue; // like projectEntries: a file lacking this year contributes nothing
           values.push({ officeId: file.editScope!.office.id, value: yb[sub] });
         }
         const distinct = new Set(values.map((v) => JSON.stringify(v.value)));
@@ -372,6 +373,9 @@ export function consolidate(master: IsspDocument, files: IsspDocument[]): Consol
               const present = new Set(Object.keys(srcRec));
               if (pids.some((id) => !present.has(id) && id in masterRec)) changed = true;
             }
+            // Assign back like the E1/E2 branch assigns `next`: dstRec is a
+            // fresh `{}` when target[fk] was unset, and must land regardless.
+            target[fk] = dstRec;
           } else {
             // part4/yearN — decompose the YearBudget: project sub-records
             // merge by id; the two non-project sub-objects overlay when every
