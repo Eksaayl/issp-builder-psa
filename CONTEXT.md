@@ -64,9 +64,16 @@ Merging one or more returned scoped files back into the master, with overlap rev
 The merge key stamped on shared-table rows and Annex 1 payloads. Consolidation replaces rows by `officeId` (not display label), which makes re-importing an office's file idempotent. Absent ⇒ legacy/secretariat-owned row.
 
 Per-project distribution: `editScope.projectIds` (absent = all projects)
-filters the five project-bearing fields at slice time — `part3/e1/e2` project
-lists, `part3/f.performanceFramework`, and the `part4/yearN` project budget
-records. Consolidate merges these by project id (replace / union-new /
+filters the project-bearing fields at slice time — `part3/e1/e2` project
+lists, `part3/f.performanceFramework`, `part3/d.proposedSystems`, and the
+`part4/yearN` project budget records (registry `PROJECT_BEARING_FIELDS`, 7
+members). Consolidate merges these by id (replace / union-new /
 keep-on-delete) whenever any file in the batch declares the filter; Part IV
 year fields decompose so `officeProductivity`/`continuingCosts` keep scalar
-conflict semantics under the nested fieldKey `yearN.officeProductivity`.
+conflict semantics under the nested fieldKey `yearN.officeProductivity` —
+but only between offices holding unfiltered files: a project-filtered file
+carries neither category (the office sees only its projects' budget lines)
+and contributes nothing to them on merge (no overlay, sub-conflict, or
+flag). Its Proposed IS list likewise holds only the carried projects'
+linked systems; systems merge by their own id — replace / union-new + flag,
+absence kept unflagged (a project filter selects projects, not systems).

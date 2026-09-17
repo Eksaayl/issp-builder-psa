@@ -92,6 +92,23 @@ edits replace the master's rows, new projects union in with a review flag,
 and a project the recipient deleted is kept on the master and flagged —
 deletion never propagates silently.
 
+A project-filtered file stays out of everything agency-wide, except where
+its projects reach:
+
+- **Budget categories.** Part IV's Office Productivity and Continuing Costs
+  are agency-wide budget, not the office's to edit, so they are excluded
+  from the file — the office sees only their projects' budget lines — and
+  are **not merged back** from project files: they contribute no overlay,
+  sub-conflict, or flag on consolidate. A conflict on these two categories
+  can only arise between offices holding unfiltered files.
+- **Proposed IS (Part III-D).** The file's Proposed IS list contains only
+  the carried projects' linked systems. A recipient who owns III-D can add
+  systems of their own; on consolidate systems merge **by system id** —
+  edits replace the master's system, new systems are appended with a review
+  flag, and systems absent from the file are kept unflagged (a project
+  filter selects projects, not systems — absence may just mean "not
+  linked").
+
 > **Mixed batches:** the by-project merge activates for the whole batch when
 > *any* selected file declares a project filter. Returns from offices that
 > got unfiltered files then also merge by project id — safer (rows missing
