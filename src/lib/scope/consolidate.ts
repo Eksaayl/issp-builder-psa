@@ -1,5 +1,5 @@
 import type { IsspDocument } from "@/lib/store/types";
-import { resolveScope, SHARED_TABLE_PATHS } from "@/lib/scope/paths";
+import { resolveScope, SHARED_TABLE_PATHS, PROJECT_BEARING_FIELDS } from "@/lib/scope/paths";
 
 /** A scalar field written by ≥2 offices — surfaced for human pick (no silent winner). */
 export interface ScalarConflict {
@@ -24,7 +24,7 @@ function partKeyFor(sectionId: string): PartKey | undefined {
 }
 
 /** Per-field merge strategy — computed across the whole batch in the pre-pass. */
-type Strategy = "shared-table" | "list-union" | "scalar-conflict" | "overlay";
+type Strategy = "shared-table" | "list-union" | "scalar-conflict" | "overlay" | "project-keyed";
 
 /**
  * Deep-equality via JSON serialization. IsspDocument field values are plain
@@ -56,10 +56,18 @@ function strategyFor(
   key: string,
   sid: string,
   owners: string[],
-  files: IsspDocument[]
+  files: IsspDocument[],
+  anyProjectFilter: boolean
 ): Strategy {
   if (SHARED_TABLE_PATHS.has(key) || SHARED_TABLE_PATHS.has(sid)) {
     return "shared-table";
+  }
+  // Per-project distribution: when ANY file in the batch declares a project
+  // filter, the five project-bearing fields merge by project id (replace /
+  // append / keep-on-delete) instead of overlay/union. Pure-legacy batches
+  // keep the strategies below, byte-for-byte.
+  if (anyProjectFilter && PROJECT_BEARING_FIELDS.has(key)) {
+    return "project-keyed";
   }
   if (owners.length <= 1) return "overlay";
   // ≥2 owners on a non-shared path. Inspect the owners' actual values rather
@@ -84,6 +92,22 @@ function strategyFor(
   if (values.every((v) => jsonEqual(v, values[0]))) return "overlay";
   // Values differ → surface for human pick (no silent winner).
   return "scalar-conflict";
+}
+
+/** (projectId, value) pairs a file contributes for a project-bearing key. */
+function projectEntries(file: IsspDocument, key: string): [string, unknown][] {
+  const dot = key.indexOf(".");
+  const sid = key.slice(0, dot);
+  const fk = key.slice(dot + 1);
+  if (sid === "part3/e1") return file.part3.internalProjects.map((r) => [r.id, r] as [string, unknown]);
+  if (sid === "part3/e2") return file.part3.crossAgencyProjects.map((r) => [r.id, r] as [string, unknown]);
+  if (sid === "part3/f") return Object.entries(file.part3.performanceFramework);
+  const yb = file.part4[fk as "year1" | "year2" | "year3"];
+  if (!yb) return [];
+  return [
+    ...Object.entries(yb.internalProjects),
+    ...Object.entries(yb.crossAgencyProjects),
+  ];
 }
 
 /**
@@ -133,11 +157,49 @@ export function consolidate(master: IsspDocument, files: IsspDocument[]): Consol
       fieldOwners.set(key, owners);
     }
   }
+  const anyProjectFilter = files.some((f) => f.editScope?.projectIds !== undefined);
   const strategy = new Map<string, Strategy>();
   for (const key of fieldOwners.keys()) {
     const dot = key.indexOf(".");
     const sid = key.slice(0, dot);
-    strategy.set(key, strategyFor(key, sid, fieldOwners.get(key)!, files));
+    strategy.set(key, strategyFor(key, sid, fieldOwners.get(key)!, files, anyProjectFilter));
+  }
+
+  // For project-keyed fields, only each office's LAST file (batch order)
+  // contributes — a resent file replaces that office's earlier submission
+  // instead of duplicating rows (same idempotency contract as shared tables).
+  const latestByKey = new Map<string, Map<string, IsspDocument>>();
+  if (anyProjectFilter) {
+    for (const key of strategy.keys()) {
+      if (strategy.get(key) !== "project-keyed") continue;
+      const last = new Map<string, IsspDocument>();
+      for (const file of files) {
+        const officeId = file.editScope!.office.id;
+        if (!resolveScope(file.editScope!.editable).editableFields.has(key)) continue;
+        last.set(officeId, file);
+      }
+      latestByKey.set(key, last);
+    }
+  }
+
+  // Same project id written DIFFERENTLY by ≥2 offices → review flag (import
+  // order still applies — like multi-owner definitions, the flag is the
+  // safety net, not a blocker). Identical writes are implicit agreement.
+  if (anyProjectFilter) {
+    for (const [key, strat] of strategy) {
+      if (strat !== "project-keyed") continue;
+      const dot = key.indexOf(".");
+      const sid = key.slice(0, dot);
+      const writers = new Map<string, Set<string>>(); // projectId -> distinct JSON
+      for (const file of latestByKey.get(key)?.values() ?? []) {
+        for (const [id, value] of projectEntries(file, key)) {
+          const set = writers.get(id) ?? new Set();
+          set.add(JSON.stringify(value));
+          writers.set(id, set);
+        }
+      }
+      if ([...writers.values()].some((s) => s.size > 1)) reviewFlags.add(sid);
+    }
   }
 
   // Multi-owner scalar conflicts are emitted once, up front, from the strategy
@@ -174,6 +236,12 @@ export function consolidate(master: IsspDocument, files: IsspDocument[]): Consol
       const dot = key.indexOf(".");
       const sid = key.slice(0, dot);
       const fk = key.slice(dot + 1);
+
+      // Project-keyed fields: only the office's latest file in the batch
+      // contributes (see latestByKey).
+      if (strategy.get(key) === "project-keyed" && latestByKey.get(key)?.get(officeId) !== file) {
+        continue;
+      }
 
       // Annex 1 bucket at doc root — replace this office's payloads by office.id.
       if (sid === "annexes/annex1") {
@@ -236,6 +304,51 @@ export function consolidate(master: IsspDocument, files: IsspDocument[]): Consol
           // Recorded once in the pre-pass; the merged doc keeps the master's
           // existing value (no silent pick). The review screen resolves it.
           break;
+        case "project-keyed": {
+          const pids = scope.projectIds;
+          const masterPart = master[partKey] as unknown as Record<string, unknown>;
+          let changed = false;
+
+          if (sid === "part3/e1" || sid === "part3/e2") {
+            const srcRows = ((src[fk] as { id: string }[]) ?? []);
+            const dstRows = (target[fk] as { id: string }[]) ?? [];
+            const masterRows = ((masterPart[fk] as { id: string }[]) ?? []);
+            const next = [...dstRows];
+            for (const row of srcRows) {
+              const i = next.findIndex((r) => r.id === row.id);
+              if (i >= 0) next[i] = structuredClone(row); // replace by id
+              else {
+                next.push(structuredClone(row)); // new project
+                changed = true;
+              }
+            }
+            if (pids) {
+              const present = new Set(srcRows.map((r) => r.id));
+              // deleted-by-office: owned id missing from the file but present
+              // on the master → KEEP the master row, flag the section.
+              if (pids.some((id) => !present.has(id) && masterRows.some((r) => r.id === id))) {
+                changed = true;
+              }
+            }
+            target[fk] = next;
+          } else if (sid === "part3/f") {
+            const srcRec = (src[fk] as Record<string, unknown>) ?? {};
+            const dstRec = (target[fk] as Record<string, unknown>) ?? {};
+            const masterRec = (masterPart[fk] as Record<string, unknown>) ?? {};
+            for (const [id, v] of Object.entries(srcRec)) {
+              if (!(id in masterRec)) changed = true; // new KPI set
+              dstRec[id] = structuredClone(v); // replace by key
+            }
+            if (pids) {
+              const present = new Set(Object.keys(srcRec));
+              if (pids.some((id) => !present.has(id) && id in masterRec)) changed = true;
+            }
+          }
+          // part4/yearN decomposition arrives with the Part IV task.
+
+          if (changed) reviewFlags.add(sid);
+          break;
+        }
         default: {
           // overlay — unique owner (or every owner agreed on the same value)
           // replaces the field wholesale. Deep-clone non-primitive values so
