@@ -255,7 +255,7 @@ function ProgramCard({
         {config.showAdoptionPercent && (
           <div className="space-y-1.5 max-w-xs">
             <label className="text-xs font-medium text-muted-foreground">
-              Adoption Percentage (%) — employees with active PNPKI certificates over total employees
+              Percentage of adoption of PNPKI; Ratio of Total number of employees with active PNPKI certificates over Total number of employees
             </label>
             <NumberInput
               min={0}

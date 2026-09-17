@@ -184,7 +184,7 @@ export function Part3AForm({ initialData }: { initialData: Part3AData }) {
   return (
     <SectionShell
       sectionId="part3/a"
-      title="Proposed Infrastructure"
+      title="Proposed Network Infrastructure"
       description="Describe the proposed network infrastructure and cybersecurity controls for the plan period."
     >
 
@@ -192,7 +192,7 @@ export function Part3AForm({ initialData }: { initialData: Part3AData }) {
       {(can("proposedNetworkDesc") || can("proposedNetworkDataUrl")) && (
       <Card>
         <CardHeader className="pb-4">
-          <CardTitle className="text-base">A.1 Proposed Network Infrastructure</CardTitle>
+          <CardTitle className="text-base">A.1. LAN/WAN Set-Up Including Connectivity Type and Bandwidth</CardTitle>
           <CardDescription>
             Describe planned changes or improvements to the network topology, connectivity, or equipment.
           </CardDescription>
@@ -239,7 +239,7 @@ export function Part3AForm({ initialData }: { initialData: Part3AData }) {
       {can("proposedCybersecControls") && (
       <Card>
         <CardHeader className="pb-4">
-          <CardTitle className="text-base">A.2 Proposed Cybersecurity Controls</CardTitle>
+          <CardTitle className="text-base">A.2. Cybersecurity Control Checklist</CardTitle>
           <CardDescription>
             Check controls to be <strong>added or strengthened</strong> during the ISSP period.
             Current controls are shown for reference.

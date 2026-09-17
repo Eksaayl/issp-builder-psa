@@ -123,7 +123,7 @@ function KpiDrawer({
 
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground uppercase tracking-wide">Hierarchy of Results</Label>
+            <Label className="text-xs text-muted-foreground uppercase tracking-wide">Hierarchy of Targeted Results</Label>
             <Select
               items={HIERARCHY_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
               value={draft.hierarchy || null}
@@ -149,14 +149,17 @@ function KpiDrawer({
               onChange={(e) => set("targetedResult", e.target.value)}
             />
             <p className="text-xs text-muted-foreground">
-              Write the specific result for the selected level: Intermediate Outcome — a change
-              in the behavior of target stakeholders; Immediate Outcome — an enhancement of the
-              agency&apos;s institutional capability; Output — a completed deliverable of the project.
+              Write the specific result for the selected level: Intermediate Outcome — refers to
+              changes in behavior of targeted stakeholders as a result of the implementation of
+              the ICT project. Immediate Outcome — refers to enhancements in institutional
+              capabilities of the Agency upon implementation of the ICT project. Output — related
+              to the installation/implementation of the ICT project in the agency within the
+              lifetime of the project; these are completed deliverables of the project.
             </p>
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground uppercase tracking-wide">Key Performance Indicator</Label>
+            <Label className="text-xs text-muted-foreground uppercase tracking-wide">Key Performance Indicators (KPIs)</Label>
             <Textarea
               rows={3}
               placeholder="e.g., % of monitored agencies submitting queue data via API"
@@ -166,7 +169,7 @@ function KpiDrawer({
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground uppercase tracking-wide">Baseline</Label>
+            <Label className="text-xs text-muted-foreground uppercase tracking-wide">Baseline Data</Label>
             <Input
               placeholder="e.g., 0%"
               value={draft.baseline}
@@ -194,7 +197,7 @@ function KpiDrawer({
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground uppercase tracking-wide">Data Collection Method</Label>
+            <Label className="text-xs text-muted-foreground uppercase tracking-wide">Data Collection Methods</Label>
             <Textarea
               rows={2}
               placeholder="e.g., UQMP system-generated API submission logs"
@@ -323,9 +326,9 @@ function ProjectKpiTable({
                 <table className="w-full text-xs border-collapse">
                   <thead>
                     <tr className="bg-muted/40">
-                      <th className="border px-2 py-2 text-left font-semibold w-32">Hierarchy of Results</th>
-                      <th className="border px-2 py-2 text-left font-semibold">Key Performance Indicator</th>
-                      <th className="border px-2 py-2 text-center font-semibold w-24">Baseline</th>
+                      <th className="border px-2 py-2 text-left font-semibold w-32">Hierarchy of Targeted Results</th>
+                      <th className="border px-2 py-2 text-left font-semibold">Key Performance Indicators (KPIs)</th>
+                      <th className="border px-2 py-2 text-center font-semibold w-24">Baseline Data</th>
                       <th className="border px-2 py-2 text-center font-semibold w-20">Year 1</th>
                       <th className="border px-2 py-2 text-center font-semibold w-20">Year 2</th>
                       <th className="border px-2 py-2 text-center font-semibold w-20">Year 3</th>
@@ -478,7 +481,7 @@ export function Part3FForm({
   return (
     <SectionShell
       sectionId="part3/f"
-      title="Performance Framework"
+      title="Performance Measurement Framework"
       description="Define key performance indicators (KPIs) for each ICT project to track outcomes over the plan period."
     >
 

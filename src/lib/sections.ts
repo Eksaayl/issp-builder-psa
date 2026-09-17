@@ -21,7 +21,7 @@ export const PARTS: readonly PartDef[] = [
     partNum: 1, part: "I", title: "Agency Profile & Strategic Context", color: "var(--part)",
     sections: [
       { id: "part1/a", label: "A. Mandate, Vision & Mission", href: "/editor/part1/a" },
-      { id: "part1/b", label: "B. Organization Structure",    href: "/editor/part1/b" },
+      { id: "part1/b", label: "B. Organizational Structure",  href: "/editor/part1/b" },
       { id: "part1/c", label: "C. Stakeholder Analysis",      href: "/editor/part1/c" },
     ],
   },
@@ -37,13 +37,13 @@ export const PARTS: readonly PartDef[] = [
   {
     partNum: 3, part: "III", title: "Proposed ICT Strategy", color: "var(--part)",
     sections: [
-      { id: "part3/a",  label: "A. Proposed Infrastructure",  href: "/editor/part3/a"  },
+      { id: "part3/a",  label: "A. Proposed Network Infrastructure", href: "/editor/part3/a"  },
       { id: "part3/b",  label: "B. Enterprise Architecture",  href: "/editor/part3/b"  },
       { id: "part3/c",  label: "C. Proposed Human Capital",   href: "/editor/part3/c"  },
       { id: "part3/d",  label: "D. Proposed IS",              href: "/editor/part3/d"  },
       { id: "part3/e1", label: "E.1 Internal Projects",       href: "/editor/part3/e1" },
       { id: "part3/e2", label: "E.2 Cross-Agency Projects",   href: "/editor/part3/e2" },
-      { id: "part3/f",  label: "F. Performance Framework",    href: "/editor/part3/f"  },
+      { id: "part3/f",  label: "F. Performance Measurement Framework", href: "/editor/part3/f"  },
     ],
   },
   {

@@ -48,7 +48,7 @@ Directly lift these statements from official documents like the Strategic Plan o
 | Contact Number/s | ✓ | ✓ |
 
 **B.2 Human Capital** — Provide physical count of personnel categorized by:
-- Employment status: Plantilla / Contractual / Outsourced
+- Employment status: Plantilla (Filled) / Plantilla (Unfilled) / Contractual / Outsourced (JO, COS, and HTC)
 - Role type: IT / Non-IT
 - Gender (GAD compliance): Male / Female
 

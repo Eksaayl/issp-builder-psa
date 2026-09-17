@@ -439,23 +439,26 @@ function pageHeader(_issp: IsspData): string {
 function renderScopeTree(scopeKey: string): string {
   const s = scopeKey;
   const deptWide        = s === "DEPARTMENT_WIDE";
-  const deptCo          = s === "DEPARTMENT_CENTRAL_ONLY" || s === "CENTRAL_ONLY";
+  // "Department - Central Office / Head Office" is the parent item — checked
+  // whenever the scope is that office alone OR one of its two template
+  // sub-items (Regional/Bureaus), matching the template's actual nesting.
+  const deptCentral     = s === "DEPARTMENT_CENTRAL_ONLY" || s === "CENTRAL_ONLY" || s === "WITH_REGIONAL" || s === "WITH_BUREAUS";
   const deptCoOnly      = s === "DEPARTMENT_CENTRAL_ONLY" || s === "CENTRAL_ONLY";
-  const agencyWide      = ["WITH_REGIONAL","AGENCY_WITH_REGIONAL","WITH_BUREAUS","AGENCY_WIDE","AGENCY_CENTRAL_ONLY","OTHER_GOVERNMENT_ENTITY"].includes(s);
+  const deptRegional    = s === "WITH_REGIONAL";
+  const deptBureaus     = s === "WITH_BUREAUS";
+  const agencyWide      = ["AGENCY_WIDE","AGENCY_CENTRAL_ONLY","AGENCY_WITH_REGIONAL","OTHER_GOVERNMENT_ENTITY"].includes(s);
   const agencyCoOnly    = s === "AGENCY_CENTRAL_ONLY";
-  const agencyRegional  = s === "WITH_REGIONAL" || s === "AGENCY_WITH_REGIONAL";
-  const agencyBureaus   = s === "WITH_BUREAUS";
+  const agencyRegional  = s === "AGENCY_WITH_REGIONAL";
   const otherGov        = s === "OTHER_GOVERNMENT_ENTITY";
   const lgu             = s === "LGU_SCOPE";
   return `
     <span class="cover-scope-item">${chk(deptWide)} Department-Wide</span>
-    <span class="cover-scope-item">${chk(deptCo)} Department - Central Office / Head Office</span>
+    <span class="cover-scope-item">${chk(deptCentral)} Department - Central Office / Head Office</span>
     <span class="cover-scope-sub">${chk(deptCoOnly)} Central Office only</span>
-    <span class="cover-scope-sub">${chk(false)} With Regional Offices / Field Offices &nbsp;&nbsp; ${chk(false)} With Bureaus</span>
+    <span class="cover-scope-sub">${chk(deptRegional)} With Regional Offices / Field Offices &nbsp;&nbsp; ${chk(deptBureaus)} With Bureaus</span>
     <span class="cover-scope-item">${chk(agencyWide)} Agency-Wide</span>
     <span class="cover-scope-sub">${chk(agencyCoOnly)} Central Office only</span>
     <span class="cover-scope-sub">${chk(agencyRegional)} With Regional Offices / Field Offices</span>
-    <span class="cover-scope-sub">${chk(agencyBureaus)} With Bureaus / Attached Agencies</span>
     <span class="cover-scope-sub">${chk(otherGov)} Other Government Entity</span>
     <span class="cover-scope-item">${chk(lgu)} LGU</span>
   `;
@@ -524,7 +527,13 @@ export function getTocEntries(issp: IsspData): TocEntry[] {
       : []),
     { id: "part1", label: "PART I. AGENCY PROFILE & STRATEGIC CONTEXT", level: "part" },
     { id: "part1-a", label: "A. MANDATE, VISION, MISSION, AND ORGANIZATIONAL OUTCOME", level: "section" },
+    { id: "part1-a1", label: "A.1. MANDATE", level: "sub" },
+    { id: "part1-a2", label: "A.2. VISION STATEMENT", level: "sub" },
+    { id: "part1-a3", label: "A.3. MISSION STATEMENT", level: "sub" },
+    { id: "part1-a4", label: "A.4. ORGANIZATIONAL OUTCOME", level: "sub" },
     { id: "part1-b", label: "B. ORGANIZATIONAL STRUCTURE", level: "section" },
+    { id: "part1-b1", label: "B.1. CHIEF INFORMATION OFFICER (CIO)", level: "sub" },
+    { id: "part1-b2", label: "B.2. HUMAN CAPITAL", level: "sub" },
     { id: "part1-c", label: "C. STAKEHOLDER ANALYSIS", level: "section" },
     { id: "part2", label: "PART II. CURRENT ICT ASSESSMENT", level: "part" },
     { id: "part2-a", label: "A. STRATEGIC CONCERNS FOR ICT USE", level: "section" },
@@ -535,6 +544,8 @@ export function getTocEntries(issp: IsspData): TocEntry[] {
     { id: "part2-d", label: "D. E-GOVERNMENT PROGRAMS (EGP) CHECKLIST", level: "section" },
     { id: "part3", label: "PART III. PROPOSED ICT STRATEGY", level: "part" },
     { id: "part3-a", label: "A. PROPOSED NETWORK INFRASTRUCTURE", level: "section" },
+    { id: "part3-a1", label: "A.1. LAN/WAN SET-UP INCLUDING CONNECTIVITY TYPE AND BANDWIDTH", level: "sub" },
+    { id: "part3-a2", label: "A.2. CYBERSECURITY CONTROL CHECKLIST", level: "sub" },
     { id: "part3-b", label: "B. ENTERPRISE ARCHITECTURE", level: "section" },
     { id: "part3-c", label: "C. PROPOSED ICT HUMAN CAPITAL", level: "section" },
     { id: "part3-d", label: "D. PROPOSED INFORMATION SYSTEMS", level: "section" },
@@ -542,6 +553,8 @@ export function getTocEntries(issp: IsspData): TocEntry[] {
     { id: "part3-e1", label: "E.1. INTERNAL ICT PROJECTS", level: "sub" },
     ...(hasE2 ? [{ id: "part3-e2", label: "E.2. CROSS-AGENCY ICT PROJECTS", level: "sub" as const }] : []),
     { id: "part3-f", label: "F. PERFORMANCE MEASUREMENT FRAMEWORK", level: "section" },
+    { id: "part3-f1", label: "F.1. INTERNAL ICT PROJECTS", level: "sub" },
+    ...(hasE2 ? [{ id: "part3-f2", label: "F.2. CROSS-AGENCY ICT PROJECTS", level: "sub" as const }] : []),
     { id: "part4", label: "PART IV. RESOURCE REQUIREMENTS", level: "part" },
     { id: "part4-a", label: "A. DETAILED RESOURCE DEPLOYMENT AND COST BREAKDOWN", level: "section" },
     { id: "part4-a1", label: `A.1. [${issp.startYear}]`, level: "sub" },
@@ -637,19 +650,19 @@ function renderPart1(issp: IsspData): string {
 
     <div class="section-heading">${tocMark("part1-a")}A. Mandate, Vision, Mission, and Organizational Outcome</div>
 
-    <div class="subsection-heading">A.1. Mandate</div>
+    <div class="subsection-heading">${tocMark("part1-a1")}A.1. Mandate</div>
     <div class="subsection-block"><ul class="template-list">
-      <li><span class="field-label">Legal Basis:</span> ${esc(p.legalBasis)}</li>
-      <li><span class="field-label">Function:</span> ${richText(p.mandateFunction)}</li>
+      <li><span class="field-label">Legal Basis</span> ${esc(p.legalBasis)}</li>
+      <li><span class="field-label">Function</span> ${richText(p.mandateFunction)}</li>
     </ul></div>
 
-    <div class="subsection-heading">A.2. Vision Statement</div>
+    <div class="subsection-heading">${tocMark("part1-a2")}A.2. Vision Statement</div>
     <div class="subsection-block"><p class="field-value">${richText(p.visionStatement)}</p></div>
 
-    <div class="subsection-heading">A.3. Mission Statement</div>
+    <div class="subsection-heading">${tocMark("part1-a3")}A.3. Mission Statement</div>
     <div class="subsection-block"><p class="field-value">${nl2br(p.missionStatement)}</p></div>
 
-    <div class="subsection-heading">A.4. ${esc(oo)}</div>
+    <div class="subsection-heading">${tocMark("part1-a4")}A.4. ${esc(oo)}</div>
     <div class="subsection-block">${p.orgOutcomes.length === 0 ? "<p><em>None specified.</em></p>" :
       p.orgOutcomes.map((oo, i) => `<div class="avoid-break" style="margin-bottom:3mm;">
         <p style="font-weight:bold;">${i + 1}. ${esc(oo.name)}</p>
@@ -659,7 +672,7 @@ function renderPart1(issp: IsspData): string {
 
     <div class="section-heading">${tocMark("part1-b")}B. Organizational Structure</div>
 
-    <div class="subsection-heading">B.1. Chief Information Officer (CIO)</div>
+    <div class="subsection-heading">${tocMark("part1-b1")}B.1. Chief Information Officer (CIO)</div>
     <div class="subsection-block"><ul class="template-list">
       <li><span class="field-label">Name of CIO:</span> ${esc(p.cioName)}</li>
       <li><span class="field-label">Plantilla Position:</span> ${esc(p.cioPosition)}</li>
@@ -677,7 +690,7 @@ function renderPart1(issp: IsspData): string {
       <li><span class="field-label">Contact Number/s:</span> ${esc(p.focalContact)}</li>
     </ul></div>
 
-    <div class="subsection-heading">B.2. Human Capital</div>
+    <div class="subsection-heading">${tocMark("part1-b2")}B.2. Human Capital</div>
     <div class="subsection-block"><table>
       <thead>
         <tr>
@@ -965,7 +978,7 @@ function renderPart2(issp: IsspData): string {
 
   function egpQuestionCell(cfg: EgpRowConfig, e: EgpEntry | undefined): string {
     if (cfg.key === "pnpki") {
-      return `<em>Percentage of adoption of PNPKI (ratio of total number of employees with active PNPKI certificates over total number of employees)</em>` +
+      return `<em>(percentage of adoption of PNPKI; Ratio of Total number of employees with active PNPKI certificates over Total number of employees)</em>` +
         `<br><strong>${Number(e?.adoptionPercentage ?? 0)}%</strong>`;
     }
     if (cfg.key === "onlinePortal") {
@@ -1107,7 +1120,7 @@ function renderProjectCard(proj: IctProject, crossAgency = false, ordinal?: numb
           ${chk(sa["nationalCybersecurity"] as boolean)} National Cybersecurity Plan<br>
           ${chk(sa["eGovMasterPlan"] as boolean)} E-Government Master Plan<br>
           ${chk(sa["convergenceBudgeting"] as boolean)} Program Convergence Budgeting<br>
-          ${chk(sa["othersChecked"] === true || !!(sa["others"] as string))} Others: ${esc((sa["others"] as string) || "")}
+          ${chk(sa["othersChecked"] === true || !!(sa["others"] as string))} Others (Specify): ${esc((sa["others"] as string) || "")}
         </td></tr>
         <tr><td class="label-cell">HARMONIZATION FRAMEWORK</td><td>
           ${chk(ha["nationalPrioritization"])} National Prioritization<br>
@@ -1154,7 +1167,7 @@ function renderPart3(issp: IsspData): string {
     <div class="part-heading">${tocMark("part3")}Part III. Proposed ICT Strategy</div>
 
     <div class="section-heading">${tocMark("part3-a")}A. Proposed Network Infrastructure</div>
-    <div class="subsection-heading">A.1. LAN/WAN Set-Up Including Connectivity Type and Bandwidth</div>
+    <div class="subsection-heading">${tocMark("part3-a1")}A.1. LAN/WAN Set-Up Including Connectivity Type and Bandwidth</div>
     <div class="subsection-block">${p.proposedNetworkDesc
       ? `<p>${nl2br(p.proposedNetworkDesc)}</p>`
       : `<p style="font-style:italic;">No proposed network description specified.</p>`
@@ -1167,7 +1180,7 @@ function renderPart3(issp: IsspData): string {
       : ""
     }</div>
 
-    <div class="subsection-heading" style="margin-top:4mm;">A.2. Cybersecurity Control Checklist</div>
+    <div class="subsection-heading" style="margin-top:4mm;">${tocMark("part3-a2")}A.2. Cybersecurity Control Checklist</div>
     <div class="subsection-block">${renderCyberTable(p.proposedCybersecControls)}</div>
 
     <div class="section-heading page-break">${tocMark("part3-b")}B. Enterprise Architecture</div>
@@ -1228,7 +1241,7 @@ function renderPart3(issp: IsspData): string {
 
     <div class="section-heading page-break">${tocMark("part3-f")}F. Performance Measurement Framework</div>
     ${pageHeader(issp)}
-    <div class="subsection-heading">F.1. Internal ICT Projects</div>
+    <div class="subsection-heading">${tocMark("part3-f1")}F.1. Internal ICT Projects</div>
     <div class="subsection-block">${allProjects.filter(pr => pr.type === "internal").map((proj, i) => {
       const entry = issp.part3.performanceFramework[proj.id] ??
         perfEntries.find(e => e.projectTitle === proj.title);
@@ -1261,7 +1274,7 @@ function renderPart3(issp: IsspData): string {
     }).join("")}</div>
 
     ${allProjects.filter(pr => pr.type === "cross-agency").length > 0 ? `
-    <div class="subsection-heading" style="margin-top:6mm;">F.2. Cross-Agency ICT Projects</div>
+    <div class="subsection-heading" style="margin-top:6mm;">${tocMark("part3-f2")}F.2. Cross-Agency ICT Projects</div>
     <div class="subsection-block">${allProjects.filter(pr => pr.type === "cross-agency").map((proj, i) => {
       const entry = issp.part3.performanceFramework[proj.id] ??
         perfEntries.find(e => e.projectTitle === proj.title);
@@ -1272,11 +1285,11 @@ function renderPart3(issp: IsspData): string {
           <thead>
             <tr>
               <th style="width:15%">Hierarchy of Targeted Results</th>
-              <th style="width:20%">KPIs</th>
+              <th style="width:20%">Key Performance Indicators (KPIs)</th>
               <th style="width:15%">Baseline Data</th>
               <th style="width:15%">Targets</th>
               <th style="width:20%">Data Collection Methods</th>
-              <th style="width:15%">Responsibility</th>
+              <th style="width:15%">Responsibility to Collect Data</th>
             </tr>
           </thead>
           <tbody>
@@ -1497,6 +1510,7 @@ function renderPart4(issp: IsspData): string {
       </div>
       <div class="subsection-heading">${tocMark(`part4-a${i + 1}`)}A.${i + 1}. [${label}]</div>
       <div class="subsection-block">${renderYearTable(p[key], i + 1, label, internalProjects.filter((pr) => inDuration(pr, label)), crossAgencyProjects.filter((pr) => inDuration(pr, label)))}</div>
+      ${i === years.length - 1 ? `<p style="font-size:8pt;margin-top:3mm;">*All costs indicated in this section are based on the market research conducted by ${esc(issp.agency.name)}</p>` : ""}
     </div>`).join("")}
 
     <div class="page-break">
@@ -1588,7 +1602,7 @@ function renderPart4(issp: IsspData): string {
         <table>
           <thead><tr><th>Expenditure Type</th><th>${issp.startYear}</th><th>${issp.startYear + 1}</th><th>${issp.startYear + 2}</th><th>Total</th></tr></thead>
           <tbody>
-            ${[["Capital Outlay (CO)", coLines], ["Maintenance &amp; Other Operating Expenses (MOOE)", mooeLines]].map(([label, fn]) => {
+            ${[["Capital Outlay", coLines], ["Maintenance and Other Operating Expenses", mooeLines]].map(([label, fn]) => {
               const a = sumLines((fn as (y: YearBudget)=>LineItem[])(p.year1));
               const b = sumLines((fn as (y: YearBudget)=>LineItem[])(p.year2));
               const c = sumLines((fn as (y: YearBudget)=>LineItem[])(p.year3));

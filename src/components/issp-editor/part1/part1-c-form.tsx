@@ -620,7 +620,7 @@ export function Part1CForm({ initialData, officeId }: Part1CFormProps) {
                 <thead>
                   <tr className="bg-muted/50">
                     <th className="border px-3 py-2 text-left font-semibold w-52">
-                      Stakeholder / Client
+                      Stakeholders
                     </th>
                     <th className="border px-3 py-2 text-left font-semibold">
                       Transaction Processed

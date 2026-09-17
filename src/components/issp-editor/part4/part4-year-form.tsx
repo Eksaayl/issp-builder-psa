@@ -70,7 +70,7 @@ const BLANK_LINE = (): LineItem => ({
   office: "",
   uacsCode: "",
   uacsLabel: "",
-  fundSource: "General Appropriations Act (GAA)",
+  fundSource: "General Appropriations Act",
   qty: 1,
   unitCost: 0,
 });
@@ -84,9 +84,9 @@ function sumLines(lines: LineItem[]) {
 }
 
 const FUND_SOURCES = [
-  "General Appropriations Act (GAA)",
-  "Foreign-Assisted",
-  "Locally Funded",
+  "General Appropriations Act",
+  "Foreign-assisted projects",
+  "Locally funded",
   "Other Income Generating Sources",
 ];
 
@@ -146,8 +146,8 @@ function LineItemDrawer({ open, item, isNew, context, onSave, onDelete, onClose 
         <SheetHeader className="px-6 pt-5 pb-4 border-b shrink-0">
           <SheetTitle>
             {isNew
-              ? `Add Line Item — ${context === "co" ? "Capital Outlay" : "Maintenance & Other Operating Expenses"}`
-              : `Edit Line Item — ${context === "co" ? "Capital Outlay" : "Maintenance & Other Operating Expenses"}`}
+              ? `Add Line Item — ${context === "co" ? "Capital Outlay" : "Maintenance and Other Operating Expenses"}`
+              : `Edit Line Item — ${context === "co" ? "Capital Outlay" : "Maintenance and Other Operating Expenses"}`}
           </SheetTitle>
           <SheetDescription>
             {context === "co"
@@ -724,7 +724,7 @@ export function Part4YearForm({
           color="var(--budget-1)"
         >
           <LineTable
-            title="Capital Outlay (CO)"
+            title="Capital Outlay"
             context="co"
             lines={budget.officeProductivity.capitalOutlay}
             mode={lineMode}
@@ -736,7 +736,7 @@ export function Part4YearForm({
             }
           />
           <LineTable
-            title="Maintenance & Other Operating Expenses (MOOE)"
+            title="Maintenance and Other Operating Expenses"
             context="mooe"
             lines={budget.officeProductivity.mooe}
             mode={lineMode}
@@ -776,7 +776,7 @@ export function Part4YearForm({
               color="var(--budget-2)"
             >
               <LineTable
-                title="Capital Outlay (CO)"
+                title="Capital Outlay"
                 context="co"
                 lines={pb.capitalOutlay}
                 mode={lineMode}
@@ -791,7 +791,7 @@ export function Part4YearForm({
                 }
               />
               <LineTable
-                title="Maintenance & Other Operating Expenses (MOOE)"
+                title="Maintenance and Other Operating Expenses"
                 context="mooe"
                 lines={pb.mooe}
                 mode={lineMode}
@@ -826,7 +826,7 @@ export function Part4YearForm({
               color="var(--budget-3)"
             >
               <LineTable
-                title="Capital Outlay (CO)"
+                title="Capital Outlay"
                 context="co"
                 lines={pb.capitalOutlay}
                 mode={lineMode}
@@ -841,7 +841,7 @@ export function Part4YearForm({
                 }
               />
               <LineTable
-                title="Maintenance & Other Operating Expenses (MOOE)"
+                title="Maintenance and Other Operating Expenses"
                 context="mooe"
                 lines={pb.mooe}
                 mode={lineMode}
@@ -868,7 +868,7 @@ export function Part4YearForm({
           color="var(--budget-4)"
         >
           <LineTable
-            title="Maintenance & Other Operating Expenses (MOOE)"
+            title="Maintenance and Other Operating Expenses"
             context="mooe"
             lines={budget.continuingCosts.mooe}
             mode={lineMode}

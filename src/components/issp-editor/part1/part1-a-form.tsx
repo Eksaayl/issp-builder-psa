@@ -225,7 +225,7 @@ export function Part1AForm({ agencyType, initialData }: Part1AFormProps) {
 
           {can("mandateFunction") && (
             <FormField
-              label="Mandate / Functions"
+              label="Function"
               htmlFor="mandate-function"
               tooltip="Describe the primary mandate and functions of the agency as stated in its enabling law or executive order."
             >

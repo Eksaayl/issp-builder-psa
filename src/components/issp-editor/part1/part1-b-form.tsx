@@ -375,14 +375,14 @@ export function Part1BForm({
   return (
     <SectionShell
       sectionId="part1/b"
-      title="Organization Structure"
+      title="Organizational Structure"
       description="CIO details, ISSP Focal Person, and ICT human capital breakdown."
     >
 
       {/* B.1 Key Personnel */}
       <Card>
         <CardHeader className="pb-4">
-          <CardTitle className="text-base">B.1 Key Personnel</CardTitle>
+          <CardTitle className="text-base">B.1. Chief Information Officer (CIO)</CardTitle>
           <CardDescription>Chief Information Officer and ISSP Focal Person contact details.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -446,7 +446,7 @@ export function Part1BForm({
       {can("humanCapital") && (
       <Card>
         <CardHeader className="pb-4">
-          <CardTitle className="text-base">B.2 ICT Human Capital</CardTitle>
+          <CardTitle className="text-base">B.2. Human Capital</CardTitle>
           <CardDescription>
             Number of agency personnel by employment status, ICT/Non-ICT classification, and sex.
             Totals are computed automatically.
@@ -524,7 +524,7 @@ export function Part1BForm({
 
                 {/* Totals row */}
                 <tr className="bg-muted/50 font-semibold">
-                  <td className="border px-3 py-2">Total</td>
+                  <td className="border px-3 py-2">Grand Total</td>
                   <td className="border px-3 py-2 text-center">{calcTotal(hc, undefined, "it", "male")}</td>
                   <td className="border px-3 py-2 text-center">{calcTotal(hc, undefined, "it", "female")}</td>
                   <td className="border px-3 py-2 text-center bg-muted/40">{calcTotal(hc, undefined, "it") + hc.plantillaUnfilled.it}</td>

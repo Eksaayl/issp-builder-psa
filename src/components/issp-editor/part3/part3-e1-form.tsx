@@ -97,9 +97,9 @@ const HARMONIZATION_OPTIONS = [
 ];
 
 const FUNDING_OPTIONS = [
-  "General Appropriations Act (GAA)",
-  "Foreign-Assisted",
-  "Locally Funded",
+  "General Appropriations Act",
+  "Foreign-assisted projects",
+  "Locally funded",
   "Other Income Generating Sources",
 ];
 
@@ -444,7 +444,7 @@ function ProjectCard({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground uppercase tracking-wide">Implementing Agencies</Label>
+                <Label className="text-xs text-muted-foreground uppercase tracking-wide">Implementing Agency</Label>
                 <Input
                   placeholder="e.g., DICT, DBM, CSC"
                   value={project.implementingAgencies ?? ""}
@@ -527,7 +527,7 @@ function ProjectCard({
                     className="mt-0.5"
                   />
                   <span className="text-xs">
-                    <span className="font-medium">{opt.value === "Others" ? "Others (specify)" : opt.value}</span>
+                    <span className="font-medium">{opt.value === "Others" ? "Others (Specify)" : opt.value}</span>
                     <span className="block text-muted-foreground text-xs mt-0.5">{opt.hint}</span>
                   </span>
                 </label>
@@ -707,7 +707,7 @@ function ProjectReadView({
       <ReadRow label="Total Project Cost" value={<span className="font-semibold tabular-nums">{php(projectCost)}</span>} />
       <ReadRow label="Funding Source" value={project.fundingSource} />
       {isCrossAgency && <ReadRow label="Lead Agency" value={project.leadAgency} />}
-      {isCrossAgency && <ReadRow label="Implementing Agencies" value={project.implementingAgencies} />}
+      {isCrossAgency && <ReadRow label="Implementing Agency" value={project.implementingAgencies} />}
       <div className="flex justify-end border-t pt-3">
         <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={onEdit}>
           <Pencil className="h-3.5 w-3.5" />

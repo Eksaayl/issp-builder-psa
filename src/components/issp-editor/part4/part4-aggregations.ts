@@ -145,9 +145,9 @@ export function buildB1(
 }
 
 export const FUND_SOURCE_ORDER = [
-  "General Appropriations Act (GAA)",
-  "Foreign-Assisted",
-  "Locally Funded",
+  "General Appropriations Act",
+  "Foreign-assisted projects",
+  "Locally funded",
   "Other Income Generating Sources",
 ];
 
@@ -187,12 +187,12 @@ export function buildB3(years: [YearBudget, YearBudget, YearBudget]): SummaryRow
   const grandTotals = years.map(yearTotal);
   return [
     {
-      label: "Capital Outlay (CO)",
+      label: "Capital Outlay",
       year1: coTotals[0], year2: coTotals[1], year3: coTotals[2],
       total: coTotals.reduce((s, v) => s + v, 0),
     },
     {
-      label: "Maintenance and Other Operating Expenses (MOOE)",
+      label: "Maintenance and Other Operating Expenses",
       year1: mooeTotals[0], year2: mooeTotals[1], year3: mooeTotals[2],
       total: mooeTotals.reduce((s, v) => s + v, 0),
     },
