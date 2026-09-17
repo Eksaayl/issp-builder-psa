@@ -14,8 +14,7 @@ import { createEmptyDocument, makeDefaultPart1, makeDefaultPart2, makeDefaultPar
 import { idbClear, idbLoad, idbSave } from "./idb";
 import { CURRENT_SCHEMA_VERSION, getRequiredMigrationReviewSectionIds } from "@/lib/migration-review";
 import { recordIsspUsage } from "@/lib/record-usage";
-import { consolidate, type ScalarConflict } from "@/lib/scope/consolidate";
-import { SECTION_FIELDS } from "@/lib/section-fields";
+import { applyResolutions, consolidate, type ScalarConflict } from "@/lib/scope/consolidate";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1083,24 +1082,9 @@ export function IsspStoreProvider({ children }: { children: ReactNode }) {
       const result = consolidate(doc, parsed);
       const merged = result.merged;
 
-      // Apply the secretariat's scalar-conflict resolutions as a UI-layer
-      // overlay on the merged doc. Keys are `${sectionId}.${fieldKey}`; values
-      // are the chosen scalars. `consolidate()` leaves conflicting fields at
-      // the master's existing value, so unresolved conflicts keep the master
-      // value (no silent pick) — but the dialog gates Apply on every conflict
-      // having an explicit radio, so this path is belt-and-braces. Deep-clone
-      // so the merged doc shares no reference with the dialog's choice state.
-      for (const [key, value] of Object.entries(resolutions)) {
-        const dot = key.indexOf(".");
-        const sid = key.slice(0, dot);
-        const fk = key.slice(dot + 1);
-        // Only regular Part I–IV sections can produce scalar conflicts
-        // (annex1 is a shared table; definitions is a single leaf object).
-        const partKey = SECTION_FIELDS[sid]?.partKey;
-        if (!partKey) continue;
-        const target = merged[partKey] as unknown as Record<string, unknown>;
-        target[fk] = structuredClone(value);
-      }
+      // Apply the secretariat's scalar-conflict resolutions (flat Part I–IV
+      // keys + nested Part IV sub-field keys) as a UI-layer overlay.
+      applyResolutions(merged, resolutions);
 
       setDoc(merged);
       // Consolidate is a one-shot, irreversible mutation (like loadFromFile) and

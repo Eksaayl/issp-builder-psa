@@ -1,9 +1,9 @@
-// Verify script for the "project-keyed" consolidate strategy — Part III fields.
+// Verify script for the "project-keyed" consolidate strategy — Part III + IV fields.
 // Run: npx tsx scripts/verify-project-consolidate.ts
 import assert from "node:assert/strict";
 import { consolidate } from "../src/lib/scope/consolidate";
 import { createEmptyDocument } from "../src/lib/store/defaults";
-import type { IctProject, IsspDocument } from "../src/lib/store/types";
+import type { IctProject, IsspDocument, ProjectBudget } from "../src/lib/store/types";
 
 function makeMaster(): IsspDocument {
   const d = createEmptyDocument({
@@ -171,4 +171,124 @@ function scoped(
   assert.ok(r.reviewFlags.includes("part3/e1"), "(p) legacy union flagged");
 }
 
-console.log("✓ project-consolidate (Part III) verification passed");
+// ── Part IV imports for the new cases ───────────────────────────────────────
+import { applyResolutions } from "../src/lib/scope/consolidate";
+
+function yearBudget(internals: Record<string, ProjectBudget>) {
+  return {
+    officeProductivity: { capitalOutlay: [], mooe: [] },
+    internalProjects: internals,
+    crossAgencyProjects: {},
+    continuingCosts: { mooe: [] },
+  };
+}
+
+// ── (q) year budget: replace by project id; officeProductivity overlays ─────
+{
+  const master = makeMaster();
+  master.part4.year1 = yearBudget({
+    p1: { projectTitle: "One", capitalOutlay: [], mooe: [] },
+    p2: { projectTitle: "Two", capitalOutlay: [], mooe: [] },
+  });
+  master.part4.year1.officeProductivity.mooe = [
+    { id: "op1", item: "Connectivity", office: "", uacsCode: "", uacsLabel: "",
+      fundSource: "General Appropriations Act (GAA)", qty: 1, unitCost: 100 },
+  ];
+  const f = scoped("a", ["part4/year1"], ["p1"], (d) => {
+    d.part4.year1 = yearBudget({
+      p1: { projectTitle: "One (revised)", capitalOutlay: [], mooe: [] },
+    });
+    d.part4.year1.officeProductivity.mooe = [
+      { id: "op1", item: "Connectivity (revised)", office: "", uacsCode: "", uacsLabel: "",
+        fundSource: "General Appropriations Act (GAA)", qty: 2, unitCost: 100 },
+    ];
+  });
+  const r = consolidate(master, [f]);
+  assert.deepEqual(Object.keys(r.merged.part4.year1.internalProjects), ["p1", "p2"],
+    "(q) p1 budget replaced by id, p2 untouched");
+  assert.equal(r.merged.part4.year1.internalProjects.p1.projectTitle, "One (revised)",
+    "(q) p1 carries the office's revision");
+  assert.equal(r.merged.part4.year1.officeProductivity.mooe[0].qty, 2,
+    "(q) single-writer officeProductivity overlays");
+  assert.equal(r.reviewFlags.length, 0, "(q) clean merge, no flags");
+}
+
+// ── (r) two filtered offices on the same year, officeProductivity differs ───
+{
+  const master = makeMaster();
+  master.part4.year1 = yearBudget({
+    p1: { projectTitle: "One", capitalOutlay: [], mooe: [] },
+    p2: { projectTitle: "Two", capitalOutlay: [], mooe: [] },
+  });
+  const a = scoped("a", ["part4/year1"], ["p1"], (d) => {
+    d.part4.year1 = yearBudget({ p1: { projectTitle: "One", capitalOutlay: [], mooe: [] } });
+    d.part4.year1.officeProductivity.mooe = [
+      { id: "x", item: "From A", office: "", uacsCode: "", uacsLabel: "",
+        fundSource: "General Appropriations Act (GAA)", qty: 1, unitCost: 1 },
+    ];
+  });
+  const b = scoped("b", ["part4/year1"], ["p2"], (d) => {
+    d.part4.year1 = yearBudget({ p2: { projectTitle: "Two", capitalOutlay: [], mooe: [] } });
+    d.part4.year1.officeProductivity.mooe = [
+      { id: "x", item: "From B", office: "", uacsCode: "", uacsLabel: "",
+        fundSource: "General Appropriations Act (GAA)", qty: 1, unitCost: 1 },
+    ];
+  });
+  const r = consolidate(master, [a, b]);
+  const conflict = r.scalarConflicts.find(
+    (c) => c.sectionId === "part4/year1" && c.fieldKey === "year1.officeProductivity"
+  );
+  assert.ok(conflict, "(r) sub-field conflict surfaced with nested fieldKey");
+  assert.equal(conflict!.values.length, 2, "(r) both offices recorded");
+  assert.deepEqual(Object.keys(r.merged.part4.year1.internalProjects), ["p1", "p2"],
+    "(r) project budgets still merged cleanly despite the sub-conflict");
+  assert.ok(r.reviewFlags.includes("part4/year1"), "(r) year flagged for review");
+  // agreed sub-object → no conflict (single distinct value)
+  const b2 = scoped("b", ["part4/year1"], ["p2"], (d) => {
+    d.part4.year1 = yearBudget({ p2: { projectTitle: "Two", capitalOutlay: [], mooe: [] } });
+    d.part4.year1.officeProductivity.mooe = a.part4.year1.officeProductivity.mooe;
+  });
+  const r2 = consolidate(master, [a, b2]);
+  assert.equal(
+    r2.scalarConflicts.find((c) => c.fieldKey === "year1.officeProductivity"), undefined,
+    "(r) agreeing sub-objects → no conflict");
+}
+
+// ── (s) applyResolutions: flat and nested keys ──────────────────────────────
+{
+  const doc = makeMaster();
+  doc.part1.cioName = "old";
+  doc.part4.year1.officeProductivity.mooe = [];
+  applyResolutions(doc, {
+    "part1/b.cioName": "new",
+    "part4/year1.year1.officeProductivity": { capitalOutlay: [], mooe: [{ id: "l1" }] },
+  });
+  assert.equal(doc.part1.cioName, "new", "(s) flat resolution writes the field");
+  assert.equal(doc.part4.year1.officeProductivity.mooe.length, 1,
+    "(s) nested Part IV resolution writes the SUB-object, not a garbage key");
+  assert.ok(!("year1.officeProductivity" in (doc.part4 as unknown as Record<string, unknown>)),
+    "(s) no dotted garbage key on part4");
+  const before = JSON.stringify(doc);
+  applyResolutions(doc, { "definitions.definitions": [{ id: "x" }] });
+  assert.equal(JSON.stringify(doc), before, "(s) unknown-section resolution ignored");
+}
+
+// ── (u) new project budget key adds + flags; deleted budget key keeps ───────
+{
+  const master = makeMaster();
+  master.part4.year1 = yearBudget({
+    p1: { projectTitle: "One", capitalOutlay: [], mooe: [] },
+  });
+  const f = scoped("a", ["part4/year1"], ["p1", "p2"], (d) => {
+    // p1's budget deleted in the file; p-new's budget added.
+    d.part4.year1 = yearBudget({
+      "p-new": { projectTitle: "Brand New", capitalOutlay: [], mooe: [] },
+    });
+  });
+  const r = consolidate(master, [f]);
+  assert.deepEqual(Object.keys(r.merged.part4.year1.internalProjects).sort(), ["p-new", "p1"],
+    "(u) p1 kept (deletion does not propagate), p-new added");
+  assert.ok(r.reviewFlags.includes("part4/year1"), "(u) year flagged");
+}
+
+console.log("✓ project-consolidate (Part III + Part IV) verification passed");

@@ -1,5 +1,6 @@
 import type { IsspDocument } from "@/lib/store/types";
 import { resolveScope, SHARED_TABLE_PATHS, PROJECT_BEARING_FIELDS } from "@/lib/scope/paths";
+import { SECTION_FIELDS } from "@/lib/section-fields";
 
 /** A scalar field written by ≥2 offices — surfaced for human pick (no silent winner). */
 export interface ScalarConflict {
@@ -202,6 +203,34 @@ export function consolidate(master: IsspDocument, files: IsspDocument[]): Consol
     }
   }
 
+  // Part IV sub-object conflicts (officeProductivity / continuingCosts):
+  // decided batch-wide, once per year field, exactly once like scalar
+  // conflicts. FieldKey is NESTED ("year1.officeProductivity") so the store's
+  // resolution applier can address the sub-object.
+  const subConflicts = new Set<string>(); // `${sid}.${fk}.${sub}`
+  if (anyProjectFilter) {
+    for (const [key, strat] of strategy) {
+      if (strat !== "project-keyed") continue;
+      const dot = key.indexOf(".");
+      const sid = key.slice(0, dot);
+      if (!sid.startsWith("part4/")) continue;
+      const fk = key.slice(dot + 1);
+      for (const sub of ["officeProductivity", "continuingCosts"] as const) {
+        const values: { officeId: string; value: unknown }[] = [];
+        for (const file of latestByKey.get(key)?.values() ?? []) {
+          const yb = file.part4[fk as "year1" | "year2" | "year3"];
+          values.push({ officeId: file.editScope!.office.id, value: yb[sub] });
+        }
+        const distinct = new Set(values.map((v) => JSON.stringify(v.value)));
+        if (distinct.size > 1) {
+          subConflicts.add(`${sid}.${fk}.${sub}`);
+          reviewFlags.add(sid);
+          scalarConflicts.push({ sectionId: sid, fieldKey: `${fk}.${sub}`, values });
+        }
+      }
+    }
+  }
+
   // Multi-owner scalar conflicts are emitted once, up front, from the strategy
   // pass — independent of file iteration order. A section with at least one
   // scalar conflict is also flagged for review: the secretariat resolved the
@@ -343,8 +372,40 @@ export function consolidate(master: IsspDocument, files: IsspDocument[]): Consol
               const present = new Set(Object.keys(srcRec));
               if (pids.some((id) => !present.has(id) && id in masterRec)) changed = true;
             }
+          } else {
+            // part4/yearN — decompose the YearBudget: project sub-records
+            // merge by id; the two non-project sub-objects overlay when every
+            // contributor agrees and stay at master's value when conflicted
+            // (the sub-conflict pre-pass already surfaced the pick).
+            const srcYB = src[fk] as typeof master.part4.year1;
+            const dstYB = target[fk] as typeof master.part4.year1;
+            const masterYB = masterPart[fk] as typeof master.part4.year1;
+            for (const bucket of ["internalProjects", "crossAgencyProjects"] as const) {
+              for (const [id, v] of Object.entries(srcYB[bucket])) {
+                if (!(id in masterYB[bucket])) changed = true; // new project budget
+                dstYB[bucket][id] = structuredClone(v); // replace by key
+              }
+              if (pids) {
+                const present = new Set(Object.keys(srcYB[bucket]));
+                if (
+                  pids.some(
+                    (id) => !present.has(id) && id in masterYB[bucket]
+                  )
+                ) {
+                  changed = true; // deleted-by-office → keep master, flag
+                }
+              }
+            }
+            // Explicit per-sub writes (not a `for sub of [...]` loop): a
+            // union-keyed write `dstYB[sub] = …` must satisfy the INTERSECTION
+            // of both sub-object types, which the cloned union never does.
+            if (!subConflicts.has(`${sid}.${fk}.officeProductivity`)) {
+              dstYB.officeProductivity = structuredClone(srcYB.officeProductivity);
+            }
+            if (!subConflicts.has(`${sid}.${fk}.continuingCosts`)) {
+              dstYB.continuingCosts = structuredClone(srcYB.continuingCosts);
+            }
           }
-          // part4/yearN decomposition arrives with the Part IV task.
 
           if (changed) reviewFlags.add(sid);
           break;
@@ -362,4 +423,34 @@ export function consolidate(master: IsspDocument, files: IsspDocument[]): Consol
 
   merged.consolidationFlags = [...reviewFlags];
   return { merged, reviewFlags: [...reviewFlags], scalarConflicts };
+}
+
+/**
+ * Apply the secretariat's scalar-conflict resolutions onto a merged doc.
+ * Keys are `${sectionId}.${fieldKey}`; Part IV sub-field conflicts use a
+ * NESTED fieldKey (`"part4/year1" + "." + "year1.officeProductivity"`).
+ * Deep-clones values so the merged doc shares no reference with the dialog's
+ * choice state. Unknown sections are ignored (definitions/annex never
+ * produce scalar conflicts).
+ */
+export function applyResolutions(
+  merged: IsspDocument,
+  resolutions: Record<string, unknown>
+): void {
+  for (const [key, value] of Object.entries(resolutions)) {
+    const dot = key.indexOf(".");
+    const sid = key.slice(0, dot);
+    const fk = key.slice(dot + 1);
+    const partKey = SECTION_FIELDS[sid]?.partKey;
+    if (!partKey) continue;
+    const target = merged[partKey] as unknown as Record<string, unknown>;
+    const nested = fk.indexOf(".");
+    if (nested >= 0) {
+      const outer = fk.slice(0, nested);
+      const inner = fk.slice(nested + 1);
+      (target[outer] as Record<string, unknown>)[inner] = structuredClone(value);
+    } else {
+      target[fk] = structuredClone(value);
+    }
+  }
 }
