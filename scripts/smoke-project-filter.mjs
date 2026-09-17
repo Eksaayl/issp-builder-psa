@@ -274,6 +274,21 @@ try {
   if (!/SIKAP/.test(y1Text)) fail("Year 1 page missing SIKAP budget section");
   else ok("Year 1 hides both agency-wide categories, shows SIKAP budget");
 
+  // Part IV Summary (B.1): same hiding rule — the agency-wide category rows
+  // are dropped in a project-filtered scoped file; totals stay project-only.
+  await page.evaluate(() => {
+    const link = [...document.querySelectorAll("aside nav a")].find((a) =>
+      /Summary/.test(a.textContent || ""));
+    link?.click();
+  });
+  await sleep(600);
+  const sumText = await page.evaluate(() => document.body.textContent || "");
+  if (/Office Productivity/.test(sumText)) fail("Summary B.1 shows Office Productivity row (should be hidden)");
+  if (/Continuing Costs/.test(sumText)) fail("Summary B.1 shows Continuing Costs row (should be hidden)");
+  if (!/Internal ICT Projects/.test(sumText)) fail("Summary B.1 missing Internal ICT Projects row");
+  if (!/Grand Total/.test(sumText)) fail("Summary B.1 missing Grand Total row");
+  else ok("Summary B.1 drops agency-wide rows, keeps project + Grand Total");
+
   // ═══ Phase C: edit the scoped JSON on disk, consolidate back ══════════════
   console.log("\n=== C: consolidate edited return into master (via kebab) ===");
   const edited = "/tmp/smoke-project-filter/edited.issp";

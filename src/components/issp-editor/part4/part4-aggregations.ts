@@ -107,9 +107,22 @@ function categoryTotals(y: YearBudget) {
 
 // ─── Build functions ───────────────────────────────────────────────────────────
 
-export function buildB1(years: [YearBudget, YearBudget, YearBudget]): SummaryRow[] {
+/**
+ * B.1 General Summary rows. `hideNonProjectCategories` drops the Office
+ * Productivity and Continuing Costs rows for project-filtered scoped files
+ * (their data is empty there by slice and the year forms hide the same
+ * categories); Grand Total is computed from the year data independently and
+ * is unaffected — in a project-filtered file the dropped categories sum to 0.
+ */
+export function buildB1(
+  years: [YearBudget, YearBudget, YearBudget],
+  opts?: { hideNonProjectCategories?: boolean }
+): SummaryRow[] {
   const cats = years.map(categoryTotals);
-  const fields = ["officeProductivity", "internalProjects", "crossAgencyProjects", "continuingCosts"] as const;
+  const allFields = ["officeProductivity", "internalProjects", "crossAgencyProjects", "continuingCosts"] as const;
+  const fields = allFields.filter(
+    (f) => !opts?.hideNonProjectCategories || f === "internalProjects" || f === "crossAgencyProjects"
+  );
   const labels: Record<string, string> = {
     officeProductivity: "Office Productivity",
     internalProjects: "Internal ICT Projects",
