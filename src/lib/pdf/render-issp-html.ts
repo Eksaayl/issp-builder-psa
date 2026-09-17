@@ -760,7 +760,19 @@ function renderCyberTable(controls: CyberGroup): string {
       </tr>
     </thead>
     <tbody>
-      ${rows.map(row => `<tr class="avoid-break">
+      ${rows.map(row => row.mandatory.length === 0
+        // Template renders all-optional groups (Other Measures) as ONE merged
+        // row — the official docx sets nil borders on the shared cell edge in
+        // both II-B2 and III-A.2, so no separator is drawn; the two-column
+        // placement of items is text alignment, not a mandatory/optional split.
+        ? `<tr class="avoid-break">
+            <td class="group-cell">${esc(row.group)}</td>
+            <td class="optional-cell" colspan="2">
+              ${row.optional.map(m => `${chk(row.src[m.key] as boolean)} ${esc(m.label)}<br>`).join("")}
+              &nbsp;
+            </td>
+          </tr>`
+        : `<tr class="avoid-break">
             <td class="group-cell">${esc(row.group)}</td>
             <td class="mandatory-cell">
               ${row.mandatory.map(m => `${chk(row.src[m.key] as boolean)} ${esc(m.label)}<br>`).join("")}
