@@ -13,13 +13,24 @@ import {
 } from "@/components/ui/dialog";
 import { useIsspStore } from "@/lib/store";
 import { getMigrationReviewSection } from "@/lib/migration-review";
+import { useResolvedScope } from "@/hooks/use-resolved-scope";
+import { isSectionVisible } from "@/lib/scope/paths";
 
 export function IsspMigrationReviewDialog() {
   const router = useRouter();
   const { migrationNotice, acknowledgeMigrationNotice } = useIsspStore();
+  const scope = useResolvedScope();
   if (!migrationNotice) return null;
 
-  const sections = migrationNotice.pendingSectionIds
+  // A scoped office file can carry review flags for sections outside that
+  // office's scope (the master had other sections flagged too). Never pop
+  // this modal over something the office doesn't own and can't even open —
+  // Null scope ⇒ isSectionVisible is always true ⇒ unscoped behavior is
+  // unchanged.
+  const visiblePendingIds = migrationNotice.pendingSectionIds.filter((id) => isSectionVisible(scope, id));
+  if (visiblePendingIds.length === 0) return null;
+
+  const sections = visiblePendingIds
     .map(getMigrationReviewSection)
     .filter((section): section is NonNullable<typeof section> => !!section);
   const firstSection = sections[0];
