@@ -1,9 +1,9 @@
 {
   "version": "1.0",
   "fileType": "issp-main",
-  "exportedAt": "2026-09-16T10:31:30.360Z",
+  "exportedAt": "2026-09-17T07:43:26.134Z",
   "tool": "issp-platform",
-  "schemaVersion": 12,
+  "schemaVersion": 13,
   "title": "NCWTR Information Systems Strategic Plan 2026–2028",
   "startYear": 2026,
   "endYear": 2028,
@@ -184,6 +184,10 @@
           "male": 45,
           "female": 78
         }
+      },
+      "plantillaUnfilled": {
+        "it": 4,
+        "nonIt": 12
       },
       "contractual": {
         "it": {
@@ -887,6 +891,7 @@
           {
             "id": "cdd811ce8b3e36f87b30df1",
             "hierarchy": "Intermediate Outcome",
+            "targetedResult": "Monitored agencies submit queue data through the UQMP API instead of email/Excel",
             "indicator": "% of monitored agencies submitting queue data via UQMP API (vs. email/Excel)",
             "baseline": "0%",
             "year1Target": "25%",
@@ -898,6 +903,7 @@
           {
             "id": "c5b63cce9183c6a509ae6ea",
             "hierarchy": "Immediate Outcome",
+            "targetedResult": "Near-real-time consolidated queue monitoring capability for the agency",
             "indicator": "Monthly national queue report generation time (calendar days)",
             "baseline": "21 days",
             "year1Target": "10 days",
@@ -909,6 +915,7 @@
           {
             "id": "c67d67368908148205307a9",
             "hierarchy": "Output",
+            "targetedResult": "CFCP online citizen-complaint submission module deployed",
             "indicator": "CFCP citizen complaint submissions (online vs. fax)",
             "baseline": "0% online / 100% fax",
             "year1Target": "30% online",
@@ -920,6 +927,7 @@
           {
             "id": "ceb589ec53407cf3baea399",
             "hierarchy": "Output",
+            "targetedResult": "Legacy Windows XP NQMS workstations retired",
             "indicator": "Number of legacy Windows XP NQMS workstations operational",
             "baseline": "3",
             "year1Target": "3 (transition year)",
@@ -937,6 +945,7 @@
           {
             "id": "cf393af50610a2a7f7111dd",
             "hierarchy": "Intermediate Outcome",
+            "targetedResult": "Regional offices rely on dedicated fiber links for daily UQMP operations",
             "indicator": "Average internet connection speed across NCWTR regional offices (Mbps)",
             "baseline": "8.3 Mbps average (5 fiber, 9 DSL 5-10 Mbps, 3 LTE ~7 Mbps)",
             "year1Target": "95 Mbps",
@@ -948,6 +957,7 @@
           {
             "id": "cb53cd67140442f3cd51ac4",
             "hierarchy": "Immediate Outcome",
+            "targetedResult": "Agency-wide broadband capability at 100 Mbps for all offices",
             "indicator": "UQMP data upload time per regional office (minutes)",
             "baseline": "~25 minutes (DSL offices)",
             "year1Target": "< 5 minutes",
@@ -959,6 +969,7 @@
           {
             "id": "ccae22961e4640c996bf9b9",
             "hierarchy": "Output",
+            "targetedResult": "Regional offices connected at 100 Mbps or better",
             "indicator": "Number of regional offices with ≥100 Mbps dedicated connection",
             "baseline": "5",
             "year1Target": "17",
@@ -976,6 +987,7 @@
           {
             "id": "cfdb31a5ca7d5440fec5cfa",
             "hierarchy": "Intermediate Outcome",
+            "targetedResult": "HR staff maintain records directly in iHRPS instead of Excel workbooks",
             "indicator": "% of NCWTR employee records fully migrated and verified in iHRPS",
             "baseline": "0%",
             "year1Target": "100%",
@@ -987,6 +999,7 @@
           {
             "id": "cc1afbe0f8f41b24ab16b69",
             "hierarchy": "Immediate Outcome",
+            "targetedResult": "Consolidated, verifiable HR information capability via iHRPS",
             "indicator": "Number of active Excel workbooks used for HR management",
             "baseline": "47",
             "year1Target": "0",
@@ -998,6 +1011,7 @@
           {
             "id": "c8224d355bf22d7a97095f6",
             "hierarchy": "Output",
+            "targetedResult": "iHRPS deployed with active usage across regional offices",
             "indicator": "% of regional offices with iHRPS access and active usage",
             "baseline": "0%",
             "year1Target": "100%",

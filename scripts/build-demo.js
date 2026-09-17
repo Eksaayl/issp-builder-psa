@@ -23,6 +23,8 @@
  * {id, name} objects (bare strings were the pre-v12 form), and each strategic
  * concern carries programIds linking it to programs of its linked outcome.
  *
+ * 2026-09-17: realigned to schema 13 (plantillaUnfilled + KPI targetedResult).
+ *
  * Stable IDs are preserved across regenerations so internal references stay
  * consistent:
  *   - part1.orgOutcomes[].id            <- referenced by part2.strategicConcerns[].outcomeIds
@@ -43,12 +45,15 @@
 const fs = require("fs");
 const path = require("path");
 
+// Keep in sync with CURRENT_SCHEMA_VERSION in src/lib/migration-review.ts.
+const SCHEMA_VERSION = 13;
+
 const issp = {
   "version": "1.0",
   "fileType": "issp-main",
   "exportedAt": "2026-06-14T17:29:03.628Z",
   "tool": "issp-platform",
-  "schemaVersion": 12,
+  "schemaVersion": SCHEMA_VERSION,
   "title": "NCWTR Information Systems Strategic Plan 2026–2028",
   "startYear": 2026,
   "endYear": 2028,
@@ -202,6 +207,10 @@ const issp = {
           "male": 45,
           "female": 78
         }
+      },
+      "plantillaUnfilled": {
+        "it": 4,
+        "nonIt": 12
       },
       "contractual": {
         "it": {
@@ -905,6 +914,7 @@ const issp = {
           {
             "id": "cdd811ce8b3e36f87b30df1",
             "hierarchy": "Intermediate Outcome",
+            "targetedResult": "Monitored agencies submit queue data through the UQMP API instead of email/Excel",
             "indicator": "% of monitored agencies submitting queue data via UQMP API (vs. email/Excel)",
             "baseline": "0%",
             "year1Target": "25%",
@@ -916,6 +926,7 @@ const issp = {
           {
             "id": "c5b63cce9183c6a509ae6ea",
             "hierarchy": "Immediate Outcome",
+            "targetedResult": "Near-real-time consolidated queue monitoring capability for the agency",
             "indicator": "Monthly national queue report generation time (calendar days)",
             "baseline": "21 days",
             "year1Target": "10 days",
@@ -927,6 +938,7 @@ const issp = {
           {
             "id": "c67d67368908148205307a9",
             "hierarchy": "Output",
+            "targetedResult": "CFCP online citizen-complaint submission module deployed",
             "indicator": "CFCP citizen complaint submissions (online vs. fax)",
             "baseline": "0% online / 100% fax",
             "year1Target": "30% online",
@@ -938,6 +950,7 @@ const issp = {
           {
             "id": "ceb589ec53407cf3baea399",
             "hierarchy": "Output",
+            "targetedResult": "Legacy Windows XP NQMS workstations retired",
             "indicator": "Number of legacy Windows XP NQMS workstations operational",
             "baseline": "3",
             "year1Target": "3 (transition year)",
@@ -955,6 +968,7 @@ const issp = {
           {
             "id": "cf393af50610a2a7f7111dd",
             "hierarchy": "Intermediate Outcome",
+            "targetedResult": "Regional offices rely on dedicated fiber links for daily UQMP operations",
             "indicator": "Average internet connection speed across NCWTR regional offices (Mbps)",
             "baseline": "8.3 Mbps average (5 fiber, 9 DSL 5-10 Mbps, 3 LTE ~7 Mbps)",
             "year1Target": "95 Mbps",
@@ -966,6 +980,7 @@ const issp = {
           {
             "id": "cb53cd67140442f3cd51ac4",
             "hierarchy": "Immediate Outcome",
+            "targetedResult": "Agency-wide broadband capability at 100 Mbps for all offices",
             "indicator": "UQMP data upload time per regional office (minutes)",
             "baseline": "~25 minutes (DSL offices)",
             "year1Target": "< 5 minutes",
@@ -977,6 +992,7 @@ const issp = {
           {
             "id": "ccae22961e4640c996bf9b9",
             "hierarchy": "Output",
+            "targetedResult": "Regional offices connected at 100 Mbps or better",
             "indicator": "Number of regional offices with ≥100 Mbps dedicated connection",
             "baseline": "5",
             "year1Target": "17",
@@ -994,6 +1010,7 @@ const issp = {
           {
             "id": "cfdb31a5ca7d5440fec5cfa",
             "hierarchy": "Intermediate Outcome",
+            "targetedResult": "HR staff maintain records directly in iHRPS instead of Excel workbooks",
             "indicator": "% of NCWTR employee records fully migrated and verified in iHRPS",
             "baseline": "0%",
             "year1Target": "100%",
@@ -1005,6 +1022,7 @@ const issp = {
           {
             "id": "cc1afbe0f8f41b24ab16b69",
             "hierarchy": "Immediate Outcome",
+            "targetedResult": "Consolidated, verifiable HR information capability via iHRPS",
             "indicator": "Number of active Excel workbooks used for HR management",
             "baseline": "47",
             "year1Target": "0",
@@ -1016,6 +1034,7 @@ const issp = {
           {
             "id": "c8224d355bf22d7a97095f6",
             "hierarchy": "Output",
+            "targetedResult": "iHRPS deployed with active usage across regional offices",
             "indicator": "% of regional offices with iHRPS access and active usage",
             "baseline": "0%",
             "year1Target": "100%",
