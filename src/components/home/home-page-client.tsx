@@ -372,7 +372,7 @@ export default function HomePageClient({ aboutHtml, privacyHtml }: { aboutHtml: 
               className="animate-glow-orbit inline-flex items-center gap-2 rounded-full px-5 py-2 text-xs font-semibold text-foreground hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:text-sm"
             >
               <Sparkles className="h-4 w-4" />
-              What&apos;s new: Scoped / distributable ISSPs
+              What&apos;s new: New DICT template + per-project distribution
             </button>
           </div>
         </div>
