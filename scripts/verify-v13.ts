@@ -81,4 +81,19 @@ assert.strictEqual(createEmptyDocument({
   agency: { name: "n", acronym: "a", type: "NGA", websiteUrl: "", logoBase64: null },
 }).schemaVersion, 13);
 
+// 5. v12 -> v13 flags part1/b for migration review (Plantilla Filled/Unfilled
+// split is a semantic change to existing "Plantilla" data, not just an
+// additive field) -- and a v13-born doc never gets flagged.
+const flaggedDoc = migrateLegacyDoc(makeLegacyV12());
+assert.ok(
+  flaggedDoc.migrationReview?.pendingSectionIds.includes("part1/b"),
+  "part1/b must be in pendingSectionIds when migrating from v12"
+);
+const freshDoc = createEmptyDocument({
+  title: "t", startYear: 2028, endYear: 2030, amendmentNumber: 0, scope: "AGENCY_WIDE",
+  agencyHeadName: "h",
+  agency: { name: "n", acronym: "a", type: "NGA", websiteUrl: "", logoBase64: null },
+});
+assert.strictEqual(freshDoc.migrationReview, undefined, "a v13-born doc must not carry a migrationReview flag");
+
 console.log("ALL CHECKS PASSED");
