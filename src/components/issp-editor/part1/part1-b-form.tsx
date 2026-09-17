@@ -167,7 +167,7 @@ type WorkerType = "it" | "nonIt";
 type Gender = "male" | "female";
 
 const EMPLOYMENT_TYPES: { key: EmploymentType; label: string }[] = [
-  { key: "plantilla", label: "Plantilla" },
+  { key: "plantilla", label: "Plantilla (Filled)" },
   { key: "contractual", label: "Contractual" },
   { key: "outsourced", label: "Outsourced (JO, COS, and HTC)" },
 ];
@@ -285,6 +285,15 @@ export function Part1BForm({
       },
     };
     update({ humanCapital: hc });
+  }
+
+  function setHCUnfilled(type: "it" | "nonIt", value: number) {
+    update({
+      humanCapital: {
+        ...data.humanCapital,
+        plantillaUnfilled: { ...data.humanCapital.plantillaUnfilled, [type]: value },
+      },
+    });
   }
 
   const hc = data.humanCapital;
@@ -455,16 +464,44 @@ export function Part1BForm({
                   </tr>
                 ))}
 
+                {/* Official 09152026 template: unfilled plantilla posts — counts only, no sex breakdown (template prints N/A). */}
+                <tr className="hover:bg-muted/20">
+                  <td className="border px-3 py-2 font-medium text-sm">Plantilla (Unfilled)</td>
+                  <td className="border px-3 py-2 text-center text-muted-foreground/60" colSpan={2}>N/A</td>
+                  <td className="border px-1 py-1">
+                    <NumberInput
+                      unstyled
+                      min={0}
+                      className="w-full rounded px-2 py-1.5 text-center text-sm bg-card/70 hover:bg-card focus:bg-card focus:outline-none focus:ring-1 focus:ring-ring"
+                      value={hc.plantillaUnfilled.it}
+                      onValueChange={(n) => setHCUnfilled("it", n)}
+                    />
+                  </td>
+                  <td className="border px-3 py-2 text-center text-muted-foreground/60" colSpan={2}>N/A</td>
+                  <td className="border px-1 py-1">
+                    <NumberInput
+                      unstyled
+                      min={0}
+                      className="w-full rounded px-2 py-1.5 text-center text-sm bg-card/70 hover:bg-card focus:bg-card focus:outline-none focus:ring-1 focus:ring-ring"
+                      value={hc.plantillaUnfilled.nonIt}
+                      onValueChange={(n) => setHCUnfilled("nonIt", n)}
+                    />
+                  </td>
+                  <td className="border px-3 py-2 text-center font-bold bg-muted/30">
+                    {hc.plantillaUnfilled.it + hc.plantillaUnfilled.nonIt}
+                  </td>
+                </tr>
+
                 {/* Totals row */}
                 <tr className="bg-muted/50 font-semibold">
                   <td className="border px-3 py-2">Total</td>
                   <td className="border px-3 py-2 text-center">{calcTotal(hc, undefined, "it", "male")}</td>
                   <td className="border px-3 py-2 text-center">{calcTotal(hc, undefined, "it", "female")}</td>
-                  <td className="border px-3 py-2 text-center bg-muted/40">{calcTotal(hc, undefined, "it")}</td>
+                  <td className="border px-3 py-2 text-center bg-muted/40">{calcTotal(hc, undefined, "it") + hc.plantillaUnfilled.it}</td>
                   <td className="border px-3 py-2 text-center">{calcTotal(hc, undefined, "nonIt", "male")}</td>
                   <td className="border px-3 py-2 text-center">{calcTotal(hc, undefined, "nonIt", "female")}</td>
-                  <td className="border px-3 py-2 text-center bg-muted/40">{calcTotal(hc, undefined, "nonIt")}</td>
-                  <td className="border px-3 py-2 text-center bg-primary/10 text-primary">{calcTotal(hc)}</td>
+                  <td className="border px-3 py-2 text-center bg-muted/40">{calcTotal(hc, undefined, "nonIt") + hc.plantillaUnfilled.nonIt}</td>
+                  <td className="border px-3 py-2 text-center bg-primary/10 text-primary">{calcTotal(hc) + hc.plantillaUnfilled.it + hc.plantillaUnfilled.nonIt}</td>
                 </tr>
               </tbody>
             </table>

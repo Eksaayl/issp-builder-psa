@@ -33,6 +33,7 @@ interface Part1 {
     plantilla: { it: { male: number; female: number }; nonIt: { male: number; female: number } };
     contractual: { it: { male: number; female: number }; nonIt: { male: number; female: number } };
     outsourced: { it: { male: number; female: number }; nonIt: { male: number; female: number } };
+    plantillaUnfilled?: { it: number; nonIt: number };
   };
   stakeholders: { name: string; services: { name: string; complexity: string; direction: string }[] }[];
 }
@@ -611,17 +612,18 @@ function renderPart1(issp: IsspData): string {
     </tr>`;
   }
 
+  const unfilled = hc.plantillaUnfilled ?? { it: 0, nonIt: 0 };
   const itGrand = ["plantilla","contractual","outsourced"].reduce((s, k) => {
-    const r = hc[k as keyof typeof hc]; return s + (r.it.male||0) + (r.it.female||0);
-  }, 0);
+    const r = hc[k as "plantilla" | "contractual" | "outsourced"]; return s + (r.it.male||0) + (r.it.female||0);
+  }, 0) + unfilled.it;
   const nonItGrand = ["plantilla","contractual","outsourced"].reduce((s, k) => {
-    const r = hc[k as keyof typeof hc]; return s + (r.nonIt.male||0) + (r.nonIt.female||0);
-  }, 0);
+    const r = hc[k as "plantilla" | "contractual" | "outsourced"]; return s + (r.nonIt.male||0) + (r.nonIt.female||0);
+  }, 0) + unfilled.nonIt;
   const maleGrand = ["plantilla","contractual","outsourced"].reduce((s, k) => {
-    const r = hc[k as keyof typeof hc]; return s + (r.it.male||0) + (r.nonIt.male||0);
+    const r = hc[k as "plantilla" | "contractual" | "outsourced"]; return s + (r.it.male||0) + (r.nonIt.male||0);
   }, 0);
   const femaleGrand = ["plantilla","contractual","outsourced"].reduce((s, k) => {
-    const r = hc[k as keyof typeof hc]; return s + (r.it.female||0) + (r.nonIt.female||0);
+    const r = hc[k as "plantilla" | "contractual" | "outsourced"]; return s + (r.it.female||0) + (r.nonIt.female||0);
   }, 0);
 
   return `<div class="page-break">
@@ -682,7 +684,14 @@ function renderPart1(issp: IsspData): string {
         <tr><th>Male</th><th>Female</th></tr>
       </thead>
       <tbody>
-        ${hcRow("Plantilla", "plantilla")}
+        ${hcRow("Plantilla (Filled)", "plantilla")}
+        <tr class="avoid-break">
+          <td style="font-weight:bold;text-align:center;">Plantilla (Unfilled)</td>
+          <td style="text-align:center;">${unfilled.it}</td>
+          <td style="text-align:center;">${unfilled.nonIt}</td>
+          <td style="text-align:center;">N/A</td>
+          <td style="text-align:center;">N/A</td>
+        </tr>
         ${hcRow("Contractual", "contractual")}
         ${hcRow("Outsourced (JO, COS, and HTC)", "outsourced")}
         <tr style="background:#d9d9d9;font-weight:bold;">
