@@ -159,6 +159,7 @@ function nodeState(leaves: string[], selected: Set<string>): TriState {
 const INTERNAL_CARRIER_LEAVES = [
   "part3/e1.internalProjects",
   "part3/f.performanceFramework",
+  "part3/d.proposedSystems", // a systems-only office's file carries the projects' systems
   "part4/year1.year1",
   "part4/year2.year2",
   "part4/year3.year3",
@@ -166,6 +167,7 @@ const INTERNAL_CARRIER_LEAVES = [
 const CROSS_CARRIER_LEAVES = [
   "part3/e2.crossAgencyProjects",
   "part3/f.performanceFramework",
+  "part3/d.proposedSystems", // a systems-only office's file carries the projects' systems
   "part4/year1.year1",
   "part4/year2.year2",
   "part4/year3.year3",
@@ -534,12 +536,12 @@ export function DistributeDialog({
                 )}
                 {!canCarryInternal(current.leaves) && (
                   <p className="text-[11px] leading-snug text-muted-foreground/70">
-                    Own Part III-E1, III-F, or Part IV to include internal projects.
+                    Own Part III-E1, III-F, Part IV, or III-D to include internal projects.
                   </p>
                 )}
                 {!canCarryCross(current.leaves) && (
                   <p className="text-[11px] leading-snug text-muted-foreground/70">
-                    Own Part III-E2, III-F, or Part IV to include cross-agency projects.
+                    Own Part III-E2, III-F, Part IV, or III-D to include cross-agency projects.
                   </p>
                 )}
               </div>

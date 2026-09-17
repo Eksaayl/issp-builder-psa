@@ -53,6 +53,9 @@ interface Part4YearFormProps {
   initialData: YearBudget;
   internalProjects: { id: string; title: string }[];
   crossAgencyProjects: { id: string; title: string }[];
+  /** Hide the two agency-wide budget categories — project-filtered scoped
+   *  files only (the slice also empties their data). Default false. */
+  hideNonProjectCategories?: boolean;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -585,6 +588,7 @@ export function Part4YearForm({
   initialData,
   internalProjects,
   crossAgencyProjects,
+  hideNonProjectCategories = false,
 }: Part4YearFormProps) {
   const [budget, setBudget] = useState<YearBudget>(() => {
     const base = EMPTY_BUDGET();
@@ -679,7 +683,14 @@ export function Part4YearForm({
           { color: "var(--budget-2)", label: "Internal ICT Projects" },
           { color: "var(--budget-3)", label: "Cross-Agency ICT Projects" },
           { color: "var(--budget-4)", label: "Continuing Costs" },
-        ].map(({ color, label }) => (
+        ]
+          // Tokens stay bound to their labels — hidden categories drop out
+          // rather than shifting the remaining colors.
+          .filter(({ label }) =>
+            !hideNonProjectCategories ||
+            (label !== "Office Productivity" && label !== "Continuing Costs")
+          )
+          .map(({ color, label }) => (
           <span key={label} className="flex items-center gap-1.5">
             <span className="inline-block h-2.5 w-2.5 rounded-sm shrink-0" style={{ backgroundColor: color }} />
             {label}
@@ -704,37 +715,40 @@ export function Part4YearForm({
         </div>
       </div>
 
-      {/* A — Office Productivity */}
-      <SectionCard
-        title="Office Productivity"
-        description="Agency-wide ICT expenses not tied to a specific project"
-        color="var(--budget-1)"
-      >
-        <LineTable
-          title="Capital Outlay (CO)"
-          context="co"
-          lines={budget.officeProductivity.capitalOutlay}
-          mode={lineMode}
-          onUpdate={(lines) =>
-            save({
-              ...budget,
-              officeProductivity: { ...budget.officeProductivity, capitalOutlay: lines },
-            })
-          }
-        />
-        <LineTable
-          title="Maintenance & Other Operating Expenses (MOOE)"
-          context="mooe"
-          lines={budget.officeProductivity.mooe}
-          mode={lineMode}
-          onUpdate={(lines) =>
-            save({
-              ...budget,
-              officeProductivity: { ...budget.officeProductivity, mooe: lines },
-            })
-          }
-        />
-      </SectionCard>
+      {/* A — Office Productivity — hidden in project-filtered scoped files
+          only (the slice also empties its data) */}
+      {!hideNonProjectCategories && (
+        <SectionCard
+          title="Office Productivity"
+          description="Agency-wide ICT expenses not tied to a specific project"
+          color="var(--budget-1)"
+        >
+          <LineTable
+            title="Capital Outlay (CO)"
+            context="co"
+            lines={budget.officeProductivity.capitalOutlay}
+            mode={lineMode}
+            onUpdate={(lines) =>
+              save({
+                ...budget,
+                officeProductivity: { ...budget.officeProductivity, capitalOutlay: lines },
+              })
+            }
+          />
+          <LineTable
+            title="Maintenance & Other Operating Expenses (MOOE)"
+            context="mooe"
+            lines={budget.officeProductivity.mooe}
+            mode={lineMode}
+            onUpdate={(lines) =>
+              save({
+                ...budget,
+                officeProductivity: { ...budget.officeProductivity, mooe: lines },
+              })
+            }
+          />
+        </SectionCard>
+      )}
 
       {/* B… — Internal Projects */}
       {internalProjects.length === 0 ? (
@@ -845,20 +859,23 @@ export function Part4YearForm({
           );
         })}
 
-      {/* Continuing Costs */}
-      <SectionCard
-        title="Continuing Costs"
-        description="Subscriptions, maintenance contracts, and other ongoing ICT costs"
-        color="var(--budget-4)"
-      >
-        <LineTable
-          title="Maintenance & Other Operating Expenses (MOOE)"
-          context="mooe"
-          lines={budget.continuingCosts.mooe}
-          mode={lineMode}
-          onUpdate={(lines) => save({ ...budget, continuingCosts: { mooe: lines } })}
-        />
-      </SectionCard>
+      {/* Continuing Costs — hidden in project-filtered scoped files only
+          (the slice also empties its data) */}
+      {!hideNonProjectCategories && (
+        <SectionCard
+          title="Continuing Costs"
+          description="Subscriptions, maintenance contracts, and other ongoing ICT costs"
+          color="var(--budget-4)"
+        >
+          <LineTable
+            title="Maintenance & Other Operating Expenses (MOOE)"
+            context="mooe"
+            lines={budget.continuingCosts.mooe}
+            mode={lineMode}
+            onUpdate={(lines) => save({ ...budget, continuingCosts: { mooe: lines } })}
+          />
+        </SectionCard>
+      )}
 
       {/* Grand Total */}
       <div className="flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 px-6 py-4">

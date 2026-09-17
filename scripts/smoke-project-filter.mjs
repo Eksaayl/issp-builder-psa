@@ -226,8 +226,11 @@ try {
     "cross-agency projects stripped (unselected)");
   assertE(Object.keys(scopedJson.part3.performanceFramework).length === 1, "PF carries only SIKAP");
   assertE(Object.keys(scopedJson.part4.year1.internalProjects).length === 1, "year1 budget only SIKAP");
-  assertE(scopedJson.part4.year1.officeProductivity.mooe.length === 1,
-    "officeProductivity intact (owned, not project-filtered)");
+  assertE(scopedJson.part4.year1.officeProductivity.mooe.length === 0
+    && scopedJson.part4.year1.officeProductivity.capitalOutlay.length === 0,
+    "officeProductivity stripped from project file (CO + MOOE empty)");
+  assertE(scopedJson.part4.year1.continuingCosts.mooe.length === 0,
+    "continuingCosts stripped from project file");
   assertE(scopedJson.part3.proposedSystems.length === 1
     && scopedJson.part3.proposedSystems[0].id === "sys-hris", "linked-system context = HRIS only");
 
@@ -256,6 +259,20 @@ try {
   // submit label, hidden until opened — so match both spellings.
   if (!/Add [Pp]roject/.test(e1Text)) fail("Add project button missing");
   else ok("E1 shows only SIKAP + Add project available");
+
+  // Part IV Year 1: the two agency-wide budget categories are hidden in a
+  // project-filtered scoped file; the selected project's budget is not.
+  await page.evaluate(() => {
+    const link = [...document.querySelectorAll("aside nav a")].find((a) =>
+      /Year 1/.test(a.textContent || ""));
+    link?.click();
+  });
+  await sleep(600);
+  const y1Text = await page.evaluate(() => document.body.textContent || "");
+  if (/Office Productivity/.test(y1Text)) fail("Year 1 page shows Office Productivity (should be hidden)");
+  if (/Continuing Costs/.test(y1Text)) fail("Year 1 page shows Continuing Costs (should be hidden)");
+  if (!/SIKAP/.test(y1Text)) fail("Year 1 page missing SIKAP budget section");
+  else ok("Year 1 hides both agency-wide categories, shows SIKAP budget");
 
   // ═══ Phase C: edit the scoped JSON on disk, consolidate back ══════════════
   console.log("\n=== C: consolidate edited return into master (via kebab) ===");

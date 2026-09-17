@@ -26,6 +26,7 @@ export default function Part4Year2Page() {
       initialData={doc.part4.year2}
       internalProjects={doc.part3.internalProjects.filter((p) => inDuration(p.duration)).map((p) => ({ id: p.id, title: p.title }))}
       crossAgencyProjects={doc.part3.crossAgencyProjects.filter((p) => inDuration(p.duration)).map((p) => ({ id: p.id, title: p.title }))}
+      hideNonProjectCategories={doc.editScope?.projectIds !== undefined}
     />
   );
 }
