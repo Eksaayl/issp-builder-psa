@@ -32,7 +32,7 @@ The official template (v2 2026-06-12 PDF lines 207–212/412–417 and 09152026 
 
 **Interfaces:**
 - Consumes: `CYBER_GROUPS` shape (`{ key, label, items: {key, label, mandatory}[] }[]`) — unchanged.
-- Produces: 28 mandatory controls total (was 22). `part2-b-form.tsx` / `part3-a-form.tsx` counters derive from `group.items.filter(i => i.mandatory)` — no form edits needed. Tasks 2+ rely on nothing here.
+- Produces: 20 mandatory controls total (was 14 — the plan author first wrote 28/22 by mis-adding the groups; 3+3+1+3+3+1+6 = 20). `part2-b-form.tsx` / `part3-a-form.tsx` counters derive from `group.items.filter(i => i.mandatory)` — no form edits needed. Tasks 2+ rely on nothing here.
 
 - [ ] **Step 1: Flip the 6 flags**
 
@@ -70,11 +70,11 @@ const g = CYBER_GROUPS.find(x => x.key === "other")!;
 const m = g.items.filter(i => i.mandatory).map(i => i.key).sort();
 if (JSON.stringify(m) !== JSON.stringify(["accessReviews","mfa","patchMgmt","securityLogs","strongPasswords","vulnAssessment"])) throw new Error("bad mandatory set: " + m);
 const total = CYBER_GROUPS.reduce((s, x) => s + x.items.filter(i => i.mandatory).length, 0);
-if (total !== 28) throw new Error("expected 28 mandatory, got " + total);
-console.log("OK: Other Measures 6M/5O, 28 mandatory overall");'
+if (total !== 20) throw new Error("expected 20 mandatory, got " + total);
+console.log("OK: Other Measures 6M/5O, 20 mandatory overall");'
 ```
 
-Expected: `OK: Other Measures 6M/5O, 28 mandatory overall`.
+Expected: `OK: Other Measures 6M/5O, 20 mandatory overall` (14 pre-existing + the 6 flipped).
 
 - [ ] **Step 4: Correct the guidelines extraction**
 
@@ -648,7 +648,7 @@ Expected: all clean; lint at its pre-existing warning count.
 - [ ] **Step 3: Browser smoke (Puppeteer, localhost:3000, neutralized randomUUID, networkidle2, fresh page per phase)**
 
 1. Load the demo doc (IDB injection pattern from the verifier-web skill). `/editor/part1/b`: the grid shows **Plantilla (Filled)**, **Plantilla (Unfilled)** (two inputs, two `N/A` cells), and totals include unfilled (demo: 4 IT + 12 Non-IT).
-2. `/editor/part2/b` and `/editor/part3/a`: Other Measures badge reads **6/6 mandatory** items listed under MANDATORY; overall mandatory count is 28.
+2. `/editor/part2/b` and `/editor/part3/a`: Other Measures badge reads **6/6 mandatory** items listed under MANDATORY; overall mandatory count is 20 (was 14).
 3. `/editor/part3/f`: read tables show the statement under each hierarchy level; open the drawer — "Targeted Result" textarea present; edit + save persists after reload.
 4. Legacy v12 fixture: synthesize from the demo (`schemaVersion: 12`, strip `plantillaUnfilled` + all `targetedResult`) → load through the UI → no errors; read back IDB: `schemaVersion === 13`, backfills present (same asserts as verify-v13 but through the real loader).
 
