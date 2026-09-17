@@ -583,7 +583,7 @@ Update the header comment: add a `2026-09-17: realigned to schema 13 (plantillaU
 
 - [ ] **Step 2: Demo data — targetedResult for all 11 KPI rows**
 
-Add `"targetedResult": "…"` as the second key of every row in `performanceFramework`, following the guide's semantics (Intermediate = stakeholder behavior change, Immediate = agency capability, Output = completed deliverable):
+Add `"targetedResult": "…"` as the second key of all 10 rows in `performanceFramework` (4+3+3), following the guide's semantics (Intermediate = stakeholder behavior change, Immediate = agency capability, Output = completed deliverable):
 
 - `proj-sikap` (4 rows):
   - Intermediate: `"Monitored agencies submit queue data through the UQMP API instead of email/Excel"`
@@ -606,7 +606,7 @@ node scripts/build-demo.js
 node .claude/skills/docx-to-issp/scripts/validate_issp.mjs public/demo/ncwtr-issp-2026-2028.issp
 ```
 
-Expected: validator PASS (its known-baseline warnings only). Spot-check: `grep -c targetedResult public/demo/ncwtr-issp-2026-2028.issp` → 11; `grep plantillaUnfilled` → present; `grep '"schemaVersion": 13'` → present.
+Expected: validator PASS (its known-baseline warnings only). Spot-check: `grep -c targetedResult public/demo/ncwtr-issp-2026-2028.issp` → 10; `grep plantillaUnfilled` → present; `grep '"schemaVersion": 13'` → present.
 
 - [ ] **Step 4: Skill sync (local-only files)**
 
