@@ -134,6 +134,7 @@ interface IctProject {
 
 interface KpiRow {
   hierarchy: string;
+  targetedResult?: string;
   kpi: string;
   baselineData: string;
   targets: { year1: string; year2: string; year3: string };
@@ -1230,7 +1231,7 @@ function renderPart3(issp: IsspData): string {
           </thead>
           <tbody>
             ${entry.rows.map(row => `<tr class="avoid-break">
-              <td style="font-weight:bold;">${esc(row.hierarchy)}</td>
+              <td style="font-weight:bold;">${esc(row.hierarchy)}${row.targetedResult ? `<br><span style="font-weight:normal;">${esc(row.targetedResult)}</span>` : ""}</td>
               <td>${nl2br(row.kpi)}</td>
               <td>${nl2br(row.baselineData)}</td>
               <td>Y1: ${esc(row.targets?.year1)}<br>Y2: ${esc(row.targets?.year2)}<br>Y3: ${esc(row.targets?.year3)}</td>
@@ -1263,7 +1264,7 @@ function renderPart3(issp: IsspData): string {
           </thead>
           <tbody>
             ${entry.rows.map(row => `<tr class="avoid-break">
-              <td style="font-weight:bold;">${esc(row.hierarchy)}</td>
+              <td style="font-weight:bold;">${esc(row.hierarchy)}${row.targetedResult ? `<br><span style="font-weight:normal;">${esc(row.targetedResult)}</span>` : ""}</td>
               <td>${nl2br(row.kpi)}</td>
               <td>${nl2br(row.baselineData)}</td>
               <td>Y1: ${esc(row.targets?.year1)}<br>Y2: ${esc(row.targets?.year2)}<br>Y3: ${esc(row.targets?.year3)}</td>

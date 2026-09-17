@@ -113,6 +113,7 @@ function mapProject(proj: IctProject, crossAgency: boolean, totalProjectCost: nu
 function mapKpiRow(row: KpiRow) {
   return {
     hierarchy: row.hierarchy,
+    targetedResult: row.targetedResult ?? "",
     kpi: row.indicator,
     baselineData: row.baseline,
     targets: { year1: row.year1Target, year2: row.year2Target, year3: row.year3Target },

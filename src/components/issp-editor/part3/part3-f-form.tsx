@@ -141,6 +141,21 @@ function KpiDrawer({
           </div>
 
           <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground uppercase tracking-wide">Targeted Result</Label>
+            <Textarea
+              rows={2}
+              placeholder="e.g., Streamlined and efficient near-real-time monitoring of land acquisition activities"
+              value={draft.targetedResult}
+              onChange={(e) => set("targetedResult", e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Write the specific result for the selected level: Intermediate Outcome — a change
+              in the behavior of target stakeholders; Immediate Outcome — an enhancement of the
+              agency&apos;s institutional capability; Output — a completed deliverable of the project.
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground uppercase tracking-wide">Key Performance Indicator</Label>
             <Textarea
               rows={3}
@@ -322,6 +337,9 @@ function ProjectKpiTable({
                       <tr key={row.id} data-reveal-id={row.id} className="hover:bg-muted/10 align-top">
                         <td className="border px-2 py-2 break-words">
                           {row.hierarchy ? <span className="font-medium">{row.hierarchy}</span> : <Empty />}
+                          {row.targetedResult && (
+                            <p className="mt-0.5 text-muted-foreground break-words">{row.targetedResult}</p>
+                          )}
                         </td>
                         <td className="border px-2 py-2">
                           <p className="break-words whitespace-pre-wrap">
@@ -375,6 +393,9 @@ function ProjectKpiTable({
                         <Pencil className="h-3 w-3" />
                       </Button>
                     </div>
+                    {row.targetedResult && (
+                      <p className="text-xs break-words">{row.targetedResult}</p>
+                    )}
                     <p className="text-xs break-words">{row.indicator || <Empty />}</p>
                     <p className="text-xs text-muted-foreground break-words">
                       Base {row.baseline || "—"} → {row.year1Target || "—"} → {row.year2Target || "—"} → {row.year3Target || "—"}
