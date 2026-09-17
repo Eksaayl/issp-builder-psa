@@ -229,6 +229,26 @@ sub-field conflicts ride `scalarConflicts` → the existing pick-a-value screen.
 3. Legacy regression: a batch with no `projectIds` files merges exactly as
    before (overlay / list-union / scalar-conflict unchanged).
 
+## Addendum (2026-09-17, approved same day): project files carry no agency-wide budget; systems travel with their project
+
+Two behavior changes for **project-filtered files only** (`projectIds` present;
+All-projects offices keep the original behavior):
+
+1. **Office Productivity + Continuing Costs are excluded.** The slice does not
+   copy them (they stay empty), the Part IV year form hides both cards and
+   their legend entries (the recipient cannot see or add such lines; totals are
+   project-only), and consolidate treats a project-filtered file as
+   contributing NOTHING to those two sub-objects — no overlay, no conflict.
+   Rationale: they are agency-wide budget, not the project owner's to edit;
+   naively overlaying the file's empty copy would wipe the master's data.
+2. **Proposed IS travels with its project.** The linked systems of the carried
+   projects are the ONLY systems in the file — including when the office owns
+   III-D (previously owned III-D kept all systems). `part3/d.proposedSystems`
+   joins `PROJECT_BEARING_FIELDS` and merges by system id: replace by id, new
+   systems from the recipient append + review flag, and a system absent from
+   the file is KEPT (no deletion semantics — `projectIds` addresses projects,
+   not systems; absence may just mean "not linked").
+
 ## Docs to update in the implementation plan
 
 - `docs/scoped-distribution-usage.md` — new "Distribute by project" section.
