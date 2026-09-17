@@ -35,10 +35,11 @@ assert.ok(ALL_SECTION_IDS.includes("annexes/annex1"));
 assert.ok(ALL_SECTION_IDS.includes("definitions"));
 
 // ── project-bearing fields (per-project distribution filter domain) ─────────
-assert.equal(PROJECT_BEARING_FIELDS.size, 6, "six project-bearing fields");
+assert.equal(PROJECT_BEARING_FIELDS.size, 7, "seven project-bearing fields");
 assert.ok(PROJECT_BEARING_FIELDS.has("part3/e1.internalProjects"));
 assert.ok(PROJECT_BEARING_FIELDS.has("part3/e2.crossAgencyProjects"));
 assert.ok(PROJECT_BEARING_FIELDS.has("part3/f.performanceFramework"));
+assert.ok(PROJECT_BEARING_FIELDS.has("part3/d.proposedSystems"));
 assert.ok(PROJECT_BEARING_FIELDS.has("part4/year1.year1"));
 assert.ok(PROJECT_BEARING_FIELDS.has("part4/year2.year2"));
 assert.ok(PROJECT_BEARING_FIELDS.has("part4/year3.year3"));

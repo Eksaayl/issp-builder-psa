@@ -100,10 +100,10 @@ function makeMaster() {
     "(a) year1 cross-agency budget filtered");
   assert.deepEqual(Object.keys(s.part4.year2.internalProjects), ["proj-sikap"],
     "(a) year2 budget filtered");
-  assert.deepEqual(s.part4.year1.officeProductivity.mooe.map((l) => l.id), ["op-1"],
-    "(a) officeProductivity NOT project-filtered (owned → copied wholesale)");
-  assert.deepEqual(s.part4.year1.continuingCosts.mooe.map((l) => l.id), ["cc-1"],
-    "(a) continuingCosts NOT project-filtered");
+  assert.deepEqual(s.part4.year1.officeProductivity, { capitalOutlay: [], mooe: [] },
+    "(a) officeProductivity STRIPPED from project-filtered file (not the office's to edit)");
+  assert.deepEqual(s.part4.year1.continuingCosts, { mooe: [] },
+    "(a) continuingCosts STRIPPED from project-filtered file");
   assert.deepEqual(s.part3.proposedSystems.map((x) => x.id), ["sys-hris"],
     "(a) linked-system context: only systems of carried projects");
 }
@@ -166,8 +166,8 @@ function makeMaster() {
     projectIds: ["proj-sikap"],
   });
   assert.deepEqual(s.part4.year1.internalProjects, {}, "(e) unowned year stays at default");
-  assert.equal(s.part3.proposedSystems.length, 2,
-    "(e) owned III-D keeps ALL systems (filter applies to context only)");
+  assert.deepEqual(s.part3.proposedSystems.map((x) => x.id), ["sys-hris"],
+    "(e) owned III-D also carries ONLY the carried projects' systems (one rule)");
 }
 
 // ── (f) deep isolation: mutating the slice never touches the master ─────────
@@ -175,16 +175,37 @@ function makeMaster() {
   const master = makeMaster();
   const s = sliceScopedDoc(master, {
     office: { id: "x", name: "X", displayLabel: "X" },
-    // year1 owned so officeProductivity travels: per the contract it follows
-    // field ownership, so an unowned year would hold no mooe row to mutate.
     editable: ["part3/e1", "part4/year1"],
     projectIds: ["proj-sikap"],
   });
   s.part3.internalProjects[0].title = "MUTATED";
-  s.part4.year1.officeProductivity.mooe[0].item = "MUTATED";
+  // Categories never travel in a project-filtered file, so the slice holds
+  // the empty default — no master row to alias or mutate through.
+  assert.deepEqual(s.part4.year1.officeProductivity, { capitalOutlay: [], mooe: [] },
+    "(f) categories excluded from the slice — nothing of master's to alias");
   assert.equal(master.part3.internalProjects[0].title, "SIKAP", "(f) master project row untouched");
   assert.equal(master.part4.year1.officeProductivity.mooe[0].item, "Office connectivity",
     "(f) master officeProductivity untouched");
+}
+
+// ── (g) Part-IV-only office, filtered: budget categories empty, projects kept ─
+{
+  const master = makeMaster();
+  const s = sliceScopedDoc(master, {
+    office: { id: "x", name: "X", displayLabel: "X" },
+    editable: ["part4/year1", "part4/year2", "part4/year3"], // owns ONLY years
+    projectIds: ["proj-sikap"],
+  });
+  assert.deepEqual(s.part4.year1.officeProductivity, { capitalOutlay: [], mooe: [] },
+    "(g) year1 officeProductivity empty default");
+  assert.deepEqual(s.part4.year1.continuingCosts, { mooe: [] },
+    "(g) year1 continuingCosts empty default");
+  assert.deepEqual(s.part4.year2.officeProductivity, { capitalOutlay: [], mooe: [] },
+    "(g) year2 officeProductivity empty default");
+  assert.deepEqual(s.part4.year3.continuingCosts, { mooe: [] },
+    "(g) year3 continuingCosts empty default");
+  assert.deepEqual(Object.keys(s.part4.year1.internalProjects), ["proj-sikap"],
+    "(g) internal budget still filtered to the selected project");
 }
 
 console.log("✓ project-slice verification passed");

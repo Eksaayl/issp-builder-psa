@@ -64,9 +64,9 @@ function strategyFor(
     return "shared-table";
   }
   // Per-project distribution: when ANY file in the batch declares a project
-  // filter, the five project-bearing fields merge by project id (replace /
-  // append / keep-on-delete) instead of overlay/union. Pure-legacy batches
-  // keep the strategies below, byte-for-byte.
+  // filter, the project-bearing fields (PROJECT_BEARING_FIELDS) merge by
+  // project id (replace / append / keep-on-delete) instead of overlay/union.
+  // Pure-legacy batches keep the strategies below, byte-for-byte.
   if (anyProjectFilter && PROJECT_BEARING_FIELDS.has(key)) {
     return "project-keyed";
   }
@@ -102,6 +102,9 @@ function projectEntries(file: IsspDocument, key: string): [string, unknown][] {
   const fk = key.slice(dot + 1);
   if (sid === "part3/e1") return file.part3.internalProjects.map((r) => [r.id, r] as [string, unknown]);
   if (sid === "part3/e2") return file.part3.crossAgencyProjects.map((r) => [r.id, r] as [string, unknown]);
+  // Systems merge by their OWN id (they are linked to projects, not keyed by
+  // project id) — the differ pre-pass uses these entries like any other.
+  if (sid === "part3/d") return file.part3.proposedSystems.map((r) => [r.id, r] as [string, unknown]);
   if (sid === "part3/f") return Object.entries(file.part3.performanceFramework);
   const yb = file.part4[fk as "year1" | "year2" | "year3"];
   if (!yb) return [];
@@ -218,6 +221,11 @@ export function consolidate(master: IsspDocument, files: IsspDocument[]): Consol
       for (const sub of ["officeProductivity", "continuingCosts"] as const) {
         const values: { officeId: string; value: unknown }[] = [];
         for (const file of latestByKey.get(key)?.values() ?? []) {
+          // Project-filtered files contribute NOTHING to the two sub-objects:
+          // their slice leaves both at the empty default (agency-wide budget
+          // is not the office's to edit), so counting them here would either
+          // fabricate a conflict or let an empty copy win the overlay.
+          if (file.editScope?.projectIds !== undefined) continue;
           const yb = file.part4[fk as "year1" | "year2" | "year3"];
           if (!yb) continue; // like projectEntries: a file lacking this year contributes nothing
           values.push({ officeId: file.editScope!.office.id, value: yb[sub] });
@@ -339,7 +347,7 @@ export function consolidate(master: IsspDocument, files: IsspDocument[]): Consol
           const masterPart = master[partKey] as unknown as Record<string, unknown>;
           let changed = false;
 
-          if (sid === "part3/e1" || sid === "part3/e2") {
+          if (sid === "part3/e1" || sid === "part3/e2" || sid === "part3/d") {
             const srcRows = ((src[fk] as { id: string }[]) ?? []);
             const dstRows = (target[fk] as { id: string }[]) ?? [];
             const masterRows = ((masterPart[fk] as { id: string }[]) ?? []);
@@ -352,10 +360,13 @@ export function consolidate(master: IsspDocument, files: IsspDocument[]): Consol
                 changed = true;
               }
             }
-            if (pids) {
+            if (pids && sid !== "part3/d") {
               const present = new Set(srcRows.map((r) => r.id));
               // deleted-by-office: owned id missing from the file but present
               // on the master → KEEP the master row, flag the section.
+              // III-D is exempt: `projectIds` addresses projects, not systems —
+              // absence from the file may just mean "not linked", so systems
+              // are kept with no flag.
               if (pids.some((id) => !present.has(id) && masterRows.some((r) => r.id === id))) {
                 changed = true;
               }
@@ -380,7 +391,10 @@ export function consolidate(master: IsspDocument, files: IsspDocument[]): Consol
             // part4/yearN — decompose the YearBudget: project sub-records
             // merge by id; the two non-project sub-objects overlay when every
             // contributor agrees and stay at master's value when conflicted
-            // (the sub-conflict pre-pass already surfaced the pick).
+            // (the sub-conflict pre-pass already surfaced the pick). A
+            // project-filtered file overlays NEITHER sub-object: it holds only
+            // the empty default, and the categories are agency-wide budget,
+            // not the office's to edit.
             const srcYB = src[fk] as typeof master.part4.year1;
             const dstYB = target[fk] as typeof master.part4.year1;
             const masterYB = masterPart[fk] as typeof master.part4.year1;
@@ -403,10 +417,10 @@ export function consolidate(master: IsspDocument, files: IsspDocument[]): Consol
             // Explicit per-sub writes (not a `for sub of [...]` loop): a
             // union-keyed write `dstYB[sub] = …` must satisfy the INTERSECTION
             // of both sub-object types, which the cloned union never does.
-            if (!subConflicts.has(`${sid}.${fk}.officeProductivity`)) {
+            if (!pids && !subConflicts.has(`${sid}.${fk}.officeProductivity`)) {
               dstYB.officeProductivity = structuredClone(srcYB.officeProductivity);
             }
-            if (!subConflicts.has(`${sid}.${fk}.continuingCosts`)) {
+            if (!pids && !subConflicts.has(`${sid}.${fk}.continuingCosts`)) {
               dstYB.continuingCosts = structuredClone(srcYB.continuingCosts);
             }
           }

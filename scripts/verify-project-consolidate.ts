@@ -19,6 +19,16 @@ function proj(id: string, title: string): IctProject {
     implementingUnit: "", fundingSource: "", year1Deliverables: "",
     year2Deliverables: "", year3Deliverables: "", duration: "2028" };
 }
+function sys(id: string, name: string) {
+  return { id, name, classification: "" as const, frontline: false,
+    frontlineAccessType: "" as const, url: "", description: "", status: "" as const,
+    enhancementDetails: "", developmentStrategy: "", developmentPlatform: "",
+    databaseName: "", dataStorage: "", internalUsers: "", externalUsers: "",
+    owner: "", interoperability: { integrated: false, internalSystems: "",
+      externalSystems: "", generatesData: false, processesExternalData: false,
+      sharedPlatform: false },
+    pia: { processesPersonalInfo: "" as const, piaRequired: false } };
+}
 function scoped(
   officeId: string,
   editable: string[],
@@ -183,7 +193,7 @@ function yearBudget(internals: Record<string, ProjectBudget>) {
   };
 }
 
-// ── (q) year budget: replace by project id; officeProductivity overlays ─────
+// ── (q) year budget: replace by project id; category revision does NOT land ─
 {
   const master = makeMaster();
   master.part4.year1 = yearBudget({
@@ -208,12 +218,14 @@ function yearBudget(internals: Record<string, ProjectBudget>) {
     "(q) p1 budget replaced by id, p2 untouched");
   assert.equal(r.merged.part4.year1.internalProjects.p1.projectTitle, "One (revised)",
     "(q) p1 carries the office's revision");
-  assert.equal(r.merged.part4.year1.officeProductivity.mooe[0].qty, 2,
-    "(q) single-writer officeProductivity overlays");
+  assert.equal(r.merged.part4.year1.officeProductivity.mooe[0].qty, 1,
+    "(q) filtered file's officeProductivity revision does NOT land (agency-wide budget)");
+  assert.equal(r.merged.part4.year1.officeProductivity.mooe[0].item, "Connectivity",
+    "(q) master's officeProductivity retained");
   assert.equal(r.reviewFlags.length, 0, "(q) clean merge, no flags");
 }
 
-// ── (r) two filtered offices on the same year, officeProductivity differs ───
+// ── (r) two filtered offices, differing officeProductivity: no sub-conflict ──
 {
   const master = makeMaster();
   master.part4.year1 = yearBudget({
@@ -221,7 +233,7 @@ function yearBudget(internals: Record<string, ProjectBudget>) {
     p2: { projectTitle: "Two", capitalOutlay: [], mooe: [] },
   });
   const a = scoped("a", ["part4/year1"], ["p1"], (d) => {
-    d.part4.year1 = yearBudget({ p1: { projectTitle: "One", capitalOutlay: [], mooe: [] } });
+    d.part4.year1 = yearBudget({ p1: { projectTitle: "One (by A)", capitalOutlay: [], mooe: [] } });
     d.part4.year1.officeProductivity.mooe = [
       { id: "x", item: "From A", office: "", uacsCode: "", uacsLabel: "",
         fundSource: "General Appropriations Act (GAA)", qty: 1, unitCost: 1 },
@@ -235,25 +247,31 @@ function yearBudget(internals: Record<string, ProjectBudget>) {
     ];
   });
   const r = consolidate(master, [a, b]);
-  const conflict = r.scalarConflicts.find(
-    (c) => c.sectionId === "part4/year1" && c.fieldKey === "year1.officeProductivity"
-  );
-  assert.ok(conflict, "(r) sub-field conflict surfaced with nested fieldKey");
-  assert.equal(conflict!.values.length, 2, "(r) both offices recorded");
+  assert.equal(
+    r.scalarConflicts.find((c) => c.fieldKey === "year1.officeProductivity"), undefined,
+    "(r) filtered files contribute NOTHING to officeProductivity — no sub-conflict");
   assert.deepEqual(Object.keys(r.merged.part4.year1.internalProjects), ["p1", "p2"],
-    "(r) project budgets still merged cleanly despite the sub-conflict");
+    "(r) project budgets still merge by id");
   assert.equal(r.merged.part4.year1.officeProductivity.mooe.length, 0,
-    "(r) conflicted sub-object stays at master's value");
-  assert.ok(r.reviewFlags.includes("part4/year1"), "(r) year flagged for review");
-  // agreed sub-object → no conflict (single distinct value)
-  const b2 = scoped("b", ["part4/year1"], ["p2"], (d) => {
-    d.part4.year1 = yearBudget({ p2: { projectTitle: "Two", capitalOutlay: [], mooe: [] } });
-    d.part4.year1.officeProductivity.mooe = a.part4.year1.officeProductivity.mooe;
+    "(r) master's officeProductivity retained (file revisions ignored)");
+  // MIXED variant: a filtered, b UNFILTERED owning year1 with its own revision.
+  const bUn = scoped("b", ["part4/year1"], undefined, (d) => {
+    d.part4.year1 = yearBudget({ p2: { projectTitle: "Two (by B)", capitalOutlay: [], mooe: [] } });
+    d.part4.year1.officeProductivity.mooe = [
+      { id: "x", item: "From B (unfiltered)", office: "", uacsCode: "", uacsLabel: "",
+        fundSource: "General Appropriations Act (GAA)", qty: 1, unitCost: 1 },
+    ];
   });
-  const r2 = consolidate(master, [a, b2]);
+  const r2 = consolidate(master, [a, bUn]);
   assert.equal(
     r2.scalarConflicts.find((c) => c.fieldKey === "year1.officeProductivity"), undefined,
-    "(r) agreeing sub-objects → no conflict");
+    "(r) single unfiltered sub-object contributor → no conflict");
+  assert.equal(r2.merged.part4.year1.officeProductivity.mooe[0].item, "From B (unfiltered)",
+    "(r) unfiltered office's officeProductivity overlays");
+  assert.equal(r2.merged.part4.year1.internalProjects.p1.projectTitle, "One (by A)",
+    "(r) filtered office's project edits still merge");
+  assert.equal(r2.merged.part4.year1.internalProjects.p2.projectTitle, "Two (by B)",
+    "(r) unfiltered office's project edits still merge");
 }
 
 // ── (s) applyResolutions: flat and nested keys ──────────────────────────────
@@ -293,13 +311,18 @@ function yearBudget(internals: Record<string, ProjectBudget>) {
   assert.ok(r.reviewFlags.includes("part4/year1"), "(u) year flagged");
 }
 
-// ── (v) continuingCosts symmetry: two filtered offices, differing sub-object ─
+// ── (v) continuingCosts symmetry: filtered files contribute nothing; ────────
+// unfiltered offices in a mixed batch still sub-conflict normally.
 {
   const master = makeMaster();
   master.part4.year1 = yearBudget({
     p1: { projectTitle: "One", capitalOutlay: [], mooe: [] },
     p2: { projectTitle: "Two", capitalOutlay: [], mooe: [] },
   });
+  master.part4.year1.continuingCosts.mooe = [
+    { id: "m", item: "Master licenses", office: "", uacsCode: "", uacsLabel: "",
+      fundSource: "General Appropriations Act (GAA)", qty: 1, unitCost: 1 },
+  ];
   const a = scoped("a", ["part4/year1"], ["p1"], (d) => {
     d.part4.year1 = yearBudget({ p1: { projectTitle: "One", capitalOutlay: [], mooe: [] } });
     d.part4.year1.continuingCosts.mooe = [
@@ -315,19 +338,68 @@ function yearBudget(internals: Record<string, ProjectBudget>) {
     ];
   });
   const r = consolidate(master, [a, b]);
-  const conflict = r.scalarConflicts.find(
+  assert.equal(r.scalarConflicts.length, 0,
+    "(v) two filtered offices differing on continuingCosts → NO sub-conflict");
+  assert.deepEqual(Object.keys(r.merged.part4.year1.internalProjects), ["p1", "p2"],
+    "(v) project budgets still merge by id");
+  assert.equal(r.merged.part4.year1.continuingCosts.mooe[0].item, "Master licenses",
+    "(v) master's continuingCosts retained (agency-wide budget)");
+
+  // Mixed-batch counterpart: two UNFILTERED year owners + a filtered file in
+  // the batch — the sub-conflict machinery between unfiltered offices is
+  // unchanged (nested fieldKey, both recorded, master's value kept).
+  const u1 = scoped("c", ["part4/year1"], undefined, (d) => {
+    d.part4.year1 = yearBudget({ p1: { projectTitle: "One", capitalOutlay: [], mooe: [] } });
+    d.part4.year1.continuingCosts.mooe = a.part4.year1.continuingCosts.mooe;
+  });
+  const u2 = scoped("e", ["part4/year1"], undefined, (d) => {
+    d.part4.year1 = yearBudget({ p2: { projectTitle: "Two", capitalOutlay: [], mooe: [] } });
+    d.part4.year1.continuingCosts.mooe = b.part4.year1.continuingCosts.mooe;
+  });
+  const r2 = consolidate(master, [u1, u2, a]);
+  const conflict = r2.scalarConflicts.find(
     (c) => c.sectionId === "part4/year1" && c.fieldKey === "year1.continuingCosts"
   );
-  assert.ok(conflict, "(v) continuingCosts sub-conflict surfaced with nested fieldKey");
+  assert.ok(conflict, "(v) unfiltered continuingCosts sub-conflict surfaced with nested fieldKey");
   assert.equal(
-    r.scalarConflicts.filter((c) => c.sectionId === "part4/year1").length, 1,
+    r2.scalarConflicts.filter((c) => c.sectionId === "part4/year1").length, 1,
     "(v) exactly one nested conflict (officeProductivity agreed)");
-  assert.equal(conflict!.values.length, 2, "(v) both offices recorded");
-  assert.deepEqual(Object.keys(r.merged.part4.year1.internalProjects), ["p1", "p2"],
+  assert.equal(conflict!.values.length, 2, "(v) both unfiltered offices recorded");
+  assert.deepEqual(Object.keys(r2.merged.part4.year1.internalProjects), ["p1", "p2"],
     "(v) project budgets still merged cleanly despite the sub-conflict");
-  assert.equal(r.merged.part4.year1.continuingCosts.mooe.length, 0,
+  assert.equal(r2.merged.part4.year1.continuingCosts.mooe[0].item, "Master licenses",
     "(v) conflicted sub-object stays at master's value");
-  assert.ok(r.reviewFlags.includes("part4/year1"), "(v) year flagged for review");
+  assert.ok(r2.reviewFlags.includes("part4/year1"), "(v) year flagged for review");
+}
+
+// ── (w) proposed systems merge by id: replace / append / keep-on-absence ────
+{
+  const master = makeMaster();
+  master.part3.proposedSystems = [sys("sysA", "System A"), sys("sysB", "System B")];
+  master.part3.internalProjects = [proj("p1", "One")];
+  const f = scoped("a", ["part3/d", "part3/e1"], ["p1"], (d) => {
+    d.part3.internalProjects = [proj("p1", "One")];
+    d.part3.proposedSystems = [sys("sysA", "System A (revised)"), sys("sysNew", "New")];
+  });
+  const r = consolidate(master, [f]);
+  assert.deepEqual(r.merged.part3.proposedSystems.map((s) => s.id),
+    ["sysA", "sysB", "sysNew"],
+    "(w) sysA replaced by id, sysB kept, sysNew appended");
+  assert.equal(r.merged.part3.proposedSystems[0].name, "System A (revised)",
+    "(w) revision lands on the matched id");
+  assert.ok(r.reviewFlags.includes("part3/d"), "(w) new system flags part3/d for review");
+
+  // Deleting sysB from the file must NOT flag nor remove it — projectIds
+  // addresses projects, not systems; absence may just mean "not linked".
+  const f2 = scoped("a", ["part3/d", "part3/e1"], ["p1"], (d) => {
+    d.part3.internalProjects = [proj("p1", "One")];
+    d.part3.proposedSystems = [sys("sysA", "System A (revised 2)")];
+  });
+  const r2 = consolidate(master, [f2]);
+  assert.deepEqual(r2.merged.part3.proposedSystems.map((s) => s.id), ["sysA", "sysB"],
+    "(w) absent system kept (no deletion semantics for systems)");
+  assert.ok(!r2.reviewFlags.includes("part3/d"),
+    "(w) absence alone flags nothing");
 }
 
 console.log("✓ project-consolidate (Part III + Part IV) verification passed");

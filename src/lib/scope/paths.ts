@@ -13,11 +13,18 @@ export const SHARED_TABLE_PATHS: ReadonlySet<string> = new Set([
  * records keyed by project id. `editScope.projectIds` filters these at slice
  * time, and consolidate()'s "project-keyed" strategy merges their rows/keys
  * by project id. Members are leaf paths (`sectionId.fieldKey`).
+ *
+ * `part3/d.proposedSystems` is the exception in shape: systems are not keyed
+ * by project id but LINKED to projects via `IctProject.linkedSystemIds` —
+ * a filtered file carries exactly the carried projects' linked systems, and
+ * the merge has NO deletion semantics for them (absence from the file may
+ * just mean "not linked", so master systems are kept without a flag).
  */
 export const PROJECT_BEARING_FIELDS: ReadonlySet<string> = new Set([
   "part3/e1.internalProjects",
   "part3/e2.crossAgencyProjects",
   "part3/f.performanceFramework",
+  "part3/d.proposedSystems",
   "part4/year1.year1",
   "part4/year2.year2",
   "part4/year3.year3",

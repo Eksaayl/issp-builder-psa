@@ -65,15 +65,17 @@ export function sliceScopedDoc(master: IsspDocument, spec: DistributeSpec): Issp
 
   // ── Per-project filter (editScope.projectIds) ─────────────────────────────
   //
-  // Filters the five project-bearing spots to the selected ids. Project
-  // DETAIL rows are carried even when III-E1/E2 are unowned: the III-F and
-  // Part IV forms render from the Part III project lists, so a Part-IV-only
-  // office needs the rows as read-only context (they are not in `editable`,
-  // so the sections stay hidden and consolidate ignores them). Linked systems
-  // of carried projects ride along the same way — the III-E form can then
-  // show the links and cannot silently wipe linkedSystemIds via an empty
-  // picker. officeProductivity / continuingCosts are NOT project-keyed and
-  // follow plain field ownership.
+  // Filters the project-bearing fields to the selected ids. Project DETAIL
+  // rows are carried even when III-E1/E2 are unowned: the III-F and Part IV
+  // forms render from the Part III project lists, so a Part-IV-only office
+  // needs the rows as read-only context (they are not in `editable`, so the
+  // sections stay hidden and consolidate ignores them). Linked systems of
+  // carried projects ride along the same way — the III-E form can then show
+  // the links and cannot silently wipe linkedSystemIds via an empty picker.
+  // officeProductivity / continuingCosts are agency-wide budget, not the
+  // office's to edit: they stay at the empty default (consolidate treats a
+  // filtered file as contributing nothing to them — a naive copy would also
+  // wipe the master's data on merge).
   if (spec.projectIds) {
     const ids = new Set(spec.projectIds);
     const pick = <T extends { id: string }>(rows: T[]): T[] =>
@@ -91,23 +93,24 @@ export function sliceScopedDoc(master: IsspDocument, spec: DistributeSpec): Issp
     for (const y of ["year1", "year2", "year3"] as const) {
       if (!resolved.editableFields.has(`part4/${y}.${y}`)) continue;
       sliced.part4[y] = {
-        ...sliced.part4[y],
+        officeProductivity: { capitalOutlay: [], mooe: [] },
         internalProjects: Object.fromEntries(
           Object.entries(master.part4[y].internalProjects).filter(([id]) => ids.has(id))
         ),
         crossAgencyProjects: Object.fromEntries(
           Object.entries(master.part4[y].crossAgencyProjects).filter(([id]) => ids.has(id))
         ),
+        continuingCosts: { mooe: [] },
       };
     }
 
-    if (!resolved.editableFields.has("part3/d.proposedSystems")) {
-      const carried = [...sliced.part3.internalProjects, ...sliced.part3.crossAgencyProjects];
-      const linked = new Set(carried.flatMap((p) => p.linkedSystemIds));
-      sliced.part3.proposedSystems = master.part3.proposedSystems.filter((s) =>
-        linked.has(s.id)
-      );
-    }
+    // Linked systems of carried projects are the ONLY systems in the file —
+    // owned III-D included. Systems the office adds ride the owned field.
+    const carried = [...sliced.part3.internalProjects, ...sliced.part3.crossAgencyProjects];
+    const linked = new Set(carried.flatMap((p) => p.linkedSystemIds));
+    sliced.part3.proposedSystems = master.part3.proposedSystems.filter((s) =>
+      linked.has(s.id)
+    );
   }
 
   const now = new Date().toISOString();
