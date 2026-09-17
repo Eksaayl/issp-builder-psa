@@ -74,6 +74,24 @@ duplicates, then click **Mark reviewed** to clear the flag.
 Once the master is consolidated, **Export PDF** produces the official agency ISSP.
 Scoped files cannot export PDF — only the master can.
 
+## Distribute a single project (per-project files)
+
+When an office's scope includes any project-bearing field (Part III-E1/E2,
+III-F, or a Part IV year), the Distribute dialog shows a **Projects** panel:
+
+- **All projects** — the office receives every project row (previous behavior).
+- **Selected projects only** — pick exact projects; the file carries only
+  those rows in III-E/F and the Part IV budgets, pre-populated from the
+  master. Single-project files are named after the project
+  (`SMK-ISSP-2028-2030-sikap.issp`).
+- **Start empty** — no project rows travel; the office adds its own.
+
+Recipients edit their project's details, KPIs, and budget lines, and may add
+new projects. On **Consolidate**, project data merges **by project id**:
+edits replace the master's rows, new projects union in with a review flag,
+and a project the recipient deleted is kept on the master and flagged —
+deletion never propagates silently.
+
 ## Things to keep in mind
 
 - **Coordinate distribution rounds.** Generating a scoped file for an office starts

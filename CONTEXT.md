@@ -62,3 +62,11 @@ Merging one or more returned scoped files back into the master, with overlap rev
 
 **`officeId`**:
 The merge key stamped on shared-table rows and Annex 1 payloads. Consolidation replaces rows by `officeId` (not display label), which makes re-importing an office's file idempotent. Absent ⇒ legacy/secretariat-owned row.
+
+Per-project distribution: `editScope.projectIds` (absent = all projects)
+filters the five project-bearing fields at slice time — `part3/e1/e2` project
+lists, `part3/f.performanceFramework`, and the `part4/yearN` project budget
+records. Consolidate merges these by project id (replace / union-new /
+keep-on-delete) whenever any file in the batch declares the filter; Part IV
+year fields decompose so `officeProductivity`/`continuingCosts` keep scalar
+conflict semantics under the nested fieldKey `yearN.officeProductivity`.
