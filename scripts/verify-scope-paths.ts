@@ -3,6 +3,8 @@ import {
   SHARED_TABLE_PATHS, resolvePath, resolveScope,
   isSectionVisible, isFieldEditable, ALL_SECTION_IDS,
 } from "../src/lib/scope/paths";
+import { SECTION_FIELDS } from "../src/lib/section-fields";
+import { PROJECT_BEARING_FIELDS } from "../src/lib/scope/paths";
 
 // resolvePath: area → all leaf fields under it
 const part1bFields = resolvePath("part1/b").map(f => f.fieldKey);
@@ -31,5 +33,26 @@ assert.equal(SHARED_TABLE_PATHS.has("part1/c.stakeholders"), true);
 assert.ok(ALL_SECTION_IDS.includes("part1/b"));
 assert.ok(ALL_SECTION_IDS.includes("annexes/annex1"));
 assert.ok(ALL_SECTION_IDS.includes("definitions"));
+
+// ── project-bearing fields (per-project distribution filter domain) ─────────
+assert.equal(PROJECT_BEARING_FIELDS.size, 6, "six project-bearing fields");
+assert.ok(PROJECT_BEARING_FIELDS.has("part3/e1.internalProjects"));
+assert.ok(PROJECT_BEARING_FIELDS.has("part3/e2.crossAgencyProjects"));
+assert.ok(PROJECT_BEARING_FIELDS.has("part3/f.performanceFramework"));
+assert.ok(PROJECT_BEARING_FIELDS.has("part4/year1.year1"));
+assert.ok(PROJECT_BEARING_FIELDS.has("part4/year2.year2"));
+assert.ok(PROJECT_BEARING_FIELDS.has("part4/year3.year3"));
+// every member must be a REAL leaf of a REAL section (schema-drift guard)
+for (const key of PROJECT_BEARING_FIELDS) {
+  const dot = key.indexOf(".");
+  const sid = key.slice(0, dot);
+  const fk = key.slice(dot + 1);
+  const def = SECTION_FIELDS[sid];
+  assert.ok(def, `${sid} exists in SECTION_FIELDS`);
+  assert.ok(
+    def.fields.some((f) => f.key === fk),
+    `${key} is a declared field of ${sid}`
+  );
+}
 
 console.log("✓ scope-paths verification passed");

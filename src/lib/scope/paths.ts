@@ -8,6 +8,21 @@ export const SHARED_TABLE_PATHS: ReadonlySet<string> = new Set([
   "part1/c.stakeholders",
 ]);
 
+/**
+ * Field paths whose value holds per-project data — lists of IctProject or
+ * records keyed by project id. `editScope.projectIds` filters these at slice
+ * time, and consolidate()'s "project-keyed" strategy merges their rows/keys
+ * by project id. Members are leaf paths (`sectionId.fieldKey`).
+ */
+export const PROJECT_BEARING_FIELDS: ReadonlySet<string> = new Set([
+  "part3/e1.internalProjects",
+  "part3/e2.crossAgencyProjects",
+  "part3/f.performanceFramework",
+  "part4/year1.year1",
+  "part4/year2.year2",
+  "part4/year3.year3",
+]);
+
 export interface LeafField {
   sectionId: string;
   fieldKey: string;
