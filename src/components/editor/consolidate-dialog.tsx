@@ -47,8 +47,22 @@ function sectionLabel(sectionId: string): string {
   return SECTION_LABEL[sectionId] ?? sectionId;
 }
 
+/** Nested Part IV sub-field conflicts (project-keyed merge) — human labels. */
+const SUB_FIELD_LABELS: Record<string, string> = {
+  "part4/year1.year1.officeProductivity": "Office Productivity (Year 1)",
+  "part4/year1.year1.continuingCosts": "Continuing Costs (Year 1)",
+  "part4/year2.year2.officeProductivity": "Office Productivity (Year 2)",
+  "part4/year2.year2.continuingCosts": "Continuing Costs (Year 2)",
+  "part4/year3.year3.officeProductivity": "Office Productivity (Year 3)",
+  "part4/year3.year3.continuingCosts": "Continuing Costs (Year 3)",
+};
+
 function fieldLabel(sectionId: string, fieldKey: string): string {
-  return SECTION_FIELDS[sectionId]?.fields.find((f) => f.key === fieldKey)?.label ?? fieldKey;
+  return (
+    SUB_FIELD_LABELS[`${sectionId}.${fieldKey}`] ??
+    SECTION_FIELDS[sectionId]?.fields.find((f) => f.key === fieldKey)?.label ??
+    fieldKey
+  );
 }
 
 // ─── Preview model ────────────────────────────────────────────────────────────
