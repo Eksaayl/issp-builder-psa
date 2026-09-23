@@ -82,6 +82,20 @@ export const THEMES = [
     secondary: "#1F141A",
     border: "#3D2B35",
   },
+  {
+    id: "egov-light",
+    name: "eGov Light",
+    background: "#FFFFFF",
+    secondary: "#EEF2FF",
+    border: "#B8CCFF",
+  },
+  {
+    id: "egov-dark",
+    name: "eGov Dark",
+    background: "#171B2B",
+    secondary: "#1C2440",
+    border: "#2A3046",
+  },
 ] as const;
 
 export type ThemeId = (typeof THEMES)[number]["id"];

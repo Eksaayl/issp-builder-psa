@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Fraunces, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
+import { Fraunces, IBM_Plex_Sans, IBM_Plex_Mono, Lexend } from "next/font/google";
 import { Toaster } from "sonner";
 import { IsspStoreProvider } from "@/lib/store";
 import { ThemeProvider } from "@/lib/theme";
@@ -27,6 +27,15 @@ const ibmPlexSans = IBM_Plex_Sans({
   variable: "--font-sans",
   subsets: ["latin"],
   weight: ["400", "500", "600"],
+});
+
+// eGov theme only (see globals.css .theme-egov-light/.theme-egov-dark):
+// the vendored kit's own typeface, loaded globally like the others but
+// only referenced when that theme's --font-body/--font-display point to it.
+const lexend = Lexend({
+  variable: "--font-egov",
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
 });
 
 const ibmPlexMono = IBM_Plex_Mono({
@@ -107,7 +116,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${fraunces.variable} ${ibmPlexSans.variable} ${ibmPlexMono.variable} theme-${DEFAULT_THEME} h-full antialiased`}
+      className={`${fraunces.variable} ${ibmPlexSans.variable} ${ibmPlexMono.variable} ${lexend.variable} theme-${DEFAULT_THEME} h-full antialiased`}
     >
       <head>
         <StructuredData />
