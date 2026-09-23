@@ -334,7 +334,7 @@ function hasCyberContent(c: CyberControls): boolean {
 }
 
 function hasEgpContent(egp: EgpChecklist): boolean {
-  return Object.values(egp).some((p) => p.status !== "");
+  return Object.values(egp).some((p) => p?.status !== "");
 }
 
 function hasYearContent(year: YearBudget): boolean {
