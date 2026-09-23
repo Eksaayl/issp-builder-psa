@@ -53,7 +53,7 @@ import { StatusDot } from "@/components/ui/status-dot";
 import { IsspPropertiesDialog } from "./issp-properties-dialog";
 import { DistributeDialog } from "./distribute-dialog";
 import { ConsolidateDialog } from "./consolidate-dialog";
-import { THEMES, isThemeId, useTheme, type ThemeId } from "@/lib/theme";
+import { THEME_MIGRATED_KEY, THEMES, isThemeId, useTheme, type ThemeId } from "@/lib/theme";
 import { toast } from "sonner";
 
 type ExportState =
@@ -335,6 +335,15 @@ export function EditorSidebar({
   const [themeNudgeDismissed, setThemeNudgeDismissed] = useState(() =>
     typeof window !== "undefined" && localStorage.getItem("issp-theme-nudge-dismissed") === "true"
   );
+  // Read once on mount — set only by the one-time system-light → eGov Light
+  // migration (see THEME_MIGRATED_KEY in lib/themes.ts), never for a visitor
+  // who started on eGov Light as the plain default.
+  const [wasMigratedToEgov] = useState(() =>
+    typeof window !== "undefined" && localStorage.getItem(THEME_MIGRATED_KEY) === "1"
+  );
+  const [themeMigrationNudgeDismissed, setThemeMigrationNudgeDismissed] = useState(() =>
+    typeof window !== "undefined" && localStorage.getItem("issp-theme-migration-nudge-dismissed") === "true"
+  );
   const [fileMenuOpen, setFileMenuOpen] = useState(false);
   const [themeSubmenuOpen, setThemeSubmenuOpen] = useState(false);
   const { reminderDue: saveReminderDue, snoozeReminder: snoozeSaveReminder } = useFileSaveReminder(unsavedToFile);
@@ -342,6 +351,8 @@ export function EditorSidebar({
   const showMobileSaveReminder = showSaveReminder && isMobileViewport;
   const showDesktopSaveReminder = showSaveReminder && !isMobileViewport;
   const showThemeNudge = !!doc && theme === "system-light" && !themeNudgeDismissed && !showSaveReminder;
+  const showThemeMigrationNudge =
+    !!doc && wasMigratedToEgov && !themeMigrationNudgeDismissed && !showSaveReminder && !showThemeNudge;
 
   // Sections with content that differs from the last saved file
   const changedSections: { section: SectionDef; part: PartDef | null; changedFields: SectionField[] }[] = [];
@@ -400,6 +411,16 @@ export function EditorSidebar({
   function dismissThemeNudge() {
     localStorage.setItem("issp-theme-nudge-dismissed", "true");
     setThemeNudgeDismissed(true);
+  }
+
+  function dismissThemeMigrationNudge() {
+    localStorage.setItem("issp-theme-migration-nudge-dismissed", "true");
+    setThemeMigrationNudgeDismissed(true);
+  }
+
+  function dismissAllThemeNudges() {
+    dismissThemeNudge();
+    dismissThemeMigrationNudge();
   }
 
   function openThemeMenuFromNudge() {
@@ -1091,6 +1112,35 @@ export function EditorSidebar({
                     <span className="absolute -bottom-1.5 right-3.5 h-3 w-3 rotate-45 border-b border-r border-info-border bg-info-bg" />
                   </div>
                 )}
+                {showThemeMigrationNudge && (
+                  <div className="absolute bottom-full right-0 z-20 mb-3 w-56 rounded-lg border border-info-border bg-info-bg px-3 py-2.5 text-info shadow-lg shadow-black/10">
+                    <div className="flex items-start gap-2">
+                      <Palette className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <p className="text-xs font-semibold leading-tight">New default theme</p>
+                        <p className="text-[11px] leading-snug text-info/80">
+                          You&apos;re now using an eGovPH-inspired theme. Switch back to System Light anytime from this menu.
+                        </p>
+                        <button
+                          type="button"
+                          className="text-[11px] font-medium leading-none text-info hover:underline"
+                          onClick={openThemeMenuFromNudge}
+                        >
+                          Open menu
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        aria-label="Dismiss theme notice"
+                        className="-mr-1 -mt-1 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-info hover:bg-info-border/50"
+                        onClick={dismissThemeMigrationNudge}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                    <span className="absolute -bottom-1.5 right-3.5 h-3 w-3 rotate-45 border-b border-r border-info-border bg-info-bg" />
+                  </div>
+                )}
                 <Button
                   variant="outline"
                   disabled={!unsavedToFile}
@@ -1127,7 +1177,7 @@ export function EditorSidebar({
                     <DropdownMenuSub open={themeSubmenuOpen} onOpenChange={setThemeSubmenuOpen}>
                       <DropdownMenuSubTrigger
                         className={cn(
-                          showThemeNudge &&
+                          (showThemeNudge || showThemeMigrationNudge) &&
                             fileMenuOpen &&
                             "animate-pulse bg-info-bg text-info ring-1 ring-info-border focus:bg-info-bg focus:text-info data-popup-open:bg-info-bg data-popup-open:text-info data-open:bg-info-bg data-open:text-info"
                         )}
@@ -1136,7 +1186,7 @@ export function EditorSidebar({
                         Theme
                       </DropdownMenuSubTrigger>
                       <DropdownMenuSubContent className="w-44">
-                        <ThemeMenuItems onThemeSelected={dismissThemeNudge} />
+                        <ThemeMenuItems onThemeSelected={dismissAllThemeNudges} />
                       </DropdownMenuSubContent>
                     </DropdownMenuSub>
                     {!doc?.editScope && (

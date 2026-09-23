@@ -5,7 +5,7 @@ import { IsspStoreProvider } from "@/lib/store";
 import { ThemeProvider } from "@/lib/theme";
 // From the plain module, not the client one: a value imported from a
 // "use client" file arrives here as a client reference, not the array.
-import { DEFAULT_THEME, THEMES, THEME_STORAGE_KEY } from "@/lib/themes";
+import { DEFAULT_THEME, THEMES, THEME_MIGRATED_KEY, THEME_STORAGE_KEY } from "@/lib/themes";
 import { StructuredData } from "@/components/seo/structured-data";
 import {
   CREATOR_NAME,
@@ -51,6 +51,11 @@ const themeScript = `
   try {
     var themes = ${JSON.stringify(THEMES.map((theme) => theme.id))};
     var stored = localStorage.getItem('${THEME_STORAGE_KEY}');
+    if (stored === 'system-light' && !localStorage.getItem('${THEME_MIGRATED_KEY}')) {
+      stored = '${DEFAULT_THEME}';
+      localStorage.setItem('${THEME_STORAGE_KEY}', stored);
+      localStorage.setItem('${THEME_MIGRATED_KEY}', '1');
+    }
     var theme = themes.indexOf(stored) === -1 ? '${DEFAULT_THEME}' : stored;
     var root = document.documentElement;
     for (var i = 0; i < themes.length; i++) root.classList.remove('theme-' + themes[i]);

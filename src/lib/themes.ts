@@ -11,6 +11,12 @@
 
 export const THEME_STORAGE_KEY = "issp-theme";
 
+// Set the first time a stored "system-light" value is migrated to the new
+// default below, so the migration only ever fires once — a user who lands on
+// eGov via the migration and then deliberately re-picks System Light from the
+// menu keeps that choice on their next visit instead of being bounced again.
+export const THEME_MIGRATED_KEY = "issp-theme-egov-migrated";
+
 export const THEMES = [
   {
     id: "system-light",
@@ -100,7 +106,7 @@ export const THEMES = [
 
 export type ThemeId = (typeof THEMES)[number]["id"];
 
-export const DEFAULT_THEME: ThemeId = "system-light";
+export const DEFAULT_THEME: ThemeId = "egov-light";
 
 export function isThemeId(value: string | null): value is ThemeId {
   return THEMES.some((theme) => theme.id === value);
