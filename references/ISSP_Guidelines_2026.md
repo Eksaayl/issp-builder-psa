@@ -48,7 +48,7 @@ Directly lift these statements from official documents like the Strategic Plan o
 | Contact Number/s | ✓ | ✓ |
 
 **B.2 Human Capital** — Provide physical count of personnel categorized by:
-- Employment status: Plantilla / Contractual / Outsourced
+- Employment status: Plantilla (Filled) / Plantilla (Unfilled) / Contractual / Outsourced (JO, COS, and HTC)
 - Role type: IT / Non-IT
 - Gender (GAD compliance): Male / Female
 
@@ -139,7 +139,8 @@ Map critical business systems to specific problems and explain how ICT is intend
 |---|---|
 | Regular Security Scanning and Testing | **Mandatory** |
 
-#### Other Measures (all Optional/Best Practice)
+#### Other Measures (all Optional/Best Practice — merged row, no column separator)
+All 11 items are Optional. The official template (v2 PDF and 09152026 docx alike) draws **no separator** between the Mandatory and Optional columns for this one row — the docx sets nil borders on the shared cell edge in both II-B2 and III-A.2 — and the items sit in the two column positions only for text alignment. It is **not** a mandatory/optional classification. (An earlier 2026-09-17 revision read the column positions as a 6M/5O split; the nil-border evidence and the Agency Guidelines' "all Optional/Best Practice" supersede it, same day.)
 - Vulnerability Assessment
 - Patch Management
 - Strong Password Policies

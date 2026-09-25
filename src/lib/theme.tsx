@@ -15,6 +15,10 @@ import {
 export { DEFAULT_THEME, THEMES, THEME_STORAGE_KEY, isThemeId };
 export type { ThemeId };
 
+function resolveStoredTheme(stored: string | null): ThemeId {
+  return isThemeId(stored) ? stored : DEFAULT_THEME;
+}
+
 function applyThemeClass(theme: ThemeId) {
   const root = document.documentElement;
   root.classList.remove(...THEMES.map((item) => `theme-${item.id}`));
@@ -31,8 +35,7 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<ThemeId>(() => {
     if (typeof window === "undefined") return DEFAULT_THEME;
-    const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
-    return isThemeId(stored) ? stored : DEFAULT_THEME;
+    return resolveStoredTheme(window.localStorage.getItem(THEME_STORAGE_KEY));
   });
 
   useEffect(() => {

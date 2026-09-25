@@ -1,11 +1,28 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { ConfirmDeleteButton } from "@/components/ui/confirm-delete-button";
 import { useLocalSave } from "@/hooks/use-local-save";
-import { Plus, Trash2, BarChart3, FolderKanban } from "lucide-react";
+import { Plus, Pencil, BarChart3, FolderKanban } from "lucide-react";
 import { SectionShell } from "@/components/editor/section-shell";
 import { revealNewItem } from "@/lib/reveal";
 
@@ -14,6 +31,7 @@ import { revealNewItem } from "@/lib/reveal";
 interface KpiRow {
   id: string;
   hierarchy: "Intermediate Outcome" | "Immediate Outcome" | "Output" | "";
+  targetedResult: string;
   indicator: string;
   baseline: string;
   year1Target: string;
@@ -43,6 +61,7 @@ function generateId() {
 
 const DEFAULT_ROW: Omit<KpiRow, "id"> = {
   hierarchy: "",
+  targetedResult: "",
   indicator: "",
   baseline: "",
   year1Target: "",
@@ -52,7 +71,169 @@ const DEFAULT_ROW: Omit<KpiRow, "id"> = {
   responsibleUnit: "",
 };
 
-// ─── KPI Table per project ─────────────────────────────────────────────────────
+const HIERARCHY_OPTIONS = [
+  { value: "Intermediate Outcome", label: "Intermediate Outcome" },
+  { value: "Immediate Outcome", label: "Immediate Outcome" },
+  { value: "Output", label: "Output" },
+] as const;
+
+function Empty({ children = "—" }: { children?: React.ReactNode }) {
+  return <span className="text-muted-foreground/50">{children}</span>;
+}
+
+// ─── KPI edit drawer (principle 2: edit lives in a focused surface) ───────────
+
+function KpiDrawer({
+  open,
+  row,
+  isNew,
+  onSave,
+  onDelete,
+  onClose,
+}: {
+  open: boolean;
+  row: KpiRow | null;
+  isNew: boolean;
+  onSave: (row: KpiRow) => void;
+  onDelete: () => void;
+  onClose: () => void;
+}) {
+  const [draft, setDraft] = useState<KpiRow>(() => row ?? { id: generateId(), ...DEFAULT_ROW });
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (open) setDraft(row ?? { id: generateId(), ...DEFAULT_ROW });
+  }, [open, row]);
+
+  function set<K extends keyof KpiRow>(k: K, v: KpiRow[K]) {
+    setDraft((prev) => ({ ...prev, [k]: v }));
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <SheetContent
+        side="right"
+        showCloseButton={false}
+        style={{ maxWidth: 560 }}
+        className="flex flex-col p-0 gap-0"
+      >
+        <SheetHeader className="px-6 pt-5 pb-4 border-b shrink-0">
+          <SheetTitle>{isNew ? "Add KPI" : "Edit KPI"}</SheetTitle>
+        </SheetHeader>
+
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground uppercase tracking-wide">Hierarchy of Targeted Results</Label>
+            <Select
+              items={HIERARCHY_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+              value={draft.hierarchy || null}
+              onValueChange={(v: string | null) => set("hierarchy", (v ?? "") as KpiRow["hierarchy"])}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select…" />
+              </SelectTrigger>
+              <SelectContent>
+                {HIERARCHY_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground uppercase tracking-wide">Targeted Result</Label>
+            <Textarea
+              rows={2}
+              placeholder="e.g., Streamlined and efficient near-real-time monitoring of land acquisition activities"
+              value={draft.targetedResult}
+              onChange={(e) => set("targetedResult", e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Write the specific result for the selected level: Intermediate Outcome — refers to
+              changes in behavior of targeted stakeholders as a result of the implementation of
+              the ICT project. Immediate Outcome — refers to enhancements in institutional
+              capabilities of the Agency upon implementation of the ICT project. Output — related
+              to the installation/implementation of the ICT project in the agency within the
+              lifetime of the project; these are completed deliverables of the project.
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground uppercase tracking-wide">Key Performance Indicators (KPIs)</Label>
+            <Textarea
+              rows={3}
+              placeholder="e.g., % of monitored agencies submitting queue data via API"
+              value={draft.indicator}
+              onChange={(e) => set("indicator", e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground uppercase tracking-wide">Baseline Data</Label>
+            <Input
+              placeholder="e.g., 0%"
+              value={draft.baseline}
+              onChange={(e) => set("baseline", e.target.value)}
+            />
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            {(
+              [
+                ["year1Target", "Year 1 Target"],
+                ["year2Target", "Year 2 Target"],
+                ["year3Target", "Year 3 Target"],
+              ] as const
+            ).map(([field, label]) => (
+              <div key={field} className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground uppercase tracking-wide">{label}</Label>
+                <Input
+                  placeholder="—"
+                  value={draft[field]}
+                  onChange={(e) => set(field, e.target.value)}
+                />
+              </div>
+            ))}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground uppercase tracking-wide">Data Collection Methods</Label>
+            <Textarea
+              rows={2}
+              placeholder="e.g., UQMP system-generated API submission logs"
+              value={draft.dataCollectionMethod}
+              onChange={(e) => set("dataCollectionMethod", e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground uppercase tracking-wide">Responsibility to Collect Data</Label>
+            <Input
+              placeholder="e.g., ICT Division"
+              value={draft.responsibleUnit}
+              onChange={(e) => set("responsibleUnit", e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 px-6 py-4 border-t shrink-0">
+          {!isNew && (
+            <ConfirmDeleteButton
+              ariaLabel="Delete KPI"
+              confirmText="Delete this KPI row?"
+              onDelete={onDelete}
+            />
+          )}
+          <div className="flex-1" />
+          <Button variant="outline" size="sm" onClick={onClose}>Cancel</Button>
+          <Button size="sm" onClick={() => onSave(draft)}>{isNew ? "Add KPI" : "Save KPI"}</Button>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+// ─── KPI table per project (read view; editing happens in the drawer) ─────────
 
 function ProjectKpiTable({
   project,
@@ -66,22 +247,32 @@ function ProjectKpiTable({
   onChange: (updated: ProjectKpiSet) => void;
 }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editing, setEditing] = useState<{ row: KpiRow; isNew: boolean } | null>(null);
 
-  function addRow() {
-    const row = { id: generateId(), ...DEFAULT_ROW };
-    onChange({ ...kpiSet, rows: [...kpiSet.rows, row] });
-    revealNewItem(row.id);
+  function openAdd() {
+    setEditing({ row: { id: generateId(), ...DEFAULT_ROW }, isNew: true });
+    setDrawerOpen(true);
+  }
+
+  function openEdit(row: KpiRow) {
+    setEditing({ row, isNew: false });
+    setDrawerOpen(true);
+  }
+
+  function saveRow(row: KpiRow) {
+    const exists = kpiSet.rows.some((r) => r.id === row.id);
+    const rows = exists
+      ? kpiSet.rows.map((r) => (r.id === row.id ? row : r))
+      : [...kpiSet.rows, row];
+    onChange({ ...kpiSet, rows });
+    setDrawerOpen(false);
+    if (!exists) revealNewItem(row.id);
   }
 
   function removeRow(id: string) {
     onChange({ ...kpiSet, rows: kpiSet.rows.filter((r) => r.id !== id) });
-  }
-
-  function updateRow<K extends keyof KpiRow>(rowId: string, field: K, value: KpiRow[K]) {
-    onChange({
-      ...kpiSet,
-      rows: kpiSet.rows.map((r) => (r.id === rowId ? { ...r, [field]: value } : r)),
-    });
+    setDrawerOpen(false);
   }
 
   return (
@@ -103,7 +294,7 @@ function ProjectKpiTable({
           <Button
             variant="outline"
             size="sm"
-            onClick={addRow}
+            onClick={openAdd}
             className="gap-1 shrink-0"
           >
             <Plus className="h-3.5 w-3.5" />
@@ -121,207 +312,120 @@ function ProjectKpiTable({
 
       {!collapsed && (
         <CardContent className="p-0">
-          {/* Mobile: card per KPI (the 9-column table is unusable on phones) */}
-          <div className="md:hidden divide-y">
-            {kpiSet.rows.length === 0 && (
-              <p className="px-4 py-6 text-center text-xs text-muted-foreground">
-                No KPIs yet.{" "}
-                <button onClick={addRow} className="font-medium text-primary hover:underline">
-                  Add one.
-                </button>
-              </p>
-            )}
-            {kpiSet.rows.map((row, idx) => (
-              <div key={row.id} data-reveal-id={row.id} className="p-3 space-y-2.5">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-semibold text-muted-foreground">KPI #{idx + 1}</span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Remove KPI row"
-                    className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                    onClick={() => removeRow(row.id)}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground">Hierarchy of Results</label>
-                  <select
-                    className="w-full px-2 py-2 text-xs bg-card rounded border focus:outline-none focus:ring-1 focus:ring-ring"
-                    value={row.hierarchy}
-                    onChange={(e) => updateRow(row.id, "hierarchy", e.target.value as KpiRow["hierarchy"])}
-                  >
-                    <option value="">Select…</option>
-                    <option>Intermediate Outcome</option>
-                    <option>Immediate Outcome</option>
-                    <option>Output</option>
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground">Key Performance Indicator</label>
-                  <input
-                    type="text"
-                    className="w-full px-2 py-2 text-xs bg-card rounded border focus:outline-none focus:ring-1 focus:ring-ring"
-                    placeholder="e.g., % reduction in processing time"
-                    value={row.indicator}
-                    onChange={(e) => updateRow(row.id, "indicator", e.target.value)}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  {(
-                    [
-                      ["baseline", "Baseline"],
-                      ["year1Target", "Year 1 Target"],
-                      ["year2Target", "Year 2 Target"],
-                      ["year3Target", "Year 3 Target"],
-                    ] as const
-                  ).map(([field, label]) => (
-                    <div key={field} className="space-y-1">
-                      <label className="text-xs text-muted-foreground">{label}</label>
-                      <input
-                        type="text"
-                        className="w-full px-2 py-2 text-xs bg-card rounded border focus:outline-none focus:ring-1 focus:ring-ring"
-                        placeholder="—"
-                        value={row[field]}
-                        onChange={(e) => updateRow(row.id, field, e.target.value)}
-                      />
-                    </div>
-                  ))}
-                </div>
-                <div className="grid grid-cols-1 gap-2">
-                  <div className="space-y-1">
-                    <label className="text-xs text-muted-foreground">Data Collection Method</label>
-                    <input
-                      type="text"
-                      className="w-full px-2 py-2 text-xs bg-card rounded border focus:outline-none focus:ring-1 focus:ring-ring"
-                      placeholder="e.g., Monthly reports"
-                      value={row.dataCollectionMethod}
-                      onChange={(e) => updateRow(row.id, "dataCollectionMethod", e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs text-muted-foreground">Responsibility to Collect Data</label>
-                    <input
-                      type="text"
-                      className="w-full px-2 py-2 text-xs bg-card rounded border focus:outline-none focus:ring-1 focus:ring-ring"
-                      placeholder="e.g., ICT Division"
-                      value={row.responsibleUnit}
-                      onChange={(e) => updateRow(row.id, "responsibleUnit", e.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Desktop: full template table */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-xs border-collapse">
-              <thead>
-                <tr className="bg-muted/40">
-                  <th className="border px-2 py-2 text-left font-semibold w-36">
-                    Hierarchy of Results
-                  </th>
-                  <th className="border px-2 py-2 text-left font-semibold min-w-[200px]">
-                    Key Performance Indicator
-                  </th>
-                  <th className="border px-2 py-2 text-center font-semibold w-24">Baseline</th>
-                  <th className="border px-2 py-2 text-center font-semibold w-20">Year 1</th>
-                  <th className="border px-2 py-2 text-center font-semibold w-20">Year 2</th>
-                  <th className="border px-2 py-2 text-center font-semibold w-20">Year 3</th>
-                  <th className="border px-2 py-2 text-left font-semibold min-w-[140px]">Data Collection Method</th>
-                  <th className="border px-2 py-2 text-left font-semibold min-w-[120px]">Responsibility</th>
-                  <th className="border px-2 py-2 w-8" />
-                </tr>
-              </thead>
-              <tbody>
-                {kpiSet.rows.length === 0 && (
-                  <tr>
-                    <td
-                      colSpan={9}
-                      className="border px-3 py-6 text-center text-muted-foreground"
-                    >
-                      No KPIs yet.{" "}
-                      <button
-                        onClick={addRow}
-                        className="font-medium text-primary hover:underline"
-                      >
-                        Add one.
-                      </button>
-                    </td>
-                  </tr>
-                )}
-                {kpiSet.rows.map((row) => (
-                  <tr key={row.id} data-reveal-id={row.id} className="hover:bg-muted/10">
-                    <td className="border px-1 py-1">
-                      <select
-                        className="w-full px-2 py-1.5 text-xs bg-card/70 rounded hover:bg-card focus:bg-card focus:outline-none focus:ring-1 focus:ring-ring"
-                        value={row.hierarchy}
-                        onChange={(e) => updateRow(row.id, "hierarchy", e.target.value as KpiRow["hierarchy"])}
-                      >
-                        <option value="">Select…</option>
-                        <option>Intermediate Outcome</option>
-                        <option>Immediate Outcome</option>
-                        <option>Output</option>
-                      </select>
-                    </td>
-                    <td className="border px-1 py-1">
-                      <input
-                        type="text"
-                        className="w-full px-2 py-1.5 text-xs bg-card/70 rounded hover:bg-card focus:bg-card focus:outline-none focus:ring-1 focus:ring-ring"
-                        placeholder="e.g., % reduction in processing time"
-                        value={row.indicator}
-                        onChange={(e) => updateRow(row.id, "indicator", e.target.value)}
-                      />
-                    </td>
-                    {(["baseline", "year1Target", "year2Target", "year3Target"] as const).map((field) => (
-                      <td key={field} className="border px-1 py-1">
-                        <input
-                          type="text"
-                          className="w-full px-2 py-1.5 text-xs text-center bg-card/70 rounded hover:bg-card focus:bg-card focus:outline-none focus:ring-1 focus:ring-ring"
-                          placeholder="—"
-                          value={row[field]}
-                          onChange={(e) => updateRow(row.id, field, e.target.value)}
-                        />
-                      </td>
+          {kpiSet.rows.length === 0 ? (
+            <p className="px-4 py-6 text-center text-xs text-muted-foreground">
+              No KPIs yet.{" "}
+              <button onClick={openAdd} className="font-medium text-primary hover:underline">
+                Add one.
+              </button>
+            </p>
+          ) : (
+            <>
+              {/* Desktop: read table — text wraps, nothing clips */}
+              <div className="hidden md:block overflow-x-auto p-3">
+                <table className="w-full text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-muted/40">
+                      <th className="border px-2 py-2 text-left font-semibold w-32">Hierarchy of Targeted Results</th>
+                      <th className="border px-2 py-2 text-left font-semibold">Key Performance Indicators (KPIs)</th>
+                      <th className="border px-2 py-2 text-center font-semibold w-24">Baseline Data</th>
+                      <th className="border px-2 py-2 text-center font-semibold w-20">Year 1</th>
+                      <th className="border px-2 py-2 text-center font-semibold w-20">Year 2</th>
+                      <th className="border px-2 py-2 text-center font-semibold w-20">Year 3</th>
+                      <th className="border px-2 py-2 w-10" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {kpiSet.rows.map((row) => (
+                      <tr key={row.id} data-reveal-id={row.id} className="hover:bg-muted/10 align-top">
+                        <td className="border px-2 py-2 break-words">
+                          {row.hierarchy ? <span className="font-medium">{row.hierarchy}</span> : <Empty />}
+                          {row.targetedResult && (
+                            <p className="mt-0.5 text-muted-foreground break-words whitespace-pre-wrap">{row.targetedResult}</p>
+                          )}
+                        </td>
+                        <td className="border px-2 py-2">
+                          <p className="break-words whitespace-pre-wrap">
+                            {row.indicator || <Empty />}
+                          </p>
+                          {(row.dataCollectionMethod || row.responsibleUnit) && (
+                            <p className="mt-1 text-muted-foreground break-words">
+                              {row.dataCollectionMethod && <>Method: {row.dataCollectionMethod}</>}
+                              {row.dataCollectionMethod && row.responsibleUnit && <> · </>}
+                              {row.responsibleUnit && <>Resp.: {row.responsibleUnit}</>}
+                            </p>
+                          )}
+                        </td>
+                        {(["baseline", "year1Target", "year2Target", "year3Target"] as const).map((field) => (
+                          <td key={field} className="border px-2 py-2 text-center break-words">
+                            {row[field] || <Empty />}
+                          </td>
+                        ))}
+                        <td className="border px-1 py-1 text-center">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label="Edit KPI"
+                            className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                            onClick={() => openEdit(row)}
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                        </td>
+                      </tr>
                     ))}
-                    <td className="border px-1 py-1">
-                      <input
-                        type="text"
-                        className="w-full px-2 py-1.5 text-xs bg-card/70 rounded hover:bg-card focus:bg-card focus:outline-none focus:ring-1 focus:ring-ring"
-                        placeholder="e.g., Monthly reports"
-                        value={row.dataCollectionMethod}
-                        onChange={(e) => updateRow(row.id, "dataCollectionMethod", e.target.value)}
-                      />
-                    </td>
-                    <td className="border px-1 py-1">
-                      <input
-                        type="text"
-                        className="w-full px-2 py-1.5 text-xs bg-card/70 rounded hover:bg-card focus:bg-card focus:outline-none focus:ring-1 focus:ring-ring"
-                        placeholder="e.g., ICT Division"
-                        value={row.responsibleUnit}
-                        onChange={(e) => updateRow(row.id, "responsibleUnit", e.target.value)}
-                      />
-                    </td>
-                    <td className="border px-1 py-1 text-center">
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile: read cards; edit opens the same drawer */}
+              <div className="md:hidden divide-y">
+                {kpiSet.rows.map((row, idx) => (
+                  <div key={row.id} data-reveal-id={row.id} className="p-3 space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-semibold text-muted-foreground">
+                        KPI #{idx + 1}{row.hierarchy ? ` · ${row.hierarchy}` : ""}
+                      </span>
                       <Button
                         variant="ghost"
                         size="icon"
-                        aria-label="Remove KPI row"
-                        className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                        onClick={() => removeRow(row.id)}
+                        aria-label="Edit KPI"
+                        className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                        onClick={() => openEdit(row)}
                       >
-                        <Trash2 className="h-3 w-3" />
+                        <Pencil className="h-3 w-3" />
                       </Button>
-                    </td>
-                  </tr>
+                    </div>
+                    {row.targetedResult && (
+                      <p className="text-xs break-words whitespace-pre-wrap">{row.targetedResult}</p>
+                    )}
+                    <p className="text-xs break-words">{row.indicator || <Empty />}</p>
+                    <p className="text-xs text-muted-foreground break-words">
+                      Base {row.baseline || "—"} → {row.year1Target || "—"} → {row.year2Target || "—"} → {row.year3Target || "—"}
+                    </p>
+                    {(row.dataCollectionMethod || row.responsibleUnit) && (
+                      <p className="text-xs text-muted-foreground break-words">
+                        {row.dataCollectionMethod && <>Method: {row.dataCollectionMethod}</>}
+                        {row.dataCollectionMethod && row.responsibleUnit && <> · </>}
+                        {row.responsibleUnit && <>Resp.: {row.responsibleUnit}</>}
+                      </p>
+                    )}
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </div>
+            </>
+          )}
         </CardContent>
       )}
+
+      <KpiDrawer
+        open={drawerOpen}
+        row={editing?.row ?? null}
+        isNew={editing?.isNew ?? false}
+        onSave={saveRow}
+        onDelete={() => editing && removeRow(editing.row.id)}
+        onClose={() => setDrawerOpen(false)}
+      />
     </Card>
   );
 }
@@ -377,7 +481,7 @@ export function Part3FForm({
   return (
     <SectionShell
       sectionId="part3/f"
-      title="Performance Framework"
+      title="Performance Measurement Framework"
       description="Define key performance indicators (KPIs) for each ICT project to track outcomes over the plan period."
     >
 

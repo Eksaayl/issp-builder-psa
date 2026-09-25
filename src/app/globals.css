@@ -9,7 +9,8 @@
   .theme-warm-dark, .theme-warm-dark *,
   .theme-ocean-dark, .theme-ocean-dark *,
   .theme-forest-dark, .theme-forest-dark *,
-  .theme-rose-dark, .theme-rose-dark *
+  .theme-rose-dark, .theme-rose-dark *,
+  .theme-egov-dark, .theme-egov-dark *
 ));
 
 /* Touch-device affordance — bump tap targets only on coarse pointers (keeps desktop density) */
@@ -615,6 +616,237 @@
   --sidebar-ring: var(--ring);
 }
 
+/* eGov — sourced from references/egov-design-system (tokens/tokens.css,
+   css/egov-dark.css, shadcn/egov-theme.css): DICT/eGovPH brand blue #0040E7,
+   PH flag red/yellow accents, 14px signature radius. Dark keeps the brand-blue
+   fills per the kit's own rule (css/egov-dark.css) rather than inverting to a
+   light primary like the other dark themes. */
+.theme-egov-light {
+  --background: #FFFFFF;
+  --foreground: #1A1A2E;
+  --card: #FFFFFF;
+  --card-foreground: #1A1A2E;
+  --popover: #FFFFFF;
+  --popover-foreground: #1A1A2E;
+  --primary: #0040E7;
+  --primary-foreground: #FFFFFF;
+  --secondary: #EEF2FF;
+  --secondary-foreground: #0035C4;
+  --muted: #F8FAFC;
+  --muted-foreground: #64748B;
+  --accent: #EEF2FF;
+  --accent-foreground: #0035C4;
+  --destructive: #CE1126;
+  --border: rgba(0, 64, 231, 0.2);
+  --input: #E2E8F0;
+  --ring: rgba(0, 64, 231, 0.25);
+  --chart-1: #0040E7;
+  --chart-2: #FCD116;
+  --chart-3: #CE1126;
+  --chart-4: #4F7BF2;
+  --chart-5: #64748B;
+  --radius: 0.875rem;
+  --sidebar-active: #DCE6FF;
+  --part: var(--foreground);
+  --budget-1: #0040E7;
+  --budget-2: #663BB7;
+  --budget-3: #8A6D00;
+  --budget-4: #CE1126;
+  --success:            #16A34A;
+  --success-bg:         #f0fdf4;
+  --success-border:     #bbf7d0;
+  --success-foreground: #ffffff;
+  --warning:            #D97706;
+  --warning-bg:         #fffbeb;
+  --warning-border:     #fde68a;
+  --info:               #0040E7;
+  --info-bg:            #eef2ff;
+  --info-border:        #b8ccff;
+  --danger-bg:          #fef2f2;
+  --danger-border:      #fecaca;
+  --font-body: var(--font-egov);
+  --font-display: var(--font-egov);
+  --sidebar: var(--secondary);
+  --sidebar-foreground: var(--secondary-foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+}
+
+.theme-egov-dark {
+  --background: #171B2B;
+  --foreground: #ECEEF7;
+  --card: #171B2B;
+  --card-foreground: #ECEEF7;
+  --popover: #171B2B;
+  --popover-foreground: #ECEEF7;
+  --primary: #0040E7;
+  --primary-foreground: #FFFFFF;
+  --secondary: #1C2440;
+  --secondary-foreground: #8AA9FF;
+  --muted: #1D2233;
+  --muted-foreground: #8B93A7;
+  --accent: #1C2440;
+  --accent-foreground: #8AA9FF;
+  --destructive: #CE1126;
+  --border: rgba(110, 140, 255, 0.34);
+  --input: #2A3046;
+  --ring: rgba(110, 140, 255, 0.4);
+  --chart-1: #4F7BF2;
+  --chart-2: #FCD116;
+  --chart-3: #FF7A8A;
+  --chart-4: #8AA9FF;
+  --chart-5: #8B93A7;
+  --radius: 0.875rem;
+  --sidebar-active: #232D52;
+  --part: var(--foreground);
+  --budget-1: #4F7BF2;
+  --budget-2: #9B86D9;
+  --budget-3: #FCD116;
+  --budget-4: #FF7A8A;
+  --success:            #4ADE80;
+  --success-bg:         #10251a;
+  --success-border:     #1e4030;
+  --success-foreground: #052e16;
+  --warning:            #FBBF24;
+  --warning-bg:         #271e0c;
+  --warning-border:     #3d2900;
+  --info:               #8AA9FF;
+  --info-bg:            #1c2440;
+  --info-border:        #33406e;
+  --danger-bg:          #2b1116;
+  --danger-border:      #3f1515;
+  --font-body: var(--font-egov);
+  --font-display: var(--font-egov);
+  --sidebar: var(--secondary);
+  --sidebar-foreground: var(--secondary-foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+}
+
+/* eGov component fidelity — shape/spacing overrides sourced from
+   references/egov-design-system/css/egov-components.css (button padding
+   12px/24px, card padding 24px, pill tabs). Scoped to data-slot hooks so the
+   shared shadcn primitives aren't forked and the other 9 themes are
+   untouched — same "override the cascade, don't edit the kit" rule the
+   vendored kit itself asks for (see references/egov-design-system/AGENTS.md).
+   Placed unlayered so it wins over the components' own @layer utility
+   classes regardless of source order. */
+.theme-egov-light .font-heading,
+.theme-egov-dark .font-heading {
+  font-weight: 500;
+  letter-spacing: -0.025em;
+}
+
+.theme-egov-light [data-slot="button"][class~="h-8"]:not(aside *),
+.theme-egov-light [data-slot="button"][class~="h-9"]:not(aside *),
+.theme-egov-dark [data-slot="button"][class~="h-8"]:not(aside *),
+.theme-egov-dark [data-slot="button"][class~="h-9"]:not(aside *) {
+  height: auto;
+  min-height: 2.75rem;
+  padding: 0.75rem 1.5rem;
+  font-weight: 500;
+}
+.theme-egov-light [data-slot="button"][class~="h-8"]:not(aside *):hover,
+.theme-egov-light [data-slot="button"][class~="h-9"]:not(aside *):hover,
+.theme-egov-dark [data-slot="button"][class~="h-8"]:not(aside *):hover,
+.theme-egov-dark [data-slot="button"][class~="h-9"]:not(aside *):hover {
+  transform: translateY(-1px);
+}
+
+.theme-egov-light [data-slot="card"],
+.theme-egov-dark [data-slot="card"] {
+  padding-block: 1.5rem;
+  /* Combines the crisp edge with the ambient shadow in one declaration —
+     box-shadow doesn't merge across rules, so setting only the ambient
+     shadow here would silently replace the card's own ring-1 ring-foreground/10
+     outline instead of layering on top of it, leaving no visible edge at all. */
+  box-shadow: 0 0 0 1px var(--border), 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+.theme-egov-light [data-slot="card-header"],
+.theme-egov-light [data-slot="card-content"],
+.theme-egov-dark [data-slot="card-header"],
+.theme-egov-dark [data-slot="card-content"] {
+  padding-inline: 1.5rem;
+}
+.theme-egov-light [data-slot="card-footer"],
+.theme-egov-dark [data-slot="card-footer"] {
+  padding: 1.5rem;
+}
+
+.theme-egov-light [data-slot="input"],
+.theme-egov-light [data-slot="textarea"],
+.theme-egov-light [data-slot="select-trigger"],
+.theme-egov-dark [data-slot="input"],
+.theme-egov-dark [data-slot="textarea"],
+.theme-egov-dark [data-slot="select-trigger"] {
+  height: auto;
+  min-height: 2.5rem;
+  padding: 0.625rem 1rem;
+}
+
+.theme-egov-light [data-slot="dialog-content"],
+.theme-egov-light [data-slot="sheet-content"],
+.theme-egov-dark [data-slot="dialog-content"],
+.theme-egov-dark [data-slot="sheet-content"] {
+  padding: 1.5rem;
+}
+
+.theme-egov-light [data-slot="tabs-list"],
+.theme-egov-dark [data-slot="tabs-list"] {
+  border-radius: 999px;
+  padding: 0.25rem;
+}
+.theme-egov-light [data-slot="tabs-trigger"],
+.theme-egov-dark [data-slot="tabs-trigger"] {
+  border-radius: 999px;
+  padding-inline: 1rem;
+}
+
+/* The editor's <aside> sidebar (the only <aside> in the app) uses bg-secondary,
+   which elsewhere is the brand-blue-50 chip tint (badges, secondary buttons,
+   the home page's featured card) — right for a chip, too blue as a full-panel
+   wash. Read as neutral chrome instead, matching the vendor's own distinction
+   between --sidebar (neutral) and --secondary (blue) in shadcn/egov-theme.css. */
+.theme-egov-light aside,
+.theme-egov-dark aside {
+  /* var(--card), not var(--muted): the canvas rule below now tints <main>
+     the same muted tone the sidebar used to use, so matching it here would
+     make the sidebar blend into the canvas instead of reading as its own
+     panel. A white "surface" (like cards) against the muted canvas keeps the
+     two-layer hierarchy: chrome/content surfaces float on the tinted canvas. */
+  background-color: var(--card);
+}
+
+/* Sticky section/page headers (section-shell, overview, home banner, Annex 1 —
+   all 8 usages share this exact bg-background/95 token) sit on top of a
+   --background that's the same white/navy as the content behind them, so the
+   only separation is a hairline border. Give them the same neutral chrome
+   tone as the sidebar for actual contrast, matching e.gov.ph's alternating
+   white/#F8FAFC section rhythm (DESIGN DNA table in the kit's README). */
+.theme-egov-light [class~="bg-background/95"],
+.theme-egov-dark [class~="bg-background/95"] {
+  background-color: var(--muted);
+}
+
+/* The sticky header's tint above only spans the padded max-w-7xl content
+   column (its -mx-4/-mx-8 bleed cancels the column's own padding, not the
+   full <main> width) — so on wide windows the tint stopped short, showing
+   white gutters past the column. Tinting <main> itself removes the seam
+   entirely and matches e.gov.ph's actual white/#F8FAFC alternating canvas,
+   with white cards popping against it instead of blending into pure white. */
+.theme-egov-light main,
+.theme-egov-dark main {
+  background-color: var(--muted);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -823,12 +1055,13 @@
   30%  { --glow-angle: 360deg; --glow-alpha: 0; }
   100% { --glow-angle: 360deg; --glow-alpha: 0; }
 }
-/* At rest: a plain floating chip — the rainbow arc is fully transparent
-   (--glow-alpha 0) and a neutral border layer shows through instead. */
+/* At rest: a floating card chip — card surface + lifted shadow so the pill
+   reads at a glance; the rainbow arc stays fully transparent (--glow-alpha 0)
+   and a neutral border layer shows through until hover/touch-sweep. */
 .animate-glow-orbit {
   border: 1.5px solid transparent;
   background:
-    linear-gradient(var(--background), var(--background)) padding-box,
+    linear-gradient(var(--card), var(--card)) padding-box,
     conic-gradient(
       from var(--glow-angle),
       transparent 0%,
@@ -843,14 +1076,23 @@
       transparent 100%
     ) border-box,
     linear-gradient(var(--border), var(--border)) border-box;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.12);
+  /* The orbit animation is ALWAYS applied but paused at rest: a paused animation
+     keeps its current --glow-angle, so on un-hover the arc freezes where it is
+     and --glow-alpha's transition fades it out in place. Removing the animation
+     on un-hover (declaring it only under :hover) would snap the angle to its
+     initial value 0deg — teleporting the visible arc to the right side for the
+     duration of the alpha fade. */
+  animation: glow-orbit 2.6s linear infinite;
+  animation-play-state: paused;
   transition: --glow-alpha 0.5s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
-/* Pointer devices: the light appears and orbits only while hovered */
+/* Pointer devices: the light appears and orbits only while hovered — hover
+   resumes the paused orbit from where it last froze (and fades alpha in) */
 @media (hover: hover) and (pointer: fine) {
   .animate-glow-orbit:hover {
     --glow-alpha: 1;
-    animation: glow-orbit 2.6s linear infinite;
+    animation-play-state: running;
     box-shadow: 0 0 16px 2px rgba(170, 110, 220, 0.16);
   }
 }

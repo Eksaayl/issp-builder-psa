@@ -107,9 +107,22 @@ function categoryTotals(y: YearBudget) {
 
 // ─── Build functions ───────────────────────────────────────────────────────────
 
-export function buildB1(years: [YearBudget, YearBudget, YearBudget]): SummaryRow[] {
+/**
+ * B.1 General Summary rows. `hideNonProjectCategories` drops the Office
+ * Productivity and Continuing Costs rows for project-filtered scoped files
+ * (their data is empty there by slice and the year forms hide the same
+ * categories); Grand Total is computed from the year data independently and
+ * is unaffected — in a project-filtered file the dropped categories sum to 0.
+ */
+export function buildB1(
+  years: [YearBudget, YearBudget, YearBudget],
+  opts?: { hideNonProjectCategories?: boolean }
+): SummaryRow[] {
   const cats = years.map(categoryTotals);
-  const fields = ["officeProductivity", "internalProjects", "crossAgencyProjects", "continuingCosts"] as const;
+  const allFields = ["officeProductivity", "internalProjects", "crossAgencyProjects", "continuingCosts"] as const;
+  const fields = allFields.filter(
+    (f) => !opts?.hideNonProjectCategories || f === "internalProjects" || f === "crossAgencyProjects"
+  );
   const labels: Record<string, string> = {
     officeProductivity: "Office Productivity",
     internalProjects: "Internal ICT Projects",
@@ -132,9 +145,9 @@ export function buildB1(years: [YearBudget, YearBudget, YearBudget]): SummaryRow
 }
 
 export const FUND_SOURCE_ORDER = [
-  "General Appropriations Act (GAA)",
-  "Foreign-Assisted",
-  "Locally Funded",
+  "General Appropriations Act",
+  "Foreign-assisted projects",
+  "Locally funded",
   "Other Income Generating Sources",
 ];
 
@@ -174,12 +187,12 @@ export function buildB3(years: [YearBudget, YearBudget, YearBudget]): SummaryRow
   const grandTotals = years.map(yearTotal);
   return [
     {
-      label: "Capital Outlay (CO)",
+      label: "Capital Outlay",
       year1: coTotals[0], year2: coTotals[1], year3: coTotals[2],
       total: coTotals.reduce((s, v) => s + v, 0),
     },
     {
-      label: "Maintenance and Other Operating Expenses (MOOE)",
+      label: "Maintenance and Other Operating Expenses",
       year1: mooeTotals[0], year2: mooeTotals[1], year3: mooeTotals[2],
       total: mooeTotals.reduce((s, v) => s + v, 0),
     },

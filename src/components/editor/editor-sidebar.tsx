@@ -375,6 +375,10 @@ export function EditorSidebar({
     setThemeNudgeDismissed(true);
   }
 
+  function dismissAllThemeNudges() {
+    dismissThemeNudge();
+  }
+
   function openThemeMenuFromNudge() {
     setFileMenuOpen(true);
   }
@@ -606,9 +610,13 @@ export function EditorSidebar({
       })}
 
       {visibleParts.map(({ part, sections }) => {
-        const hasPendingReview =
-          (doc.migrationReview?.pendingSectionIds ?? []).some((id) => id.startsWith(`part${part.partNum}/`)) ||
-          (doc.consolidationFlags ?? []).some((id) => id.startsWith(`part${part.partNum}/`));
+        // `sections` is already scope-filtered (isSectionVisible), so this only
+        // force-expands the part / disables its collapse when a VISIBLE section
+        // needs review — a flagged section outside this office's scope must
+        // never do that (they can't even navigate to it).
+        const hasPendingReview = sections.some(
+          (s) => pendingReviewIds.includes(s.id) || consolidationFlagIds.includes(s.id)
+        );
         const isExpanded = expandedParts.has(part.partNum) || hasPendingReview;
         const isActiveSection = sections.some(
           (s) => pathname === s.href || pathname.startsWith(s.href + "/")
@@ -1114,7 +1122,7 @@ export function EditorSidebar({
                         Theme
                       </DropdownMenuSubTrigger>
                       <DropdownMenuSubContent className="w-44">
-                        <ThemeMenuItems onThemeSelected={dismissThemeNudge} />
+                        <ThemeMenuItems onThemeSelected={dismissAllThemeNudges} />
                       </DropdownMenuSubContent>
                     </DropdownMenuSub>
                     {!doc?.editScope && (

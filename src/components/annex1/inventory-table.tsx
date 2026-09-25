@@ -112,8 +112,8 @@ export function EquipmentTable({
         <table className="min-w-full border-collapse text-sm">
           <thead>
             <tr className="bg-muted/60">
-              <th className="border border-border px-3 py-2 text-left font-semibold w-44 min-w-[11rem]">ICT Resource</th>
-              <th className="border border-border px-3 py-2 text-left font-semibold w-40">Office</th>
+              <th className="border border-border px-3 py-2 text-left font-semibold w-44 min-w-[11rem]">ICT Resources</th>
+              <th className="border border-border px-3 py-2 text-left font-semibold w-40">Office Location</th>
               <th className="border border-border px-3 py-2 text-center font-semibold w-24">Operational</th>
               <th className="border border-border px-3 py-2 text-center font-semibold w-24">End of Life</th>
               <th className="border border-border px-3 py-2 text-center font-semibold w-20">Backup</th>
@@ -324,8 +324,8 @@ export function SoftwareTable({
         <table className="min-w-full border-collapse text-sm">
           <thead>
             <tr className="bg-muted/60">
-              <th className="border border-border px-3 py-2 text-left font-semibold w-56 min-w-[14rem]">ICT Resource</th>
-              <th className="border border-border px-3 py-2 text-left font-semibold w-40">Office</th>
+              <th className="border border-border px-3 py-2 text-left font-semibold w-56 min-w-[14rem]">ICT Resources</th>
+              <th className="border border-border px-3 py-2 text-left font-semibold w-40">Office Location</th>
               <th className="border border-border px-3 py-2 text-center font-semibold w-28">Perpetual</th>
               <th className="border border-border px-3 py-2 text-center font-semibold w-28">Subscription</th>
             </tr>

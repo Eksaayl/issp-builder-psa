@@ -24,7 +24,7 @@ Only the consolidated master produces the official PDF.
 ## 1. Distribute (secretariat)
 
 1. Open the **master** ISSP in the editor.
-2. Click **Distribute to offices** (sidebar — only visible on a master).
+2. Click **Distribute to offices…** (in the sidebar's file-actions ⋯ menu — only visible on a master).
 3. For each contributing office: type a name, then tick the areas / sections /
    fields that office owns in the tree. You can be as coarse as a whole Part or as
    fine as a single field (e.g. only *Part I-B → CIO Name*).
@@ -50,7 +50,7 @@ editing the scope by hand.
 
 ## 3. Consolidate (secretariat)
 
-1. Open the **master** → **Consolidate returned files** (sidebar).
+1. Open the **master** → **Consolidate returned files…** (sidebar file-actions ⋯ menu).
 2. Select one or more returned `.issp` files. A **review screen** shows what each
    will do: overlay fields, replace that office's shared-table rows (stakeholders,
    Annex 1), flag overlapped sections, or surface a scalar conflict.
@@ -64,14 +64,58 @@ leaves everyone else's untouched, so you can re-consolidate corrected files free
 
 ## 4. Review flags
 
-After consolidating, flagged sections show a *"Flagged during consolidation —
-review for duplicates"* banner. Check the section, remove duplicates, then click
-**Mark reviewed** to clear the flag.
+After consolidating, flagged sections show a **"Flagged during consolidation"**
+banner ("Multiple scoped files contributed to this section — review for duplicates
+or conflicting entries, then clear the flag."). Check the section, remove
+duplicates, then click **Mark reviewed** to clear the flag.
 
 ## 5. Export the official PDF
 
 Once the master is consolidated, **Export PDF** produces the official agency ISSP.
 Scoped files cannot export PDF — only the master can.
+
+## Distribute a single project (per-project files)
+
+When an office's scope includes any project-bearing field (Part III-E1/E2,
+III-F, or a Part IV year), the Distribute dialog shows a **Projects** panel:
+
+- **All projects** — the office receives every project row (previous behavior).
+- **Selected projects only** — pick exact projects; the file carries only
+  those rows in III-E/F and the Part IV budgets, pre-populated from the
+  master. Single-project files are named after the project
+  (`SMK-ISSP-2028-2030-sikap.issp`).
+- **Start empty** — no project rows travel; the office adds its own.
+
+Recipients edit their project's details, KPIs, and budget lines, and may add
+new projects. On **Consolidate**, project data merges **by project id**:
+edits replace the master's rows, new projects union in with a review flag,
+and a project the recipient deleted is kept on the master and flagged —
+deletion never propagates silently.
+
+A project-filtered file stays out of everything agency-wide, except where
+its projects reach:
+
+- **Budget categories.** Part IV's Office Productivity and Continuing Costs
+  are agency-wide budget, not the office's to edit, so they are excluded
+  from the file — the office sees only their projects' budget lines — and
+  are **not merged back** from project files: they contribute no overlay,
+  sub-conflict, or flag on consolidate. A conflict on these two categories
+  can only arise between offices holding unfiltered files.
+- **Proposed IS (Part III-D).** The file's Proposed IS list contains only
+  the carried projects' linked systems. A recipient who owns III-D can add
+  systems of their own; on consolidate systems merge **by system id** —
+  edits replace the master's system, new systems are appended with a review
+  flag, and systems absent from the file are kept unflagged (a project
+  filter selects projects, not systems — absence may just mean "not
+  linked").
+
+> **Mixed batches:** the by-project merge activates for the whole batch when
+> *any* selected file declares a project filter. Returns from offices that
+> got unfiltered files then also merge by project id — safer (rows missing
+> from their file are kept, not dropped), but a deliberate deletion made by
+> such an office will be silently retained, because without a declared filter
+> the merge cannot distinguish "deleted" from "added to the master after
+> distribution." Review those sections after applying if that matters.
 
 ## Things to keep in mind
 
@@ -85,7 +129,7 @@ Scoped files cannot export PDF — only the master can.
   *could* hand-edit the JSON. That's acceptable — it's the agency's own data, and
   the secretariat reviews everything on consolidate. Tamper-proofing can come later.
 - **Legacy Annex 1 files still work.** Offices that send old-style standalone
-  Annex 1 files can still be attached via the editor's "Attach files" flow; both
+  Annex 1 files can still be attached via the editor's "Attach Annex 1 files…" flow; both
   legacy-attached and scoped-consolidated Annex 1 entries coexist in the master and
   render in the PDF.
 

@@ -1,6 +1,7 @@
 import { STANDARD_DEFINITIONS } from "@/lib/store/defaults";
 import { CYBER_GROUPS } from "@/lib/cyber-controls";
 import { isRichText, sanitizeRichText } from "@/lib/rich-text";
+import { durationCoversYear } from "@/lib/duration";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -17,7 +18,7 @@ interface Part1 {
   mandateFunction: string;
   visionStatement: string;
   missionStatement: string;
-  orgOutcomes: { name: string; programs: string[] }[];
+  orgOutcomes: { id: string; name: string; programs: { id: string; name: string }[] }[];
   cioName: string;
   cioPosition: string;
   cioUnit: string;
@@ -32,6 +33,7 @@ interface Part1 {
     plantilla: { it: { male: number; female: number }; nonIt: { male: number; female: number } };
     contractual: { it: { male: number; female: number }; nonIt: { male: number; female: number } };
     outsourced: { it: { male: number; female: number }; nonIt: { male: number; female: number } };
+    plantillaUnfilled?: { it: number; nonIt: number };
   };
   stakeholders: { name: string; services: { name: string; complexity: string; direction: string }[] }[];
 }
@@ -132,6 +134,7 @@ interface IctProject {
 
 interface KpiRow {
   hierarchy: string;
+  targetedResult?: string;
   kpi: string;
   baselineData: string;
   targets: { year1: string; year2: string; year3: string };
@@ -391,7 +394,7 @@ const CSS = `
   /* ── Tables ── */
   table { width: 100%; border-collapse: collapse; font-size: 10pt; margin-bottom: 4mm; }
   th, td { border: 1px solid #000; padding: 3px 6px; vertical-align: top; }
-  th { background: #d9d9d9; font-weight: bold; text-align: center; }
+  th { background: #d9d9d9; font-weight: bold; text-align: center; vertical-align: middle; }
   td.label-cell { background: #d9d9d9; font-weight: bold; width: 33%; }
 
   /* ── Part IV table ── */
@@ -406,6 +409,10 @@ const CSS = `
   .cyber-table td.group-cell { font-weight: bold; background: #d9d9d9; vertical-align: middle; width: 22%; }
   .cyber-table td.mandatory-cell { width: 39%; }
   .cyber-table td.optional-cell { width: 39%; }
+  /* Other Measures row: template keeps both column positions but draws NO
+     border between them (nil tcBorders in the official docx). */
+  .cyber-table td.no-separator-left { border-right: none; }
+  .cyber-table td.no-separator-right { border-left: none; }
 
   /* ── IS card ── */
   .is-card { margin-bottom: 5mm; page-break-inside: avoid; }
@@ -432,23 +439,26 @@ function pageHeader(_issp: IsspData): string {
 function renderScopeTree(scopeKey: string): string {
   const s = scopeKey;
   const deptWide        = s === "DEPARTMENT_WIDE";
-  const deptCo          = s === "DEPARTMENT_CENTRAL_ONLY" || s === "CENTRAL_ONLY";
+  // "Department - Central Office / Head Office" is the parent item — checked
+  // whenever the scope is that office alone OR one of its two template
+  // sub-items (Regional/Bureaus), matching the template's actual nesting.
+  const deptCentral     = s === "DEPARTMENT_CENTRAL_ONLY" || s === "CENTRAL_ONLY" || s === "WITH_REGIONAL" || s === "WITH_BUREAUS";
   const deptCoOnly      = s === "DEPARTMENT_CENTRAL_ONLY" || s === "CENTRAL_ONLY";
-  const agencyWide      = ["WITH_REGIONAL","AGENCY_WITH_REGIONAL","WITH_BUREAUS","AGENCY_WIDE","AGENCY_CENTRAL_ONLY","OTHER_GOVERNMENT_ENTITY"].includes(s);
+  const deptRegional    = s === "WITH_REGIONAL";
+  const deptBureaus     = s === "WITH_BUREAUS";
+  const agencyWide      = ["AGENCY_WIDE","AGENCY_CENTRAL_ONLY","AGENCY_WITH_REGIONAL","OTHER_GOVERNMENT_ENTITY"].includes(s);
   const agencyCoOnly    = s === "AGENCY_CENTRAL_ONLY";
-  const agencyRegional  = s === "WITH_REGIONAL" || s === "AGENCY_WITH_REGIONAL";
-  const agencyBureaus   = s === "WITH_BUREAUS";
+  const agencyRegional  = s === "AGENCY_WITH_REGIONAL";
   const otherGov        = s === "OTHER_GOVERNMENT_ENTITY";
   const lgu             = s === "LGU_SCOPE";
   return `
     <span class="cover-scope-item">${chk(deptWide)} Department-Wide</span>
-    <span class="cover-scope-item">${chk(deptCo)} Department - Central Office / Head Office</span>
+    <span class="cover-scope-item">${chk(deptCentral)} Department - Central Office / Head Office</span>
     <span class="cover-scope-sub">${chk(deptCoOnly)} Central Office only</span>
-    <span class="cover-scope-sub">${chk(false)} With Regional Offices / Field Offices &nbsp;&nbsp; ${chk(false)} With Bureaus</span>
+    <span class="cover-scope-sub">${chk(deptRegional)} With Regional Offices / Field Offices &nbsp;&nbsp; ${chk(deptBureaus)} With Bureaus</span>
     <span class="cover-scope-item">${chk(agencyWide)} Agency-Wide</span>
     <span class="cover-scope-sub">${chk(agencyCoOnly)} Central Office only</span>
     <span class="cover-scope-sub">${chk(agencyRegional)} With Regional Offices / Field Offices</span>
-    <span class="cover-scope-sub">${chk(agencyBureaus)} With Bureaus / Attached Agencies</span>
     <span class="cover-scope-sub">${chk(otherGov)} Other Government Entity</span>
     <span class="cover-scope-item">${chk(lgu)} LGU</span>
   `;
@@ -517,7 +527,13 @@ export function getTocEntries(issp: IsspData): TocEntry[] {
       : []),
     { id: "part1", label: "PART I. AGENCY PROFILE & STRATEGIC CONTEXT", level: "part" },
     { id: "part1-a", label: "A. MANDATE, VISION, MISSION, AND ORGANIZATIONAL OUTCOME", level: "section" },
+    { id: "part1-a1", label: "A.1. MANDATE", level: "sub" },
+    { id: "part1-a2", label: "A.2. VISION STATEMENT", level: "sub" },
+    { id: "part1-a3", label: "A.3. MISSION STATEMENT", level: "sub" },
+    { id: "part1-a4", label: "A.4. ORGANIZATIONAL OUTCOME", level: "sub" },
     { id: "part1-b", label: "B. ORGANIZATIONAL STRUCTURE", level: "section" },
+    { id: "part1-b1", label: "B.1. CHIEF INFORMATION OFFICER (CIO)", level: "sub" },
+    { id: "part1-b2", label: "B.2. HUMAN CAPITAL", level: "sub" },
     { id: "part1-c", label: "C. STAKEHOLDER ANALYSIS", level: "section" },
     { id: "part2", label: "PART II. CURRENT ICT ASSESSMENT", level: "part" },
     { id: "part2-a", label: "A. STRATEGIC CONCERNS FOR ICT USE", level: "section" },
@@ -528,6 +544,8 @@ export function getTocEntries(issp: IsspData): TocEntry[] {
     { id: "part2-d", label: "D. E-GOVERNMENT PROGRAMS (EGP) CHECKLIST", level: "section" },
     { id: "part3", label: "PART III. PROPOSED ICT STRATEGY", level: "part" },
     { id: "part3-a", label: "A. PROPOSED NETWORK INFRASTRUCTURE", level: "section" },
+    { id: "part3-a1", label: "A.1. LAN/WAN SET-UP INCLUDING CONNECTIVITY TYPE AND BANDWIDTH", level: "sub" },
+    { id: "part3-a2", label: "A.2. CYBERSECURITY CONTROL CHECKLIST", level: "sub" },
     { id: "part3-b", label: "B. ENTERPRISE ARCHITECTURE", level: "section" },
     { id: "part3-c", label: "C. PROPOSED ICT HUMAN CAPITAL", level: "section" },
     { id: "part3-d", label: "D. PROPOSED INFORMATION SYSTEMS", level: "section" },
@@ -535,6 +553,8 @@ export function getTocEntries(issp: IsspData): TocEntry[] {
     { id: "part3-e1", label: "E.1. INTERNAL ICT PROJECTS", level: "sub" },
     ...(hasE2 ? [{ id: "part3-e2", label: "E.2. CROSS-AGENCY ICT PROJECTS", level: "sub" as const }] : []),
     { id: "part3-f", label: "F. PERFORMANCE MEASUREMENT FRAMEWORK", level: "section" },
+    { id: "part3-f1", label: "F.1. INTERNAL ICT PROJECTS", level: "sub" },
+    ...(hasE2 ? [{ id: "part3-f2", label: "F.2. CROSS-AGENCY ICT PROJECTS", level: "sub" as const }] : []),
     { id: "part4", label: "PART IV. RESOURCE REQUIREMENTS", level: "part" },
     { id: "part4-a", label: "A. DETAILED RESOURCE DEPLOYMENT AND COST BREAKDOWN", level: "section" },
     { id: "part4-a1", label: `A.1. [${issp.startYear}]`, level: "sub" },
@@ -610,17 +630,18 @@ function renderPart1(issp: IsspData): string {
     </tr>`;
   }
 
+  const unfilled = hc.plantillaUnfilled ?? { it: 0, nonIt: 0 };
   const itGrand = ["plantilla","contractual","outsourced"].reduce((s, k) => {
-    const r = hc[k as keyof typeof hc]; return s + (r.it.male||0) + (r.it.female||0);
-  }, 0);
+    const r = hc[k as "plantilla" | "contractual" | "outsourced"]; return s + (r.it.male||0) + (r.it.female||0);
+  }, 0) + (unfilled.it || 0);
   const nonItGrand = ["plantilla","contractual","outsourced"].reduce((s, k) => {
-    const r = hc[k as keyof typeof hc]; return s + (r.nonIt.male||0) + (r.nonIt.female||0);
-  }, 0);
+    const r = hc[k as "plantilla" | "contractual" | "outsourced"]; return s + (r.nonIt.male||0) + (r.nonIt.female||0);
+  }, 0) + (unfilled.nonIt || 0);
   const maleGrand = ["plantilla","contractual","outsourced"].reduce((s, k) => {
-    const r = hc[k as keyof typeof hc]; return s + (r.it.male||0) + (r.nonIt.male||0);
+    const r = hc[k as "plantilla" | "contractual" | "outsourced"]; return s + (r.it.male||0) + (r.nonIt.male||0);
   }, 0);
   const femaleGrand = ["plantilla","contractual","outsourced"].reduce((s, k) => {
-    const r = hc[k as keyof typeof hc]; return s + (r.it.female||0) + (r.nonIt.female||0);
+    const r = hc[k as "plantilla" | "contractual" | "outsourced"]; return s + (r.it.female||0) + (r.nonIt.female||0);
   }, 0);
 
   return `<div class="page-break">
@@ -629,29 +650,29 @@ function renderPart1(issp: IsspData): string {
 
     <div class="section-heading">${tocMark("part1-a")}A. Mandate, Vision, Mission, and Organizational Outcome</div>
 
-    <div class="subsection-heading">A.1. Mandate</div>
+    <div class="subsection-heading">${tocMark("part1-a1")}A.1. Mandate</div>
     <div class="subsection-block"><ul class="template-list">
-      <li><span class="field-label">Legal Basis:</span> ${esc(p.legalBasis)}</li>
-      <li><span class="field-label">Function:</span> ${richText(p.mandateFunction)}</li>
+      <li><span class="field-label">Legal Basis</span> ${esc(p.legalBasis)}</li>
+      <li><span class="field-label">Function</span> ${richText(p.mandateFunction)}</li>
     </ul></div>
 
-    <div class="subsection-heading">A.2. Vision Statement</div>
+    <div class="subsection-heading">${tocMark("part1-a2")}A.2. Vision Statement</div>
     <div class="subsection-block"><p class="field-value">${richText(p.visionStatement)}</p></div>
 
-    <div class="subsection-heading">A.3. Mission Statement</div>
+    <div class="subsection-heading">${tocMark("part1-a3")}A.3. Mission Statement</div>
     <div class="subsection-block"><p class="field-value">${nl2br(p.missionStatement)}</p></div>
 
-    <div class="subsection-heading">A.4. ${esc(oo)}</div>
+    <div class="subsection-heading">${tocMark("part1-a4")}A.4. ${esc(oo)}</div>
     <div class="subsection-block">${p.orgOutcomes.length === 0 ? "<p><em>None specified.</em></p>" :
       p.orgOutcomes.map((oo, i) => `<div class="avoid-break" style="margin-bottom:3mm;">
         <p style="font-weight:bold;">${i + 1}. ${esc(oo.name)}</p>
-        ${oo.programs?.length ? `<ul class="template-list">${oo.programs.map(pg => `<li>${esc(pg)}</li>`).join("")}</ul>` : ""}
+        ${oo.programs?.length ? `<ul class="template-list">${oo.programs.map(pg => `<li>${esc(pg.name)}</li>`).join("")}</ul>` : ""}
       </div>`).join("")
     }</div>
 
     <div class="section-heading">${tocMark("part1-b")}B. Organizational Structure</div>
 
-    <div class="subsection-heading">B.1. Chief Information Officer (CIO)</div>
+    <div class="subsection-heading">${tocMark("part1-b1")}B.1. Chief Information Officer (CIO)</div>
     <div class="subsection-block"><ul class="template-list">
       <li><span class="field-label">Name of CIO:</span> ${esc(p.cioName)}</li>
       <li><span class="field-label">Plantilla Position:</span> ${esc(p.cioPosition)}</li>
@@ -669,7 +690,7 @@ function renderPart1(issp: IsspData): string {
       <li><span class="field-label">Contact Number/s:</span> ${esc(p.focalContact)}</li>
     </ul></div>
 
-    <div class="subsection-heading">B.2. Human Capital</div>
+    <div class="subsection-heading">${tocMark("part1-b2")}B.2. Human Capital</div>
     <div class="subsection-block"><table>
       <thead>
         <tr>
@@ -681,7 +702,14 @@ function renderPart1(issp: IsspData): string {
         <tr><th>Male</th><th>Female</th></tr>
       </thead>
       <tbody>
-        ${hcRow("Plantilla", "plantilla")}
+        ${hcRow("Plantilla (Filled)", "plantilla")}
+        <tr class="avoid-break">
+          <td style="font-weight:bold;text-align:center;">Plantilla (Unfilled)</td>
+          <td style="text-align:center;">${unfilled.it || 0}</td>
+          <td style="text-align:center;">${unfilled.nonIt || 0}</td>
+          <td style="text-align:center;">N/A</td>
+          <td style="text-align:center;">N/A</td>
+        </tr>
         ${hcRow("Contractual", "contractual")}
         ${hcRow("Outsourced (JO, COS, and HTC)", "outsourced")}
         <tr style="background:#d9d9d9;font-weight:bold;">
@@ -737,6 +765,7 @@ function renderCyberTable(controls: CyberGroup): string {
     group: group.label.toUpperCase(),
     mandatory: group.items.filter((item) => item.mandatory),
     optional: group.items.filter((item) => !item.mandatory),
+    noSeparatorSplit: group.noSeparatorSplit,
     src: controls[group.key],
   }));
 
@@ -749,16 +778,28 @@ function renderCyberTable(controls: CyberGroup): string {
       </tr>
     </thead>
     <tbody>
-      ${rows.map(row => `<tr class="avoid-break">
-        <td class="group-cell">${esc(row.group)}</td>
-        <td class="mandatory-cell">
-          ${row.mandatory.map(m => `${chk(row.src[m.key] as boolean)} ${esc(m.label)}<br>`).join("")}
-        </td>
-        <td class="optional-cell">
-          ${row.optional.map(m => `${chk(row.src[m.key] as boolean)} ${esc(m.label)}<br>`).join("")}
-          &nbsp;
-        </td>
-      </tr>`).join("")}
+      ${rows.map(row => {
+        // All-optional group (Other Measures): the template still prints the
+        // items across BOTH column positions — split at the alignment index,
+        // no border between the cells (official docx sets nil tcBorders on the
+        // shared edge in II-B2 and III-A.2). Never a mandatory/optional split.
+        const allOptional = row.mandatory.length === 0;
+        const split = allOptional ? (row.noSeparatorSplit ?? row.optional.length) : 0;
+        const left = allOptional ? row.optional.slice(0, split) : row.mandatory;
+        const right = allOptional ? row.optional.slice(split) : row.optional;
+        const leftCls = allOptional ? "optional-cell no-separator-left" : "mandatory-cell";
+        const rightCls = allOptional ? "optional-cell no-separator-right" : "optional-cell";
+        return `<tr class="avoid-break">
+            <td class="group-cell">${esc(row.group)}</td>
+            <td class="${leftCls}">
+              ${left.map(m => `${chk(row.src[m.key] as boolean)} ${esc(m.label)}<br>`).join("")}
+            </td>
+            <td class="${rightCls}">
+              ${right.map(m => `${chk(row.src[m.key] as boolean)} ${esc(m.label)}<br>`).join("")}
+              &nbsp;
+            </td>
+          </tr>`;
+      }).join("")}
     </tbody>
   </table>`;
 }
@@ -937,7 +978,7 @@ function renderPart2(issp: IsspData): string {
 
   function egpQuestionCell(cfg: EgpRowConfig, e: EgpEntry | undefined): string {
     if (cfg.key === "pnpki") {
-      return `<em>Percentage of adoption of PNPKI (ratio of total number of employees with active PNPKI certificates over total number of employees)</em>` +
+      return `<em>(percentage of adoption of PNPKI; Ratio of Total number of employees with active PNPKI certificates over Total number of employees)</em>` +
         `<br><strong>${Number(e?.adoptionPercentage ?? 0)}%</strong>`;
     }
     if (cfg.key === "onlinePortal") {
@@ -1001,10 +1042,10 @@ function renderPart2(issp: IsspData): string {
     <table>
       <thead>
         <tr>
-          <th style="width:20%">OO/SO/MFO</th>
-          <th style="width:25%">Critical Management, Operating, or Business System</th>
-          <th style="width:27%">Problem</th>
-          <th style="width:28%">Intended Use of ICT</th>
+          <th style="width:25%">OO/SO/MFO</th>
+          <th style="width:27%">CRITICAL MANAGEMENT, OPERATING, OR BUSINESS SYSTEM</th>
+          <th style="width:23%">PROBLEM</th>
+          <th style="width:23%">INTENDED USE OF ICT</th>
         </tr>
       </thead>
       <tbody>
@@ -1079,7 +1120,7 @@ function renderProjectCard(proj: IctProject, crossAgency = false, ordinal?: numb
           ${chk(sa["nationalCybersecurity"] as boolean)} National Cybersecurity Plan<br>
           ${chk(sa["eGovMasterPlan"] as boolean)} E-Government Master Plan<br>
           ${chk(sa["convergenceBudgeting"] as boolean)} Program Convergence Budgeting<br>
-          ${chk(sa["othersChecked"] === true || !!(sa["others"] as string))} Others: ${esc((sa["others"] as string) || "")}
+          ${chk(sa["othersChecked"] === true || !!(sa["others"] as string))} Others (Specify): ${esc((sa["others"] as string) || "")}
         </td></tr>
         <tr><td class="label-cell">HARMONIZATION FRAMEWORK</td><td>
           ${chk(ha["nationalPrioritization"])} National Prioritization<br>
@@ -1126,7 +1167,7 @@ function renderPart3(issp: IsspData): string {
     <div class="part-heading">${tocMark("part3")}Part III. Proposed ICT Strategy</div>
 
     <div class="section-heading">${tocMark("part3-a")}A. Proposed Network Infrastructure</div>
-    <div class="subsection-heading">A.1. LAN/WAN Set-Up Including Connectivity Type and Bandwidth</div>
+    <div class="subsection-heading">${tocMark("part3-a1")}A.1. LAN/WAN Set-Up Including Connectivity Type and Bandwidth</div>
     <div class="subsection-block">${p.proposedNetworkDesc
       ? `<p>${nl2br(p.proposedNetworkDesc)}</p>`
       : `<p style="font-style:italic;">No proposed network description specified.</p>`
@@ -1139,7 +1180,7 @@ function renderPart3(issp: IsspData): string {
       : ""
     }</div>
 
-    <div class="subsection-heading" style="margin-top:4mm;">A.2. Cybersecurity Control Checklist</div>
+    <div class="subsection-heading" style="margin-top:4mm;">${tocMark("part3-a2")}A.2. Cybersecurity Control Checklist</div>
     <div class="subsection-block">${renderCyberTable(p.proposedCybersecControls)}</div>
 
     <div class="section-heading page-break">${tocMark("part3-b")}B. Enterprise Architecture</div>
@@ -1200,7 +1241,7 @@ function renderPart3(issp: IsspData): string {
 
     <div class="section-heading page-break">${tocMark("part3-f")}F. Performance Measurement Framework</div>
     ${pageHeader(issp)}
-    <div class="subsection-heading">F.1. Internal ICT Projects</div>
+    <div class="subsection-heading">${tocMark("part3-f1")}F.1. Internal ICT Projects</div>
     <div class="subsection-block">${allProjects.filter(pr => pr.type === "internal").map((proj, i) => {
       const entry = issp.part3.performanceFramework[proj.id] ??
         perfEntries.find(e => e.projectTitle === proj.title);
@@ -1220,7 +1261,7 @@ function renderPart3(issp: IsspData): string {
           </thead>
           <tbody>
             ${entry.rows.map(row => `<tr class="avoid-break">
-              <td style="font-weight:bold;">${esc(row.hierarchy)}</td>
+              <td style="font-weight:bold;">${esc(row.hierarchy)}${row.targetedResult ? `<br><span style="font-weight:normal;">${nl2br(row.targetedResult)}</span>` : ""}</td>
               <td>${nl2br(row.kpi)}</td>
               <td>${nl2br(row.baselineData)}</td>
               <td>Y1: ${esc(row.targets?.year1)}<br>Y2: ${esc(row.targets?.year2)}<br>Y3: ${esc(row.targets?.year3)}</td>
@@ -1233,7 +1274,7 @@ function renderPart3(issp: IsspData): string {
     }).join("")}</div>
 
     ${allProjects.filter(pr => pr.type === "cross-agency").length > 0 ? `
-    <div class="subsection-heading" style="margin-top:6mm;">F.2. Cross-Agency ICT Projects</div>
+    <div class="subsection-heading" style="margin-top:6mm;">${tocMark("part3-f2")}F.2. Cross-Agency ICT Projects</div>
     <div class="subsection-block">${allProjects.filter(pr => pr.type === "cross-agency").map((proj, i) => {
       const entry = issp.part3.performanceFramework[proj.id] ??
         perfEntries.find(e => e.projectTitle === proj.title);
@@ -1244,16 +1285,16 @@ function renderPart3(issp: IsspData): string {
           <thead>
             <tr>
               <th style="width:15%">Hierarchy of Targeted Results</th>
-              <th style="width:20%">KPIs</th>
+              <th style="width:20%">Key Performance Indicators (KPIs)</th>
               <th style="width:15%">Baseline Data</th>
               <th style="width:15%">Targets</th>
               <th style="width:20%">Data Collection Methods</th>
-              <th style="width:15%">Responsibility</th>
+              <th style="width:15%">Responsibility to Collect Data</th>
             </tr>
           </thead>
           <tbody>
             ${entry.rows.map(row => `<tr class="avoid-break">
-              <td style="font-weight:bold;">${esc(row.hierarchy)}</td>
+              <td style="font-weight:bold;">${esc(row.hierarchy)}${row.targetedResult ? `<br><span style="font-weight:normal;">${nl2br(row.targetedResult)}</span>` : ""}</td>
               <td>${nl2br(row.kpi)}</td>
               <td>${nl2br(row.baselineData)}</td>
               <td>Y1: ${esc(row.targets?.year1)}<br>Y2: ${esc(row.targets?.year2)}<br>Y3: ${esc(row.targets?.year3)}</td>
@@ -1455,6 +1496,9 @@ function renderPart4(issp: IsspData): string {
     return m;
   }
   const ua1 = byUacs(allY1), ua2 = byUacs(allY2), ua3 = byUacs(allY3);
+  const pdfPlanYears = Array.from({ length: 3 }, (_, i) => String(issp.startYear + i));
+  const inDuration = (proj: IctProject, label: number | string) =>
+    durationCoversYear(proj.duration ?? "", String(label), pdfPlanYears);
   const allUacs = Array.from(new Set([...ua1.keys(), ...ua2.keys(), ...ua3.keys()]));
 
   return `
@@ -1465,7 +1509,8 @@ function renderPart4(issp: IsspData): string {
         ${i === 0 ? `${tocMark("part4")}${tocMark("part4-a")}Part IV. Resource Requirements<br><span style="font-size:13pt">A. Detailed Resource Deployment and Cost Breakdown</span>` : ""}
       </div>
       <div class="subsection-heading">${tocMark(`part4-a${i + 1}`)}A.${i + 1}. [${label}]</div>
-      <div class="subsection-block">${renderYearTable(p[key], i + 1, label, internalProjects, crossAgencyProjects)}</div>
+      <div class="subsection-block">${renderYearTable(p[key], i + 1, label, internalProjects.filter((pr) => inDuration(pr, label)), crossAgencyProjects.filter((pr) => inDuration(pr, label)))}</div>
+      ${i === years.length - 1 ? `<p style="font-size:8pt;margin-top:3mm;">*All costs indicated in this section are based on the market research conducted by ${esc(issp.agency.name)}</p>` : ""}
     </div>`).join("")}
 
     <div class="page-break">
@@ -1557,7 +1602,7 @@ function renderPart4(issp: IsspData): string {
         <table>
           <thead><tr><th>Expenditure Type</th><th>${issp.startYear}</th><th>${issp.startYear + 1}</th><th>${issp.startYear + 2}</th><th>Total</th></tr></thead>
           <tbody>
-            ${[["Capital Outlay (CO)", coLines], ["Maintenance &amp; Other Operating Expenses (MOOE)", mooeLines]].map(([label, fn]) => {
+            ${[["Capital Outlay", coLines], ["Maintenance and Other Operating Expenses", mooeLines]].map(([label, fn]) => {
               const a = sumLines((fn as (y: YearBudget)=>LineItem[])(p.year1));
               const b = sumLines((fn as (y: YearBudget)=>LineItem[])(p.year2));
               const c = sumLines((fn as (y: YearBudget)=>LineItem[])(p.year3));

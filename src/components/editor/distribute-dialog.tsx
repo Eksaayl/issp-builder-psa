@@ -22,6 +22,7 @@ import {
   Users,
 } from "lucide-react";
 import { useIsspStore } from "@/lib/store";
+import type { IsspDocument } from "@/lib/store/types";
 import {
   ANNEX_SECTIONS,
   FRONT_MATTER_SECTIONS,
@@ -30,6 +31,7 @@ import {
   type SectionDef,
 } from "@/lib/sections";
 import { SECTION_FIELDS } from "@/lib/section-fields";
+import { PROJECT_BEARING_FIELDS } from "@/lib/scope/paths";
 import { sliceScopedDoc } from "@/lib/scope/slice";
 import type { EditPath, OfficeIdentity } from "@/lib/scope/types";
 import { toast } from "sonner";
@@ -130,10 +132,14 @@ interface OfficeEntry {
   name: string;
   /** Selected leaf paths for this office. */
   leaves: Set<string>;
+  /** Per-project distribution mode for this office. */
+  projectMode: "all" | "selected" | "empty";
+  /** Selected project ids (used when projectMode === "selected"). */
+  projectIds: Set<string>;
 }
 
 function newOffice(): OfficeEntry {
-  return { officeId: uuid(), name: "", leaves: new Set() };
+  return { officeId: uuid(), name: "", leaves: new Set(), projectMode: "all", projectIds: new Set() };
 }
 
 // ─── Tri-state node helpers ───────────────────────────────────────────────────
@@ -147,6 +153,37 @@ function nodeState(leaves: string[], selected: Set<string>): TriState {
   if (hit === 0) return "none";
   if (hit === leaves.length) return "all";
   return "some";
+}
+
+/** Leaves that can carry an internal / cross-agency project respectively. */
+const INTERNAL_CARRIER_LEAVES = [
+  "part3/e1.internalProjects",
+  "part3/f.performanceFramework",
+  "part3/d.proposedSystems", // a systems-only office's file carries the projects' systems
+  "part4/year1.year1",
+  "part4/year2.year2",
+  "part4/year3.year3",
+];
+const CROSS_CARRIER_LEAVES = [
+  "part3/e2.crossAgencyProjects",
+  "part3/f.performanceFramework",
+  "part3/d.proposedSystems", // a systems-only office's file carries the projects' systems
+  "part4/year1.year1",
+  "part4/year2.year2",
+  "part4/year3.year3",
+];
+
+function canCarryInternal(leaves: Set<string>): boolean {
+  return INTERNAL_CARRIER_LEAVES.some((l) => leaves.has(l));
+}
+function canCarryCross(leaves: Set<string>): boolean {
+  return CROSS_CARRIER_LEAVES.some((l) => leaves.has(l));
+}
+
+/** Titles of the office's selected projects, for the roster + filename. */
+function projectTitlesFor(doc: IsspDocument, ids: Set<string>): string[] {
+  const all = [...doc.part3.internalProjects, ...doc.part3.crossAgencyProjects];
+  return all.filter((p) => ids.has(p.id)).map((p) => p.title || "(untitled)");
 }
 
 // ─── Dialog ───────────────────────────────────────────────────────────────────
@@ -194,6 +231,33 @@ export function DistributeDialog({
     if (state === "all") leaves.forEach((l) => next.delete(l));
     else leaves.forEach((l) => next.add(l));
     setLeaves(selectedIdx, next);
+  }
+
+  function toggleProject(idx: number, id: string) {
+    patchEntry(idx, (e) => {
+      const next = new Set(e.projectIds);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return { ...e, projectIds: next };
+    });
+  }
+
+  // The Projects panel appears only when the office owns ≥1 project-bearing
+  // field AND the master actually has projects to pick — exactly what
+  // panelAppliesTo decides (its `!!doc` guard covers the nullable store doc,
+  // which this runs against before the early return below).
+  const showProjectsPanel = !!current && panelAppliesTo(current);
+
+  /** True when the Projects panel applies to this office (≥1 master project
+   *  AND ≥1 project-bearing leaf owned). Gates both validation and the
+   *  filter passed to sliceScopedDoc, so stale mode state from a hidden
+   *  panel can never block Generate nor pre-filter a file. */
+  function panelAppliesTo(e: OfficeEntry): boolean {
+    return (
+      !!doc &&
+      doc.part3.internalProjects.length + doc.part3.crossAgencyProjects.length > 0 &&
+      [...PROJECT_BEARING_FIELDS].some((l) => e.leaves.has(l))
+    );
   }
 
   function addOffice() {
@@ -256,6 +320,8 @@ export function DistributeDialog({
         const reasons: string[] = [];
         if (e.name.trim().length === 0) reasons.push("is missing a name");
         if (leavesToEditPaths(e.leaves).length === 0) reasons.push("has no fields selected");
+        if (e.projectMode === "selected" && panelAppliesTo(e) && e.projectIds.size === 0)
+          reasons.push("has no projects selected");
         return reasons.length === 0
           ? null
           : { label: e.name.trim() || `Office ${i + 1}`, msg: reasons.join(" and ") };
@@ -277,19 +343,31 @@ export function DistributeDialog({
           displayLabel: name,
         };
         const editable = leavesToEditPaths(entry.leaves);
+        const projectIds = !panelAppliesTo(entry)
+          ? undefined
+          : entry.projectMode === "all"
+            ? undefined
+            : entry.projectMode === "empty"
+              ? []
+              : [...entry.projectIds];
         const sliced = sliceScopedDoc(doc, {
           office,
           editable,
+          projectIds,
           // sourceDocId intentionally omitted: IsspDocument carries no stable
-          // id (see src/lib/store/types.ts). Phase 3 consolidate is the only
-          // consumer and is not yet built.
+          // id (see src/lib/store/types.ts). Consolidate is the only consumer.
         });
         const json = JSON.stringify(sliced, null, 2);
         const blob = new Blob([json], { type: "application/json" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        const slug = slugify(office.displayLabel) || "office";
+        const projectTitles = projectTitlesFor(doc, entry.projectIds);
+        const nameBase =
+          projectIds && projectIds.length === 1 && projectTitles.length === 1
+            ? projectTitles[0]
+            : office.displayLabel;
+        const slug = slugify(nameBase) || "office";
         const fname = `${slugify(doc.agency.acronym || "agency")}-ISSP-${doc.startYear}-${doc.endYear}-${slug}.issp`;
         a.download = fname;
         document.body.appendChild(a);
@@ -336,7 +414,7 @@ export function DistributeDialog({
               id="distribute-office-select"
               value={selectedIdx}
               onChange={(e) => setSelectedIdx(Number(e.target.value))}
-              className="flex-1 min-w-0 rounded-md border border-input bg-transparent px-2 py-1.5 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex-1 min-w-0 rounded-md border border-input bg-transparent px-2 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {offices.map((e, i) => (
                 <option key={e.officeId} value={i}>
@@ -413,6 +491,64 @@ export function DistributeDialog({
           </ul>
         </div>
 
+        {/* Projects — per-project distribution */}
+        {showProjectsPanel && (
+          <div className="space-y-2 rounded-lg border border-border bg-card/40 px-3 py-2.5">
+            <fieldset>
+              <legend className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/70">
+                Projects
+              </legend>
+              <div className="mt-1 space-y-1">
+                {(["all", "selected", "empty"] as const).map((mode) => (
+                  <label key={mode} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="radio"
+                      name={`project-mode-${current.officeId}`}
+                      checked={current.projectMode === mode}
+                      onChange={() =>
+                        patchEntry(selectedIdx, (e) => ({ ...e, projectMode: mode }))
+                      }
+                    />
+                    {mode === "all" && "All projects (pre-populate everything)"}
+                    {mode === "selected" && "Selected projects only"}
+                    {mode === "empty" && "Start empty (office adds its own)"}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            {current.projectMode === "selected" && (
+              <div className="max-h-40 space-y-2 overflow-y-auto">
+                {canCarryInternal(current.leaves) && (
+                  <ProjectChecklist
+                    label="Internal"
+                    projects={doc.part3.internalProjects}
+                    checked={current.projectIds}
+                    onToggle={(id) => toggleProject(selectedIdx, id)}
+                  />
+                )}
+                {canCarryCross(current.leaves) && (
+                  <ProjectChecklist
+                    label="Cross-Agency"
+                    projects={doc.part3.crossAgencyProjects}
+                    checked={current.projectIds}
+                    onToggle={(id) => toggleProject(selectedIdx, id)}
+                  />
+                )}
+                {!canCarryInternal(current.leaves) && (
+                  <p className="text-[11px] leading-snug text-muted-foreground/70">
+                    Own Part III-E1, III-F, Part IV, or III-D to include internal projects.
+                  </p>
+                )}
+                {!canCarryCross(current.leaves) && (
+                  <p className="text-[11px] leading-snug text-muted-foreground/70">
+                    Own Part III-E2, III-F, Part IV, or III-D to include cross-agency projects.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Roster */}
         <div className="space-y-1">
           <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/70">
@@ -444,6 +580,13 @@ export function DistributeDialog({
                     ) : (
                       <span className="block text-muted-foreground/60 italic">
                         No fields selected
+                      </span>
+                    )}
+                    {panelAppliesTo(e) && e.projectMode !== "all" && (
+                      <span className="block text-muted-foreground/70 truncate">
+                        {e.projectMode === "empty"
+                          ? "Projects: none (start empty)"
+                          : `Projects: ${projectTitlesFor(doc, e.projectIds).join(", ")}`}
                       </span>
                     )}
                   </button>
@@ -498,6 +641,41 @@ function StandaloneSectionRow({
       />
       <span className="truncate">{section.label}</span>
     </li>
+  );
+}
+
+function ProjectChecklist({
+  label,
+  projects,
+  checked,
+  onToggle,
+}: {
+  label: string;
+  projects: { id: string; title: string }[];
+  checked: Set<string>;
+  onToggle: (id: string) => void;
+}) {
+  if (projects.length === 0) return null;
+  return (
+    <div>
+      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/70">
+        {label}
+      </p>
+      <ul>
+        {projects.map((p) => (
+          <li key={p.id} className="flex items-center gap-2 py-0.5">
+            <Checkbox
+              checked={checked.has(p.id)}
+              onCheckedChange={() => onToggle(p.id)}
+              aria-label={p.title || "Untitled project"}
+            />
+            <span className="truncate text-sm text-muted-foreground">
+              {p.title || "(untitled project)"}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

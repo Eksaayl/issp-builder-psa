@@ -16,25 +16,38 @@ import type {
   KpiRow,
   PerformanceFramework,
   EgpChecklist,
+  Program,
 } from "@/lib/store/types";
 
 // ─── Field mapping helpers ────────────────────────────────────────────────────
 
+const NBSP = "    ";
+
 function mapStrategicConcerns(
   concerns: IsspDocument["part2"]["strategicConcerns"],
-  outcomeMap: Record<string, string>
+  outcomeMap: Record<string, string>,
+  programsByOutcome: Record<string, { id: string; name: string }[]>
 ): IsspData["part2"]["strategicConcerns"] {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return concerns.map((sc: any) => {
-    // Backward compatibility: handle both new outcomeIds and old outcomeId
-    const ids = Array.isArray(sc.outcomeIds) && sc.outcomeIds.length > 0 
-      ? sc.outcomeIds 
+    const ids = Array.isArray(sc.outcomeIds) && sc.outcomeIds.length > 0
+      ? sc.outcomeIds
       : (sc.outcomeId ? [sc.outcomeId] : []);
-    
-    const labels = ids.map((id: string) => outcomeMap[id] ?? id);
-    const ooSoMfoText = labels.length > 1 
-      ? labels.map((l: string) => `• ${l}`).join("\n") 
-      : (labels[0] || "");
+
+    const blocks = ids.map((id: string) => {
+      const name = outcomeMap[id] ?? id;
+      const progs = programsByOutcome[id] ?? [];
+      // Numbering = position in the outcome's FULL program list (matches Part I-A.4)
+      const lines = progs
+        .map((p, i) => ({ p, n: i + 1 }))
+        .filter(({ p }) => (sc.programIds ?? []).includes(p.id))
+        .map(({ p, n }) => `${NBSP}Program ${n}: ${p.name}`);
+      return [name, ...lines].join("\n");
+    });
+
+    const ooSoMfoText = blocks.length > 1
+      ? blocks.map((b: string) => `• ${b}`).join("\n")
+      : (blocks[0] || "");
 
     return {
       ooSoMfo: ooSoMfoText,
@@ -100,6 +113,7 @@ function mapProject(proj: IctProject, crossAgency: boolean, totalProjectCost: nu
 function mapKpiRow(row: KpiRow) {
   return {
     hierarchy: row.hierarchy,
+    targetedResult: row.targetedResult ?? "",
     kpi: row.indicator,
     baselineData: row.baseline,
     targets: { year1: row.year1Target, year2: row.year2Target, year3: row.year3Target },
@@ -150,6 +164,9 @@ function toRenderData(doc: IsspDocument): IsspData {
   const { agency, part1, part2, part3, part4 } = doc;
 
   const outcomeMap = Object.fromEntries(part1.orgOutcomes.map((o) => [o.id, o.name]));
+  const programsByOutcome = Object.fromEntries(
+    part1.orgOutcomes.map((o) => [o.id, o.programs])
+  );
   const projectTitleById = new Map<string, string>(
     [...part3.internalProjects, ...part3.crossAgencyProjects].map((p) => [p.id, p.title])
   );
@@ -185,7 +202,17 @@ function toRenderData(doc: IsspDocument): IsspData {
       mandateFunction: part1.mandateFunction,
       visionStatement: part1.visionStatement,
       missionStatement: part1.missionStatement,
-      orgOutcomes: part1.orgOutcomes.map((o) => ({ name: o.name, programs: o.programs })),
+      // Legacy v11 docs POSTed straight to the API still carry programs as
+      // plain strings. Normalize with the same deterministic id formula the
+      // migration uses, so I-A.4 names render and the ids match a later
+      // in-app load of the same file.
+      orgOutcomes: part1.orgOutcomes.map((o) => ({
+        id: o.id,
+        name: o.name,
+        programs: (o.programs ?? []).map((pg: string | Program, i: number) =>
+          typeof pg === "string" ? { id: `${o.id}-pg-${i + 1}`, name: pg } : pg
+        ),
+      })),
       cioName: part1.cioName,
       cioPosition: part1.cioPosition,
       cioUnit: part1.cioUnit,
@@ -201,7 +228,7 @@ function toRenderData(doc: IsspDocument): IsspData {
     },
 
     part2: {
-      strategicConcerns: mapStrategicConcerns(part2.strategicConcerns, outcomeMap),
+      strategicConcerns: mapStrategicConcerns(part2.strategicConcerns, outcomeMap, programsByOutcome),
       networkDiagrams: part2.networkDiagrams.map((d) => ({
         id: d.id,
         path: d.dataUrl,

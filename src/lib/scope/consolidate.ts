@@ -1,5 +1,6 @@
 import type { IsspDocument } from "@/lib/store/types";
-import { resolveScope, SHARED_TABLE_PATHS } from "@/lib/scope/paths";
+import { resolveScope, SHARED_TABLE_PATHS, PROJECT_BEARING_FIELDS } from "@/lib/scope/paths";
+import { SECTION_FIELDS } from "@/lib/section-fields";
 
 /** A scalar field written by ≥2 offices — surfaced for human pick (no silent winner). */
 export interface ScalarConflict {
@@ -24,7 +25,7 @@ function partKeyFor(sectionId: string): PartKey | undefined {
 }
 
 /** Per-field merge strategy — computed across the whole batch in the pre-pass. */
-type Strategy = "shared-table" | "list-union" | "scalar-conflict" | "overlay";
+type Strategy = "shared-table" | "list-union" | "scalar-conflict" | "overlay" | "project-keyed";
 
 /**
  * Deep-equality via JSON serialization. IsspDocument field values are plain
@@ -56,10 +57,18 @@ function strategyFor(
   key: string,
   sid: string,
   owners: string[],
-  files: IsspDocument[]
+  files: IsspDocument[],
+  anyProjectFilter: boolean
 ): Strategy {
   if (SHARED_TABLE_PATHS.has(key) || SHARED_TABLE_PATHS.has(sid)) {
     return "shared-table";
+  }
+  // Per-project distribution: when ANY file in the batch declares a project
+  // filter, the project-bearing fields (PROJECT_BEARING_FIELDS) merge by
+  // project id (replace / append / keep-on-delete) instead of overlay/union.
+  // Pure-legacy batches keep the strategies below, byte-for-byte.
+  if (anyProjectFilter && PROJECT_BEARING_FIELDS.has(key)) {
+    return "project-keyed";
   }
   if (owners.length <= 1) return "overlay";
   // ≥2 owners on a non-shared path. Inspect the owners' actual values rather
@@ -84,6 +93,25 @@ function strategyFor(
   if (values.every((v) => jsonEqual(v, values[0]))) return "overlay";
   // Values differ → surface for human pick (no silent winner).
   return "scalar-conflict";
+}
+
+/** (projectId, value) pairs a file contributes for a project-bearing key. */
+function projectEntries(file: IsspDocument, key: string): [string, unknown][] {
+  const dot = key.indexOf(".");
+  const sid = key.slice(0, dot);
+  const fk = key.slice(dot + 1);
+  if (sid === "part3/e1") return file.part3.internalProjects.map((r) => [r.id, r] as [string, unknown]);
+  if (sid === "part3/e2") return file.part3.crossAgencyProjects.map((r) => [r.id, r] as [string, unknown]);
+  // Systems merge by their OWN id (they are linked to projects, not keyed by
+  // project id) — the differ pre-pass uses these entries like any other.
+  if (sid === "part3/d") return file.part3.proposedSystems.map((r) => [r.id, r] as [string, unknown]);
+  if (sid === "part3/f") return Object.entries(file.part3.performanceFramework);
+  const yb = file.part4[fk as "year1" | "year2" | "year3"];
+  if (!yb) return [];
+  return [
+    ...Object.entries(yb.internalProjects),
+    ...Object.entries(yb.crossAgencyProjects),
+  ];
 }
 
 /**
@@ -133,11 +161,83 @@ export function consolidate(master: IsspDocument, files: IsspDocument[]): Consol
       fieldOwners.set(key, owners);
     }
   }
+  const anyProjectFilter = files.some((f) => f.editScope?.projectIds !== undefined);
   const strategy = new Map<string, Strategy>();
   for (const key of fieldOwners.keys()) {
     const dot = key.indexOf(".");
     const sid = key.slice(0, dot);
-    strategy.set(key, strategyFor(key, sid, fieldOwners.get(key)!, files));
+    strategy.set(key, strategyFor(key, sid, fieldOwners.get(key)!, files, anyProjectFilter));
+  }
+
+  // For project-keyed fields, only each office's LAST file (batch order)
+  // contributes — a resent file replaces that office's earlier submission
+  // instead of duplicating rows (same idempotency contract as shared tables).
+  const latestByKey = new Map<string, Map<string, IsspDocument>>();
+  if (anyProjectFilter) {
+    for (const key of strategy.keys()) {
+      if (strategy.get(key) !== "project-keyed") continue;
+      const last = new Map<string, IsspDocument>();
+      for (const file of files) {
+        const officeId = file.editScope!.office.id;
+        if (!resolveScope(file.editScope!.editable).editableFields.has(key)) continue;
+        last.set(officeId, file);
+      }
+      latestByKey.set(key, last);
+    }
+  }
+
+  // Same project id written DIFFERENTLY by ≥2 offices → review flag (import
+  // order still applies — like multi-owner definitions, the flag is the
+  // safety net, not a blocker). Identical writes are implicit agreement.
+  if (anyProjectFilter) {
+    for (const [key, strat] of strategy) {
+      if (strat !== "project-keyed") continue;
+      const dot = key.indexOf(".");
+      const sid = key.slice(0, dot);
+      const writers = new Map<string, Set<string>>(); // projectId -> distinct JSON
+      for (const file of latestByKey.get(key)?.values() ?? []) {
+        for (const [id, value] of projectEntries(file, key)) {
+          const set = writers.get(id) ?? new Set();
+          set.add(JSON.stringify(value));
+          writers.set(id, set);
+        }
+      }
+      if ([...writers.values()].some((s) => s.size > 1)) reviewFlags.add(sid);
+    }
+  }
+
+  // Part IV sub-object conflicts (officeProductivity / continuingCosts):
+  // decided batch-wide, once per year field, exactly once like scalar
+  // conflicts. FieldKey is NESTED ("year1.officeProductivity") so the store's
+  // resolution applier can address the sub-object.
+  const subConflicts = new Set<string>(); // `${sid}.${fk}.${sub}`
+  if (anyProjectFilter) {
+    for (const [key, strat] of strategy) {
+      if (strat !== "project-keyed") continue;
+      const dot = key.indexOf(".");
+      const sid = key.slice(0, dot);
+      if (!sid.startsWith("part4/")) continue;
+      const fk = key.slice(dot + 1);
+      for (const sub of ["officeProductivity", "continuingCosts"] as const) {
+        const values: { officeId: string; value: unknown }[] = [];
+        for (const file of latestByKey.get(key)?.values() ?? []) {
+          // Project-filtered files contribute NOTHING to the two sub-objects:
+          // their slice leaves both at the empty default (agency-wide budget
+          // is not the office's to edit), so counting them here would either
+          // fabricate a conflict or let an empty copy win the overlay.
+          if (file.editScope?.projectIds !== undefined) continue;
+          const yb = file.part4[fk as "year1" | "year2" | "year3"];
+          if (!yb) continue; // like projectEntries: a file lacking this year contributes nothing
+          values.push({ officeId: file.editScope!.office.id, value: yb[sub] });
+        }
+        const distinct = new Set(values.map((v) => JSON.stringify(v.value)));
+        if (distinct.size > 1) {
+          subConflicts.add(`${sid}.${fk}.${sub}`);
+          reviewFlags.add(sid);
+          scalarConflicts.push({ sectionId: sid, fieldKey: `${fk}.${sub}`, values });
+        }
+      }
+    }
   }
 
   // Multi-owner scalar conflicts are emitted once, up front, from the strategy
@@ -174,6 +274,12 @@ export function consolidate(master: IsspDocument, files: IsspDocument[]): Consol
       const dot = key.indexOf(".");
       const sid = key.slice(0, dot);
       const fk = key.slice(dot + 1);
+
+      // Project-keyed fields: only the office's latest file in the batch
+      // contributes (see latestByKey).
+      if (strategy.get(key) === "project-keyed" && latestByKey.get(key)?.get(officeId) !== file) {
+        continue;
+      }
 
       // Annex 1 bucket at doc root — replace this office's payloads by office.id.
       if (sid === "annexes/annex1") {
@@ -236,6 +342,92 @@ export function consolidate(master: IsspDocument, files: IsspDocument[]): Consol
           // Recorded once in the pre-pass; the merged doc keeps the master's
           // existing value (no silent pick). The review screen resolves it.
           break;
+        case "project-keyed": {
+          const pids = scope.projectIds;
+          const masterPart = master[partKey] as unknown as Record<string, unknown>;
+          let changed = false;
+
+          if (sid === "part3/e1" || sid === "part3/e2" || sid === "part3/d") {
+            const srcRows = ((src[fk] as { id: string }[]) ?? []);
+            const dstRows = (target[fk] as { id: string }[]) ?? [];
+            const masterRows = ((masterPart[fk] as { id: string }[]) ?? []);
+            const next = [...dstRows];
+            for (const row of srcRows) {
+              const i = next.findIndex((r) => r.id === row.id);
+              if (i >= 0) next[i] = structuredClone(row); // replace by id
+              else {
+                next.push(structuredClone(row)); // new project
+                changed = true;
+              }
+            }
+            if (pids && sid !== "part3/d") {
+              const present = new Set(srcRows.map((r) => r.id));
+              // deleted-by-office: owned id missing from the file but present
+              // on the master → KEEP the master row, flag the section.
+              // III-D is exempt: `projectIds` addresses projects, not systems —
+              // absence from the file may just mean "not linked", so systems
+              // are kept with no flag.
+              if (pids.some((id) => !present.has(id) && masterRows.some((r) => r.id === id))) {
+                changed = true;
+              }
+            }
+            target[fk] = next;
+          } else if (sid === "part3/f") {
+            const srcRec = (src[fk] as Record<string, unknown>) ?? {};
+            const dstRec = (target[fk] as Record<string, unknown>) ?? {};
+            const masterRec = (masterPart[fk] as Record<string, unknown>) ?? {};
+            for (const [id, v] of Object.entries(srcRec)) {
+              if (!(id in masterRec)) changed = true; // new KPI set
+              dstRec[id] = structuredClone(v); // replace by key
+            }
+            if (pids) {
+              const present = new Set(Object.keys(srcRec));
+              if (pids.some((id) => !present.has(id) && id in masterRec)) changed = true;
+            }
+            // Assign back like the E1/E2 branch assigns `next`: dstRec is a
+            // fresh `{}` when target[fk] was unset, and must land regardless.
+            target[fk] = dstRec;
+          } else {
+            // part4/yearN — decompose the YearBudget: project sub-records
+            // merge by id; the two non-project sub-objects overlay when every
+            // contributor agrees and stay at master's value when conflicted
+            // (the sub-conflict pre-pass already surfaced the pick). A
+            // project-filtered file overlays NEITHER sub-object: it holds only
+            // the empty default, and the categories are agency-wide budget,
+            // not the office's to edit.
+            const srcYB = src[fk] as typeof master.part4.year1;
+            const dstYB = target[fk] as typeof master.part4.year1;
+            const masterYB = masterPart[fk] as typeof master.part4.year1;
+            for (const bucket of ["internalProjects", "crossAgencyProjects"] as const) {
+              for (const [id, v] of Object.entries(srcYB[bucket])) {
+                if (!(id in masterYB[bucket])) changed = true; // new project budget
+                dstYB[bucket][id] = structuredClone(v); // replace by key
+              }
+              if (pids) {
+                const present = new Set(Object.keys(srcYB[bucket]));
+                if (
+                  pids.some(
+                    (id) => !present.has(id) && id in masterYB[bucket]
+                  )
+                ) {
+                  changed = true; // deleted-by-office → keep master, flag
+                }
+              }
+            }
+            // Explicit per-sub writes (not a `for sub of [...]` loop): a
+            // union-keyed write `dstYB[sub] = …` must satisfy the INTERSECTION
+            // of both sub-object types, which the cloned union never does.
+            if (!pids && !subConflicts.has(`${sid}.${fk}.officeProductivity`)) {
+              dstYB.officeProductivity = structuredClone(srcYB.officeProductivity);
+            }
+            if (!pids && !subConflicts.has(`${sid}.${fk}.continuingCosts`)) {
+              dstYB.continuingCosts = structuredClone(srcYB.continuingCosts);
+            }
+          }
+
+          if (changed) reviewFlags.add(sid);
+          break;
+        }
         default: {
           // overlay — unique owner (or every owner agreed on the same value)
           // replaces the field wholesale. Deep-clone non-primitive values so
@@ -249,4 +441,34 @@ export function consolidate(master: IsspDocument, files: IsspDocument[]): Consol
 
   merged.consolidationFlags = [...reviewFlags];
   return { merged, reviewFlags: [...reviewFlags], scalarConflicts };
+}
+
+/**
+ * Apply the secretariat's scalar-conflict resolutions onto a merged doc.
+ * Keys are `${sectionId}.${fieldKey}`; Part IV sub-field conflicts use a
+ * NESTED fieldKey (`"part4/year1" + "." + "year1.officeProductivity"`).
+ * Deep-clones values so the merged doc shares no reference with the dialog's
+ * choice state. Unknown sections are ignored (definitions/annex never
+ * produce scalar conflicts).
+ */
+export function applyResolutions(
+  merged: IsspDocument,
+  resolutions: Record<string, unknown>
+): void {
+  for (const [key, value] of Object.entries(resolutions)) {
+    const dot = key.indexOf(".");
+    const sid = key.slice(0, dot);
+    const fk = key.slice(dot + 1);
+    const partKey = SECTION_FIELDS[sid]?.partKey;
+    if (!partKey) continue;
+    const target = merged[partKey] as unknown as Record<string, unknown>;
+    const nested = fk.indexOf(".");
+    if (nested >= 0) {
+      const outer = fk.slice(0, nested);
+      const inner = fk.slice(nested + 1);
+      (target[outer] as Record<string, unknown>)[inner] = structuredClone(value);
+    } else {
+      target[fk] = structuredClone(value);
+    }
+  }
 }

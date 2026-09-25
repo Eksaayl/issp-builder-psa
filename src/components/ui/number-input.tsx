@@ -140,6 +140,8 @@ export function NumberInput({
     onChange: handleChange,
     onFocus: (e: React.FocusEvent<HTMLInputElement>) => {
       setFocused(true);
+      // Select-all on focus so typing replaces the value instead of
+      // appending to the formatted digits.
       e.target.select();
       onFocus?.(e);
     },

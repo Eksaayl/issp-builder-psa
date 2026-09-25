@@ -186,7 +186,7 @@ export function Part4Summary({
       />
 
       <SummaryTable
-        title="B.2 By Fund Source"
+        title="B.2 Fund Source"
         subtitle="Total investments grouped by financial origin"
         rows={data.b2}
         yearLabels={data.yearLabels}

@@ -26,7 +26,11 @@ export default function Part4SummaryPage() {
 
   const data: Part4SummaryData = {
     yearLabels,
-    b1: buildB1(years),
+    // Project-filtered scoped files: hide the agency-wide categories (empty
+    // by slice; the year forms hide the same ones).
+    b1: buildB1(years, {
+      hideNonProjectCategories: doc.editScope?.projectIds !== undefined,
+    }),
     b2: buildB2(years),
     b3: buildB3(years),
     b4: buildB4(years),

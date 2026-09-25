@@ -10,6 +10,11 @@ export interface DistributeSpec {
   editable: EditPath[];
   /** Master provenance, for idempotent re-merge in consolidate(). */
   sourceDocId?: string;
+  /**
+   * Project-row filter. Absent = all projects. Present = only these project
+   * ids travel in the project-bearing fields (empty = start-empty).
+   */
+  projectIds?: string[];
 }
 
 /**
@@ -58,12 +63,63 @@ export function sliceScopedDoc(master: IsspDocument, spec: DistributeSpec): Issp
   // Annex 1 (shared table at doc root) — always emptied in the slice.
   sliced.annexedOffices = [];
 
+  // ── Per-project filter (editScope.projectIds) ─────────────────────────────
+  //
+  // Filters the project-bearing fields to the selected ids. Project DETAIL
+  // rows are carried even when III-E1/E2 are unowned: the III-F and Part IV
+  // forms render from the Part III project lists, so a Part-IV-only office
+  // needs the rows as read-only context (they are not in `editable`, so the
+  // sections stay hidden and consolidate ignores them). Linked systems of
+  // carried projects ride along the same way — the III-E form can then show
+  // the links and cannot silently wipe linkedSystemIds via an empty picker.
+  // officeProductivity / continuingCosts are agency-wide budget, not the
+  // office's to edit: they stay at the empty default (consolidate treats a
+  // filtered file as contributing nothing to them — a naive copy would also
+  // wipe the master's data on merge).
+  if (spec.projectIds) {
+    const ids = new Set(spec.projectIds);
+    const pick = <T extends { id: string }>(rows: T[]): T[] =>
+      rows.filter((r) => ids.has(r.id));
+
+    sliced.part3.internalProjects = pick(master.part3.internalProjects);
+    sliced.part3.crossAgencyProjects = pick(master.part3.crossAgencyProjects);
+
+    if (resolved.editableFields.has("part3/f.performanceFramework")) {
+      sliced.part3.performanceFramework = Object.fromEntries(
+        Object.entries(master.part3.performanceFramework).filter(([id]) => ids.has(id))
+      );
+    }
+
+    for (const y of ["year1", "year2", "year3"] as const) {
+      if (!resolved.editableFields.has(`part4/${y}.${y}`)) continue;
+      sliced.part4[y] = {
+        officeProductivity: { capitalOutlay: [], mooe: [] },
+        internalProjects: Object.fromEntries(
+          Object.entries(master.part4[y].internalProjects).filter(([id]) => ids.has(id))
+        ),
+        crossAgencyProjects: Object.fromEntries(
+          Object.entries(master.part4[y].crossAgencyProjects).filter(([id]) => ids.has(id))
+        ),
+        continuingCosts: { mooe: [] },
+      };
+    }
+
+    // Linked systems of carried projects are the ONLY systems in the file —
+    // owned III-D included. Systems the office adds ride the owned field.
+    const carried = [...sliced.part3.internalProjects, ...sliced.part3.crossAgencyProjects];
+    const linked = new Set(carried.flatMap((p) => p.linkedSystemIds));
+    sliced.part3.proposedSystems = master.part3.proposedSystems.filter((s) =>
+      linked.has(s.id)
+    );
+  }
+
   const now = new Date().toISOString();
   const editScope: EditScope = {
     office: spec.office,
     editable: spec.editable,
     generatedAt: now,
     sourceDocId: spec.sourceDocId,
+    ...(spec.projectIds ? { projectIds: spec.projectIds } : {}),
   };
   // Deep-clone so the returned doc shares NO references with the live master.
   // IsspDocument is plain JSON-serializable data (ISO strings, numbers, arrays,

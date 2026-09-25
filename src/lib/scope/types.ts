@@ -22,4 +22,11 @@ export interface EditScope {
   generatedAt: string;
   /** Master provenance, for idempotent re-merge. */
   sourceDocId?: string;
+  /**
+   * Project-row filter (per-project distribution). Absent = all projects
+   * (legacy files + unfiltered offices). Present = only these project ids
+   * travel in the project-bearing fields (see PROJECT_BEARING_FIELDS);
+   * an empty array means "start empty" — the office adds its own rows.
+   */
+  projectIds?: string[];
 }

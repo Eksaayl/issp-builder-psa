@@ -21,7 +21,7 @@ The Medium-Term ICT Harmonization Initiative — the inter-agency framework that
 The four mandatory sections of the ISSP. Part I = mandate & organization; Part II = current ICT state & concerns; Part III = proposed systems & projects; Part IV = three-year budget.
 
 **Annex 1**:
-The Existing ICT Asset Inventory — equipment and software counts per office, attached alongside the ISSP.
+The Existing ICT Asset Inventory — equipment and software counts per office. Two surfaces: the standalone `/annex1` form (an office fills and returns a `.issp` file) and inline management at `/editor/annex1` (secretariat adds/edits offices directly or attaches returned files).
 _Avoid_: "the inventory", "asset table"
 
 **Annex 2**:
@@ -54,5 +54,26 @@ The complete, consolidated ISSP held by the secretariat — the only file that p
 A `.issp` sliced from the master, limited to one office's owned fields, sections, or areas. The office edits offline and returns it for consolidation.
 _Avoid_: "slice", "partial file"
 
+**Distribute**:
+The master-side action that generates scoped files — one per office, granularity from a whole Part down to a single field. Lives in the editor's file-actions (⋯) menu; masters only.
+
 **Consolidation**:
 Merging one or more returned scoped files back into the master, with overlap review.
+
+**`officeId`**:
+The merge key stamped on shared-table rows and Annex 1 payloads. Consolidation replaces rows by `officeId` (not display label), which makes re-importing an office's file idempotent. Absent ⇒ legacy/secretariat-owned row.
+
+Per-project distribution: `editScope.projectIds` (absent = all projects)
+filters the project-bearing fields at slice time — `part3/e1/e2` project
+lists, `part3/f.performanceFramework`, `part3/d.proposedSystems`, and the
+`part4/yearN` project budget records (registry `PROJECT_BEARING_FIELDS`, 7
+members). Consolidate merges these by id (replace / union-new /
+keep-on-delete) whenever any file in the batch declares the filter; Part IV
+year fields decompose so `officeProductivity`/`continuingCosts` keep scalar
+conflict semantics under the nested fieldKey `yearN.officeProductivity` —
+but only between offices holding unfiltered files: a project-filtered file
+carries neither category (the office sees only its projects' budget lines)
+and contributes nothing to them on merge (no overlay, sub-conflict, or
+flag). Its Proposed IS list likewise holds only the carried projects'
+linked systems; systems merge by their own id — replace / union-new + flag,
+absence kept unflagged (a project filter selects projects, not systems).

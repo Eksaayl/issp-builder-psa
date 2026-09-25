@@ -9,13 +9,12 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { IsspDocument, Part1Data, Part2Data, Part3Data, Part4Data, SectionMeta, HumanCapital, CyberControls, EgpChecklist, YearBudget, HCRow, StakeholderService, IsClassification, PiaProcessAnswer, MigrationReview } from "./types";
+import type { IsspDocument, Part1Data, Part2Data, Part3Data, Part4Data, SectionMeta, HumanCapital, CyberControls, EgpChecklist, YearBudget, HCRow, StakeholderService, IsClassification, PiaProcessAnswer, MigrationReview, Program } from "./types";
 import { createEmptyDocument, makeDefaultPart1, makeDefaultPart2, makeDefaultPart3, makeDefaultPart4, type NewDocOptions } from "./defaults";
 import { idbClear, idbLoad, idbSave } from "./idb";
 import { CURRENT_SCHEMA_VERSION, getRequiredMigrationReviewSectionIds } from "@/lib/migration-review";
 import { recordIsspUsage } from "@/lib/record-usage";
-import { consolidate, type ScalarConflict } from "@/lib/scope/consolidate";
-import { SECTION_FIELDS } from "@/lib/section-fields";
+import { applyResolutions, consolidate, type ScalarConflict } from "@/lib/scope/consolidate";
 import { fetchServerDocument, fetchServerDocumentHead, uploadServerDocument } from "@/lib/server-document";
 import {
   clearServerSyncMarker,
@@ -375,7 +374,7 @@ function hasCyberContent(c: CyberControls): boolean {
 }
 
 function hasEgpContent(egp: EgpChecklist): boolean {
-  return Object.values(egp).some((p) => p.status !== "");
+  return Object.values(egp).some((p) => p?.status !== "");
 }
 
 function hasYearContent(year: YearBudget): boolean {
@@ -737,6 +736,18 @@ export function migrateLegacyDoc(doc: IsspDocument): IsspDocument {
     base = { ...base, schemaVersion: 11 };
   }
 
+  // v11 → v12: programs become {id, name} objects; strategicConcerns gain programIds.
+  if ((base.schemaVersion ?? 1) < 12) {
+    base = { ...base, schemaVersion: 12 };
+  }
+
+  // v12 → v13: official 09152026 template alignment — Plantilla (Unfilled)
+  // counts in Part I-B and per-row targeted-result statements in Part III-F.
+  // Additive; the normalization pass below backfills the defaults.
+  if ((base.schemaVersion ?? 1) < 13) {
+    base = { ...base, schemaVersion: 13 };
+  }
+
   // Idempotent normalizations — keep stored data in sync with what forms write on mount,
   // so that editing a field and reverting it produces a hash equal to the snapshot.
   let normalized: IsspDocument = {
@@ -757,6 +768,25 @@ export function migrateLegacyDoc(doc: IsspDocument): IsspDocument {
           direction: sv.direction ?? "",
         })),
       })),
+      // Programs: legacy string form → {id, name} with deterministic ids
+      // (mirrors part1-a-form's mount normalization — snapshot-sync rule).
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      orgOutcomes: base.part1.orgOutcomes.map((o: any) => ({
+        ...o,
+        programs: (o.programs ?? []).map((pg: string | Program, i: number) =>
+          typeof pg === "string" ? { id: `${o.id}-pg-${i + 1}`, name: pg } : pg
+        ),
+      })),
+      humanCapital: {
+        ...base.part1.humanCapital,
+        // Field-level coercion (not whole-object ??): a hand-edited or tool-generated
+        // .issp can carry a partial {it} with no nonIt key — backfill each side so it
+        // can never survive migration as {it, nonIt: undefined}.
+        plantillaUnfilled: {
+          it: base.part1.humanCapital.plantillaUnfilled?.it ?? 0,
+          nonIt: base.part1.humanCapital.plantillaUnfilled?.nonIt ?? 0,
+        },
+      },
     },
     part2: {
       ...base.part2,
@@ -765,6 +795,7 @@ export function migrateLegacyDoc(doc: IsspDocument): IsspDocument {
       strategicConcerns: base.part2.strategicConcerns.map((c: any) => ({
         ...c,
         outcomeIds: Array.isArray(c.outcomeIds) ? c.outcomeIds : (c.outcomeId ? [c.outcomeId] : []),
+        programIds: Array.isArray(c.programIds) ? c.programIds : [],
       })),
     },
     part3: {
@@ -777,6 +808,9 @@ export function migrateLegacyDoc(doc: IsspDocument): IsspDocument {
         employmentStatus: (r.employmentStatus?.toUpperCase() ?? "") as HCRow["employmentStatus"],
         quantity: r.quantity ?? r.physicalCount ?? 1,
       })),
+      // v13: KPI rows carry a targeted-result statement; backfill "" on old docs
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      performanceFramework: Object.fromEntries(Object.entries(base.part3.performanceFramework).map(([k, e]: [string, any]) => [k, { ...e, rows: (e.rows ?? []).map((r: any) => ({ ...r, targetedResult: r.targetedResult ?? "" })) }])),
       // Normalize projectType: freeform pre-enum values → enum; derive IS_DRIVEN from
       // existing links so the gated "Linked Proposed Systems" picker isn't hidden on old docs
       internalProjects: base.part3.internalProjects.map(normalizeProjectType),
@@ -896,7 +930,18 @@ export function IsspStoreProvider({ children }: { children: ReactNode }) {
         recordIsspUsage("restored", migrated.agency);
         return migrated;
       })
-      .then(setDoc)
+      .then((migrated) => {
+        if (migrated) {
+          // Rehydrate the last-known-save marker so a page refresh doesn't
+          // reset it to null — without this, the sidebar's unsavedToFile
+          // fallback (no savedSnapshot yet on a fresh mount) treats every
+          // section with a lastEditedAt as changed, which is nearly all of
+          // them for an imported legacy file (deriveMetaFromContent backstamps
+          // lastEditedAt on every content-bearing section at import time).
+          setFileSavedAt(migrated.exportedAt);
+        }
+        setDoc(migrated);
+      })
       .catch((err) => markSaveError(err, "Could not load the browser-saved ISSP draft."))
       .finally(() => setLoading(false));
     return () => {
@@ -1244,24 +1289,9 @@ export function IsspStoreProvider({ children }: { children: ReactNode }) {
       const result = consolidate(doc, parsed);
       const merged = result.merged;
 
-      // Apply the secretariat's scalar-conflict resolutions as a UI-layer
-      // overlay on the merged doc. Keys are `${sectionId}.${fieldKey}`; values
-      // are the chosen scalars. `consolidate()` leaves conflicting fields at
-      // the master's existing value, so unresolved conflicts keep the master
-      // value (no silent pick) — but the dialog gates Apply on every conflict
-      // having an explicit radio, so this path is belt-and-braces. Deep-clone
-      // so the merged doc shares no reference with the dialog's choice state.
-      for (const [key, value] of Object.entries(resolutions)) {
-        const dot = key.indexOf(".");
-        const sid = key.slice(0, dot);
-        const fk = key.slice(dot + 1);
-        // Only regular Part I–IV sections can produce scalar conflicts
-        // (annex1 is a shared table; definitions is a single leaf object).
-        const partKey = SECTION_FIELDS[sid]?.partKey;
-        if (!partKey) continue;
-        const target = merged[partKey] as unknown as Record<string, unknown>;
-        target[fk] = structuredClone(value);
-      }
+      // Apply the secretariat's scalar-conflict resolutions (flat Part I–IV
+      // keys + nested Part IV sub-field keys) as a UI-layer overlay.
+      applyResolutions(merged, resolutions);
 
       setDoc(merged);
       // Consolidate is a one-shot, irreversible mutation (like loadFromFile) and

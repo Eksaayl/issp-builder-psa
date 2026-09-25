@@ -28,16 +28,28 @@ export type IsspScope =
 
 // ─── Part I ───────────────────────────────────────────────────────────────────
 
+/** A program under an Organizational Outcome (Part I-A.4). Id-addressed so
+ *  Part II-A concerns can reference it and renames propagate (principle 8). */
+export interface Program {
+  id: string;
+  name: string;
+}
+
 export interface OrgOutcome {
   id: string;
   name: string;
-  programs: string[];
+  programs: Program[];
 }
 
 export interface HumanCapital {
   plantilla: { it: { male: number; female: number }; nonIt: { male: number; female: number } };
   contractual: { it: { male: number; female: number }; nonIt: { male: number; female: number } };
   outsourced: { it: { male: number; female: number }; nonIt: { male: number; female: number } };
+  /**
+   * Official 09152026 template: unfilled plantilla positions. No sex
+   * breakdown — the template prints N/A in the Male/Female cells.
+   */
+  plantillaUnfilled: { it: number; nonIt: number };
 }
 
 export type ComplexityLevel = "Simple" | "Complex" | "Highly Technical";
@@ -89,6 +101,8 @@ export interface Part1Data {
 export interface StrategicConcern {
   id: string;
   outcomeIds: string[];
+  /** Program ids (OrgOutcome.programs[].id) this concern pertains to. */
+  programIds: string[];
   criticalSystem: string;
   concern: string;
   desiredStrategy: string;
@@ -305,6 +319,14 @@ export interface HCRow {
 export interface KpiRow {
   id: string;
   hierarchy: "Intermediate Outcome" | "Immediate Outcome" | "Output" | "";
+  /**
+   * The specific written result for the selected hierarchy level (Agency
+   * Guidelines, Performance Measurement Framework: "Write the hierarchy of
+   * outcomes of the ICT Project clustered into intermediate outcome,
+   * immediate outcome and outputs"). Rendered under the level name in the
+   * PDF's "Hierarchy of Targeted Results" column.
+   */
+  targetedResult: string;
   indicator: string;
   baseline: string;
   year1Target: string;
@@ -426,7 +448,7 @@ export interface IsspDocument {
   fileType: "issp-main";
   exportedAt: string;
   tool: "issp-platform";
-  /** Schema version for migration. 11 = current. */
+  /** Schema version for migration. 12 = current. */
   schemaVersion?: number;
   title: string;
   startYear: number;

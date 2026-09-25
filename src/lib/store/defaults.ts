@@ -50,7 +50,7 @@ function makeEgpChecklist(): EgpChecklist {
 function makeHumanCapital(): HumanCapital {
   const cell = () => ({ male: 0, female: 0 });
   const row = () => ({ it: cell(), nonIt: cell() });
-  return { plantilla: row(), contractual: row(), outsourced: row() };
+  return { plantilla: row(), contractual: row(), outsourced: row(), plantillaUnfilled: { it: 0, nonIt: 0 } };
 }
 
 function makeYearBudget(): YearBudget {

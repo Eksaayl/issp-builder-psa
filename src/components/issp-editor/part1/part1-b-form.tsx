@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { SectionShell } from "@/components/editor/section-shell";
 import { useResolvedScope } from "@/hooks/use-resolved-scope";
 import { isFieldEditable } from "@/lib/scope/paths";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 
 interface HumanCapital {
   plantilla: {
@@ -26,6 +27,8 @@ interface HumanCapital {
     it: { male: number; female: number };
     nonIt: { male: number; female: number };
   };
+  // Official 09152026 template: unfilled plantilla positions (no sex breakdown).
+  plantillaUnfilled: { it: number; nonIt: number };
 }
 
 interface Part1BData {
@@ -47,6 +50,7 @@ const DEFAULT_HC: HumanCapital = {
   plantilla: { it: { male: 0, female: 0 }, nonIt: { male: 0, female: 0 } },
   contractual: { it: { male: 0, female: 0 }, nonIt: { male: 0, female: 0 } },
   outsourced: { it: { male: 0, female: 0 }, nonIt: { male: 0, female: 0 } },
+  plantillaUnfilled: { it: 0, nonIt: 0 },
 };
 
 const DEFAULT_DATA: Part1BData = {
@@ -164,7 +168,7 @@ type WorkerType = "it" | "nonIt";
 type Gender = "male" | "female";
 
 const EMPLOYMENT_TYPES: { key: EmploymentType; label: string }[] = [
-  { key: "plantilla", label: "Plantilla" },
+  { key: "plantilla", label: "Plantilla (Filled)" },
   { key: "contractual", label: "Contractual" },
   { key: "outsourced", label: "Outsourced (JO, COS, and HTC)" },
 ];
@@ -190,6 +194,23 @@ function calcTotal(
   );
 }
 
+/** "N/A" in the Plantilla (Unfilled) row's Male/Female cells — vacancies have
+ * no sex — with a tooltip explaining why and where to enter the count instead. */
+function NotApplicableCell() {
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger className="cursor-help underline decoration-dotted underline-offset-2">
+          N/A
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-xs">
+          Gender is not applicable for unfilled posts. Please enter the value on the Total column.
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 export function Part1BForm({
   initialData,
 }: {
@@ -212,6 +233,10 @@ export function Part1BForm({
       outsourced: {
         it:    { ...DEFAULT_HC.outsourced.it,    ...(saved.outsourced?.it    ?? {}) },
         nonIt: { ...DEFAULT_HC.outsourced.nonIt, ...(saved.outsourced?.nonIt ?? {}) },
+      },
+      plantillaUnfilled: {
+        it:    saved.plantillaUnfilled?.it    ?? 0,
+        nonIt: saved.plantillaUnfilled?.nonIt ?? 0,
       },
     };
     return { ...initialData, focalSameAsCio: initialData.focalSameAsCio ?? false, humanCapital: merged };
@@ -280,19 +305,84 @@ export function Part1BForm({
     update({ humanCapital: hc });
   }
 
+  function setHCUnfilled(type: "it" | "nonIt", value: number) {
+    update({
+      humanCapital: {
+        ...data.humanCapital,
+        plantillaUnfilled: { ...data.humanCapital.plantillaUnfilled, [type]: value },
+      },
+    });
+  }
+
   const hc = data.humanCapital;
+
+  function employmentRow(key: EmploymentType, label: string) {
+    return (
+      <tr key={key} className="hover:bg-muted/20">
+        <td className="border px-3 py-2 font-medium text-sm">{label}</td>
+        {/* IT */}
+        <td className="border px-1 py-1">
+          <NumberInput
+            unstyled
+            min={0}
+            className="w-full rounded px-2 py-1.5 text-center text-sm bg-card/70 hover:bg-card focus:bg-card focus:outline-none focus:ring-1 focus:ring-ring"
+            value={hc[key].it.male}
+            onValueChange={(n) => setHC(key, "it", "male", n)}
+          />
+        </td>
+        <td className="border px-1 py-1">
+          <NumberInput
+            unstyled
+            min={0}
+            className="w-full rounded px-2 py-1.5 text-center text-sm bg-card/70 hover:bg-card focus:bg-card focus:outline-none focus:ring-1 focus:ring-ring"
+            value={hc[key].it.female}
+            onValueChange={(n) => setHC(key, "it", "female", n)}
+          />
+        </td>
+        <td className="border px-3 py-2 text-center font-medium bg-muted/20">
+          {hc[key].it.male + hc[key].it.female}
+        </td>
+        {/* Non-IT */}
+        <td className="border px-1 py-1">
+          <NumberInput
+            unstyled
+            min={0}
+            className="w-full rounded px-2 py-1.5 text-center text-sm bg-card/70 hover:bg-card focus:bg-card focus:outline-none focus:ring-1 focus:ring-ring"
+            value={hc[key].nonIt.male}
+            onValueChange={(n) => setHC(key, "nonIt", "male", n)}
+          />
+        </td>
+        <td className="border px-1 py-1">
+          <NumberInput
+            unstyled
+            min={0}
+            className="w-full rounded px-2 py-1.5 text-center text-sm bg-card/70 hover:bg-card focus:bg-card focus:outline-none focus:ring-1 focus:ring-ring"
+            value={hc[key].nonIt.female}
+            onValueChange={(n) => setHC(key, "nonIt", "female", n)}
+          />
+        </td>
+        <td className="border px-3 py-2 text-center font-medium bg-muted/20">
+          {hc[key].nonIt.male + hc[key].nonIt.female}
+        </td>
+        {/* Row total */}
+        <td className="border px-3 py-2 text-center font-bold bg-muted/30">
+          {calcTotal(hc, key)}
+        </td>
+      </tr>
+    );
+  }
 
   return (
     <SectionShell
       sectionId="part1/b"
-      title="Organization Structure"
+      title="Organizational Structure"
       description="CIO details, ISSP Focal Person, and ICT human capital breakdown."
     >
 
       {/* B.1 Key Personnel */}
       <Card>
         <CardHeader className="pb-4">
-          <CardTitle className="text-base">B.1 Key Personnel</CardTitle>
+          <CardTitle className="text-base">B.1. Chief Information Officer (CIO)</CardTitle>
           <CardDescription>Chief Information Officer and ISSP Focal Person contact details.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -356,7 +446,7 @@ export function Part1BForm({
       {can("humanCapital") && (
       <Card>
         <CardHeader className="pb-4">
-          <CardTitle className="text-base">B.2 ICT Human Capital</CardTitle>
+          <CardTitle className="text-base">B.2. Human Capital</CardTitle>
           <CardDescription>
             Number of agency personnel by employment status, ICT/Non-ICT classification, and sex.
             Totals are computed automatically.
@@ -371,10 +461,10 @@ export function Part1BForm({
                     Employment Status
                   </th>
                   <th className="border px-3 py-2 text-center font-semibold" colSpan={3}>
-                    ICT Personnel
+                    IT Positions
                   </th>
                   <th className="border px-3 py-2 text-center font-semibold" colSpan={3}>
-                    Non-ICT Personnel
+                    Non-IT Positions
                   </th>
                   <th className="border px-3 py-2 text-center font-semibold" rowSpan={2}>
                     Subtotal
@@ -394,70 +484,54 @@ export function Part1BForm({
                 </tr>
               </thead>
               <tbody>
-                {EMPLOYMENT_TYPES.map(({ key, label }) => (
-                  <tr key={key} className="hover:bg-muted/20">
-                    <td className="border px-3 py-2 font-medium text-sm">{label}</td>
-                    {/* IT */}
-                    <td className="border px-1 py-1">
-                      <NumberInput
-                        unstyled
-                        min={0}
-                        className="w-full rounded px-2 py-1.5 text-center text-sm bg-card/70 hover:bg-card focus:bg-card focus:outline-none focus:ring-1 focus:ring-ring"
-                        value={hc[key].it.male}
-                        onValueChange={(n) => setHC(key, "it", "male", n)}
-                      />
-                    </td>
-                    <td className="border px-1 py-1">
-                      <NumberInput
-                        unstyled
-                        min={0}
-                        className="w-full rounded px-2 py-1.5 text-center text-sm bg-card/70 hover:bg-card focus:bg-card focus:outline-none focus:ring-1 focus:ring-ring"
-                        value={hc[key].it.female}
-                        onValueChange={(n) => setHC(key, "it", "female", n)}
-                      />
-                    </td>
-                    <td className="border px-3 py-2 text-center font-medium bg-muted/20">
-                      {hc[key].it.male + hc[key].it.female}
-                    </td>
-                    {/* Non-IT */}
-                    <td className="border px-1 py-1">
-                      <NumberInput
-                        unstyled
-                        min={0}
-                        className="w-full rounded px-2 py-1.5 text-center text-sm bg-card/70 hover:bg-card focus:bg-card focus:outline-none focus:ring-1 focus:ring-ring"
-                        value={hc[key].nonIt.male}
-                        onValueChange={(n) => setHC(key, "nonIt", "male", n)}
-                      />
-                    </td>
-                    <td className="border px-1 py-1">
-                      <NumberInput
-                        unstyled
-                        min={0}
-                        className="w-full rounded px-2 py-1.5 text-center text-sm bg-card/70 hover:bg-card focus:bg-card focus:outline-none focus:ring-1 focus:ring-ring"
-                        value={hc[key].nonIt.female}
-                        onValueChange={(n) => setHC(key, "nonIt", "female", n)}
-                      />
-                    </td>
-                    <td className="border px-3 py-2 text-center font-medium bg-muted/20">
-                      {hc[key].nonIt.male + hc[key].nonIt.female}
-                    </td>
-                    {/* Row total */}
-                    <td className="border px-3 py-2 text-center font-bold bg-muted/30">
-                      {calcTotal(hc, key)}
-                    </td>
-                  </tr>
-                ))}
+                {employmentRow("plantilla", "Plantilla (Filled)")}
+
+                {/* Official 09152026 template: unfilled plantilla posts — counts only, no
+                    sex breakdown (template prints N/A) — placed right after Plantilla
+                    (Filled), matching the template's row order. */}
+                <tr className="hover:bg-muted/20">
+                  <td className="border px-3 py-2 font-medium text-sm">Plantilla (Unfilled)</td>
+                  <td className="border px-3 py-2 text-center text-muted-foreground/60" colSpan={2}>
+                    <NotApplicableCell />
+                  </td>
+                  <td className="border px-1 py-1">
+                    <NumberInput
+                      unstyled
+                      min={0}
+                      className="w-full rounded px-2 py-1.5 text-center text-sm bg-card/70 hover:bg-card focus:bg-card focus:outline-none focus:ring-1 focus:ring-ring"
+                      value={hc.plantillaUnfilled.it}
+                      onValueChange={(n) => setHCUnfilled("it", n)}
+                    />
+                  </td>
+                  <td className="border px-3 py-2 text-center text-muted-foreground/60" colSpan={2}>
+                    <NotApplicableCell />
+                  </td>
+                  <td className="border px-1 py-1">
+                    <NumberInput
+                      unstyled
+                      min={0}
+                      className="w-full rounded px-2 py-1.5 text-center text-sm bg-card/70 hover:bg-card focus:bg-card focus:outline-none focus:ring-1 focus:ring-ring"
+                      value={hc.plantillaUnfilled.nonIt}
+                      onValueChange={(n) => setHCUnfilled("nonIt", n)}
+                    />
+                  </td>
+                  <td className="border px-3 py-2 text-center font-bold bg-muted/30">
+                    {hc.plantillaUnfilled.it + hc.plantillaUnfilled.nonIt}
+                  </td>
+                </tr>
+
+                {EMPLOYMENT_TYPES.slice(1).map(({ key, label }) => employmentRow(key, label))}
 
                 {/* Totals row */}
                 <tr className="bg-muted/50 font-semibold">
-                  <td className="border px-3 py-2">Total</td>
+                  <td className="border px-3 py-2">Grand Total</td>
                   <td className="border px-3 py-2 text-center">{calcTotal(hc, undefined, "it", "male")}</td>
                   <td className="border px-3 py-2 text-center">{calcTotal(hc, undefined, "it", "female")}</td>
-                  <td className="border px-3 py-2 text-center bg-muted/40">{calcTotal(hc, undefined, "it")}</td>
+                  <td className="border px-3 py-2 text-center bg-muted/40">{calcTotal(hc, undefined, "it") + hc.plantillaUnfilled.it}</td>
                   <td className="border px-3 py-2 text-center">{calcTotal(hc, undefined, "nonIt", "male")}</td>
                   <td className="border px-3 py-2 text-center">{calcTotal(hc, undefined, "nonIt", "female")}</td>
-                  <td className="border px-3 py-2 text-center bg-muted/40">{calcTotal(hc, undefined, "nonIt")}</td>
-                  <td className="border px-3 py-2 text-center bg-primary/10 text-primary">{calcTotal(hc)}</td>
+                  <td className="border px-3 py-2 text-center bg-muted/40">{calcTotal(hc, undefined, "nonIt") + hc.plantillaUnfilled.nonIt}</td>
+                  <td className="border px-3 py-2 text-center bg-primary/10 text-primary">{calcTotal(hc) + hc.plantillaUnfilled.it + hc.plantillaUnfilled.nonIt}</td>
                 </tr>
               </tbody>
             </table>

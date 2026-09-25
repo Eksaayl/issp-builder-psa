@@ -1,4 +1,4 @@
-export const CURRENT_SCHEMA_VERSION = 11;
+export const CURRENT_SCHEMA_VERSION = 13;
 
 export const MIGRATION_REVIEW_SECTIONS = [
   {
@@ -29,6 +29,13 @@ export const MIGRATION_REVIEW_SECTIONS = [
     href: "/editor/part3/d",
     reason: "Classification, Frontline access, interoperability, and PIA fields were aligned to the current template.",
   },
+  {
+    id: "part1/b",
+    shortLabel: "I-B",
+    label: "Part I-B · Organization Structure",
+    href: "/editor/part1/b",
+    reason: "DICT quietly released an updated ISSP template on September 15 — Plantilla positions are now reported as Filled and Unfilled counts instead of one total. Old files default Unfilled to 0; please enter your agency's real vacancy count.",
+  },
 ] as const;
 
 export type MigrationReviewSectionId = (typeof MIGRATION_REVIEW_SECTIONS)[number]["id"];
@@ -43,6 +50,7 @@ export function getRequiredMigrationReviewSectionIds(sourceSchemaVersion: number
     .filter((section) => {
       if (section.id === "part2/d") return sourceSchemaVersion < 7;
       if (section.id === "part1/c") return sourceSchemaVersion < 10;
+      if (section.id === "part1/b") return sourceSchemaVersion < 13;
       return sourceSchemaVersion < 9;
     })
     .map((section) => section.id);

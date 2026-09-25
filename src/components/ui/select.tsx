@@ -41,22 +41,30 @@ function SelectValue({ className, children, placeholder, ...props }: SelectPrimi
     >
       {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
       {children || ((value: any) => {
+        // Rendered labels truncate with an ellipsis + carry a title tooltip,
+        // so a width-constrained trigger signals the cut instead of clipping
+        // mid-word (usability principle 9).
+        const text = (label: React.ReactNode): React.ReactNode => (
+          typeof label === "string"
+            ? <span className="truncate" title={label}>{label}</span>
+            : label
+        );
         if (value === null || value === undefined || value === '') return placeholder;
         if (Array.isArray(value)) {
           if (value.length === 0) return placeholder;
           if (context.items) {
-            return value.map(v => {
+            return text(value.map(v => {
               const matched = context.items?.find(i => i.value === v);
               return matched && matched.label ? matched.label : String(v);
-            }).join(', ');
+            }).join(', '));
           }
-          return value.join(', ');
+          return text(value.join(', '));
         }
         if (context.items) {
           const matched = context.items.find(i => i.value === value);
-          if (matched && matched.label) return matched.label;
+          if (matched && matched.label) return text(matched.label);
         }
-        return String(value);
+        return text(String(value));
       })}
     </SelectPrimitive.Value>
   )
@@ -75,7 +83,7 @@ function SelectTrigger({
       data-slot="select-trigger"
       data-size={size}
       className={cn(
-        "flex w-fit items-center justify-between gap-1.5 rounded-lg border border-border bg-card py-2 pr-2 pl-2.5 text-sm text-foreground whitespace-nowrap transition-colors outline-none select-none hover:border-ring/60 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:opacity-70 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground data-[size=default]:h-8 data-[size=sm]:h-7 coarse:data-[size=default]:h-11 coarse:data-[size=sm]:h-10 data-[size=sm]:rounded-[min(var(--radius-md),10px)] *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "flex w-fit items-center justify-between gap-1.5 rounded-lg border border-border bg-card py-2 pr-2 pl-2.5 text-sm text-foreground whitespace-nowrap transition-colors outline-none select-none hover:border-ring/60 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:opacity-70 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground data-[size=default]:h-8 data-[size=sm]:h-7 coarse:data-[size=default]:h-11 coarse:data-[size=sm]:h-10 data-[size=sm]:rounded-[min(var(--radius-md),10px)] *:data-[slot=select-value]:min-w-0 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className
       )}
       {...props}

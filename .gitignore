@@ -40,3 +40,7 @@ Thumbs.db
 .data/
 
 /src/generated/prisma
+
+# Correspondence drafts (personal, not for repo)
+docs/dbm-letter-*
+docs/dbm-email-*
