@@ -14,7 +14,7 @@ import { createEmptyDocument, makeDefaultPart1, makeDefaultPart2, makeDefaultPar
 import { idbClear, idbLoad, idbSave } from "./idb";
 import { CURRENT_SCHEMA_VERSION, getRequiredMigrationReviewSectionIds } from "@/lib/migration-review";
 import { recordIsspUsage } from "@/lib/record-usage";
-import { applyResolutions, consolidate, type ScalarConflict } from "@/lib/scope/consolidate";
+import { applyReviewDecisions, type ParsedScopedFile, type ReviewDecisions } from "@/lib/scope/merge-review";
 import { backfillFromMaster } from "@/lib/scope/upgrade";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -26,12 +26,11 @@ export interface LoadFromFileOptions { recordUsage?: boolean }
 
 /**
  * Outcome of a consolidate-merge apply. On success, the dialog surfaces
- * `reviewFlags` (sections needing human dedup — Task 11 banner) and
- * `scalarConflicts` that were resolved during this apply (informational — the
- * resolutions are already written into the merged doc).
+ * `reviewFlags` (sections that still need a human check after the
+ * secretariat's decisions).
  */
 export type ConsolidateActionResult =
-  | { success: true; reviewFlags: string[]; scalarConflicts: ScalarConflict[] }
+  | { success: true; reviewFlags: string[] }
   | { success: false; error: string };
 
 export interface IsspStoreValue {
@@ -67,16 +66,13 @@ export interface IsspStoreValue {
   loadFromFile: (file: File, options?: LoadFromFileOptions) => Promise<StoreActionResult>;
   /**
    * Merge one or more returned scoped `.issp` files into the current master.
-   * The dialog computes a pure preview via {@link parseScopedIsspFile} +
-   * `consolidate()`; this action re-parses, applies the secretariat's scalar-
-   * conflict `resolutions` (keyed `${sectionId}.${fieldKey}`), then writes the
+   * The merge review previews with the same functions: this action re-parses
+   * the files, applies the secretariat's `decisions` (Keep master / Skip row
+   * and conflict resolutions) via `applyReviewDecisions`, then writes the
    * merged doc. Non-scoped / malformed files are named in `error` — never
-   * silently dropped. Returns flags/conflicts so the dialog can toast + surface.
+   * silently dropped. Returns the remaining review flags for the toast.
    */
-  consolidateFiles: (
-    files: File[],
-    resolutions?: Record<string, unknown>
-  ) => Promise<ConsolidateActionResult>;
+  consolidateFiles: (files: File[], decisions: ReviewDecisions) => Promise<ConsolidateActionResult>;
 }
 
 const MAX_ISSP_FILE_SIZE_BYTES = 50 * 1024 * 1024;
@@ -240,6 +236,24 @@ function normalizeImportShape(raw: unknown): { success: true; doc: IsspDocument 
 }
 
 /**
+ * The first malformed part of a scoped file's `editScope`, or null when its
+ * shape is sound. The merge reads these keys directly, so a hand-edited file
+ * with a broken scope must be rejected by name rather than crash the review.
+ */
+function editScopeProblem(scope: unknown): string | null {
+  if (!isRecord(scope)) return "editScope";
+  const office = scope.office;
+  if (!isRecord(office)) return "editScope.office";
+  if (typeof office.id !== "string" || office.id.trim() === "") return "editScope.office.id";
+  if (typeof office.displayLabel !== "string") return "editScope.office.displayLabel";
+  if (!Array.isArray(scope.editable) || !scope.editable.every((p) => typeof p === "string")) return "editScope.editable";
+  if (scope.projectIds !== undefined && (!Array.isArray(scope.projectIds) || !scope.projectIds.every((p) => typeof p === "string"))) {
+    return "editScope.projectIds";
+  }
+  return null;
+}
+
+/**
  * Parse, validate, and prepare a single returned scoped `.issp` file for
  * merging into `master` — the shared gate between the consolidate dialog's
  * preview and the {@link consolidateFiles} store action. Rejects
@@ -276,6 +290,10 @@ export async function parseScopedIsspFile(
         success: false,
         error: `"${file.name}" is not a scoped office file. Use "Load different ISSP…" to open it as the master.`,
       };
+    }
+    const scopeProblem = editScopeProblem(normalized.doc.editScope);
+    if (scopeProblem) {
+      return { success: false, error: `"${file.name}" has a damaged scope (${scopeProblem}). Ask the office to send the file again.` };
     }
     const imageValidation = validateEmbeddedImages(normalized.doc);
     if (!imageValidation.success) return { success: false, error: `"${file.name}": ${imageValidation.error}` };
@@ -1100,10 +1118,7 @@ export function IsspStoreProvider({ children }: { children: ReactNode }) {
   }, [update]);
 
   const consolidateFiles = useCallback(
-    async (
-      files: File[],
-      resolutions: Record<string, unknown> = {}
-    ): Promise<ConsolidateActionResult> => {
+    async (files: File[], decisions: ReviewDecisions): Promise<ConsolidateActionResult> => {
       if (!doc) return { success: false, error: "No ISSP document is loaded." };
       // Masters only — a scoped file can't itself be a consolidate target.
       if (doc.editScope) {
@@ -1113,26 +1128,22 @@ export function IsspStoreProvider({ children }: { children: ReactNode }) {
         return { success: false, error: "Select at least one returned .issp file." };
       }
 
-      // Re-parse + validate each file via the same gate as the dialog preview.
+      // Re-parse + validate each file via the same gate as the merge review.
       // A rejected file is named in the error toast — never silently dropped.
-      const parsed: IsspDocument[] = [];
+      const parsed: ParsedScopedFile[] = [];
       const rejected: string[] = [];
       for (const f of files) {
         const r = await parseScopedIsspFile(f, doc);
-        if (r.success) parsed.push(r.doc);
+        if (r.success) parsed.push({ doc: r.doc, sourceSchemaVersion: r.sourceSchemaVersion });
         else rejected.push(r.error);
       }
       if (rejected.length > 0) {
         return { success: false, error: `Could not consolidate: ${rejected.join("; ")}` };
       }
 
-      // Pure merge — the merge engine itself takes no resolutions param.
-      const result = consolidate(doc, parsed);
-      const merged = result.merged;
-
-      // Apply the secretariat's scalar-conflict resolutions (flat Part I–IV
-      // keys + nested Part IV sub-field keys) as a UI-layer overlay.
-      applyResolutions(merged, resolutions);
+      // The same pure function the review previews with: decisions undone in
+      // the returned files, re-merged, conflict resolutions applied.
+      const { doc: merged, reviewFlags } = applyReviewDecisions(doc, parsed, decisions);
 
       setDoc(merged);
       // Consolidate is a one-shot, irreversible mutation (like loadFromFile) and
@@ -1140,11 +1151,7 @@ export function IsspStoreProvider({ children }: { children: ReactNode }) {
       // instead of the 1500 ms debounced scheduleSave — closing the tab inside
       // that window would otherwise lose the entire merge from IDB.
       await idbSave(merged);
-      return {
-        success: true,
-        reviewFlags: result.reviewFlags,
-        scalarConflicts: result.scalarConflicts,
-      };
+      return { success: true, reviewFlags };
     },
     [doc]
   );
