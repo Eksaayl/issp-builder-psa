@@ -58,7 +58,7 @@ _Avoid_: "slice", "partial file"
 The master-side action that generates scoped files — one per office, granularity from a whole Part down to a single field. Lives in the editor's file-actions (⋯) menu; masters only.
 
 **Consolidation**:
-Merging one or more returned scoped files back into the master, with overlap review.
+Merging one or more returned scoped files back into the master. The secretariat sees every change in a **merge review** before anything is applied.
 
 **`officeId`**:
 The merge key stamped on shared-table rows and Annex 1 payloads. Consolidation replaces rows by `officeId` (not display label), which makes re-importing an office's file idempotent. Absent ⇒ legacy/secretariat-owned row.
@@ -77,3 +77,51 @@ and contributes nothing to them on merge (no overlay, sub-conflict, or
 flag). Its Proposed IS list likewise holds only the carried projects'
 linked systems; systems merge by their own id — replace / union-new + flag,
 absence kept unflagged (a project filter selects projects, not systems).
+
+### Consolidation review
+
+**Merge review**:
+The step of consolidation where the secretariat compares the master with the result of merging a batch of returned files, and decides on each destructive change and conflict before applying.
+_Avoid_: "preview", "diff screen"
+
+**Merge base**:
+The master's value at the time of consolidation. Each office's version of a field or row is judged against it, so only what an office actually changed counts as a change.
+
+**Change**:
+One difference between the master and the merge result — at field level or row level — attributed to the office(s) that caused it. Its kind is one of:
+- **New** — the master field was empty; the file fills it.
+- **Overwritten** — the master field had a value; the file replaces it with a different one.
+- **Cleared** — the master field had a value; the file empties it.
+- **Added row** — a row the master does not have. **Appended** when two or more offices add rows to the same list.
+- **Replaced row** — a master row whose content an office changed.
+- **Removed row** — a master row an office deleted, where no other office changed it.
+- **Kept (office deleted)** — a project an office removed from a project file; the master keeps it and flags it.
+- **Office rows replaced** — an office's own stakeholder or Annex 1 rows, swapped for the rows in its returned file.
+- **No change** — the file's value equals the merge base.
+_Avoid_: "edit", "delta", "update"
+
+**Conflict**:
+Two or more offices changed the same field or row differently from the merge base (or one edited a row another deleted). The secretariat picks one office's version or keeps the master; the section stays flagged either way. A **row conflict** is a conflict on a whole row.
+_Avoid_: "clash", "collision"
+
+**Keep master**:
+The secretariat's rejection of an Overwritten, Cleared, Replaced-row, or Removed-row change, so the master's value or row stays. Acts on a whole field or a whole row, never a single cell.
+_Avoid_: "revert", "undo", "reject"
+
+**Skip row**:
+The secretariat's rejection of an added row in a flagged section, so the row is not added (typically a duplicate).
+_Avoid_: "delete row"
+
+**Review flag**:
+A marker consolidation puts on a section that needs a human check for duplicates or contested values. It is cleared by "Mark reviewed", or dropped at review time when every change that raised it was rejected.
+_Avoid_: "warning", "badge"
+
+**Broken link**:
+A cross-part reference that points at nothing after the merge — a concern to an outcome or program, a project to a proposed system, or a KPI set or budget record to a project.
+_Avoid_: "orphan", "dangling id"
+
+**Provenance warning**:
+A notice that a returned file's agency name, title, or plan years differ from the master's — the file may belong to another ISSP. It warns; it never blocks.
+
+**Upgraded file**:
+A returned scoped file made with an older schema, brought to the current schema before review. Data the older schema could not hold keeps the master's value.
