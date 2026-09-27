@@ -16,7 +16,8 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-import { Plus, Trash2, Pencil, ExternalLink, Table2, LayoutList } from "lucide-react";
+import { Plus, Trash2, Pencil, ExternalLink } from "lucide-react";
+import { LineModeToggle, usePersistedLineMode, type LineMode } from "./line-mode";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { SectionShell } from "@/components/editor/section-shell";
 import { php } from "@/lib/utils";
@@ -296,7 +297,7 @@ function LineTable({
   title: string;
   context: "co" | "mooe";
   lines: LineItem[];
-  mode: "list" | "table";
+  mode: LineMode;
   onUpdate: (lines: LineItem[]) => void;
 }) {
   const [drawer, setDrawer] = useState<DrawerState>({ open: false, idx: -1, item: null });
@@ -580,7 +581,7 @@ const EMPTY_BUDGET = (): YearBudget => ({
   continuingCosts: { mooe: [] },
 });
 
-const LS_KEY = "issp-part4-line-mode";
+const LINE_MODE_STORAGE_KEY = "issp-part4-line-mode";
 
 export function Part4YearForm({
   year,
@@ -607,14 +608,7 @@ export function Part4YearForm({
     return { ...base, ...initialData, internalProjects: ip, crossAgencyProjects: cp };
   });
 
-  const [lineMode, setLineMode] = useState<"list" | "table">(() => {
-    try { return (localStorage.getItem(LS_KEY) as "list" | "table") ?? "list"; } catch { return "list"; }
-  });
-
-  function switchLineMode(m: "list" | "table") {
-    setLineMode(m);
-    try { localStorage.setItem(LS_KEY, m); } catch {}
-  }
+  const [lineMode, switchLineMode] = usePersistedLineMode(LINE_MODE_STORAGE_KEY);
 
   const sectionId = `part4/${yearKey}` as `part4/${"year1" | "year2" | "year3"}`;
   const { debouncedSave } = useLocalSave("part4", sectionId);
@@ -696,23 +690,7 @@ export function Part4YearForm({
             {label}
           </span>
         ))}
-        <div className="ml-auto flex items-center rounded-md border p-0.5 bg-muted/30">
-          {(["list", "table"] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => switchLineMode(m)}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs transition-colors ${
-                lineMode === m
-                  ? "bg-card shadow-sm font-medium text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {m === "list" ? <LayoutList className="h-3 w-3" /> : <Table2 className="h-3 w-3" />}
-              {m === "list" ? "List" : "Table"}
-            </button>
-          ))}
-        </div>
+        <LineModeToggle mode={lineMode} onChange={switchLineMode} className="ml-auto" />
       </div>
 
       {/* A — Office Productivity — hidden in project-filtered scoped files

@@ -145,6 +145,28 @@ Route: `/editor/part4/cycle`, alongside the existing `year1`/`year2`/`year3`/
   clear the unwanted year cell(s) after adding — no separate "which years"
   prompt, to keep the action a single click.
 
+### Amendment — List mode + details drawer (approved by Carlos, 2026-09-27)
+
+The "no drawer" row design above is now **Table mode**. A **List mode**
+(default; List/Table choice remembered per browser under
+`issp-part4-cycle-line-mode`, separate from the per-year pages' key because
+this Table is much wider) was added at Carlos's request:
+
+- A List row shows the item name **read-only** (`line-clamp-2`) with a
+  details subtitle, three Qty × Unit Cost year blocks under year-column
+  headers, the 3-year row total, and an **Edit details** button. The sub-table
+  ends with a **Subtotal** row. Below ~960px the rows scroll sideways.
+- Name, office, UACS, fund source, project/category and expense class are
+  edited in a right-side **details drawer**. Fields commit as edited (no
+  separate save step, same as Table mode); the name commits on blur / Enter /
+  drawer close so a half-typed name never regroups rows. **Add Line** in List
+  mode opens the drawer on the new row.
+- Deleting a row is **two-tap** in both modes (`ConfirmDeleteButton`); in
+  List mode it lives in the drawer footer.
+- The List/Table toggle and its persistence are shared with the per-year
+  pages (`part4/line-mode.tsx`) — a refactor of `Part4YearForm` with no
+  behaviour change, amending §9's "no changes to `Part4YearForm`".
+
 ## 6. Persistence mechanics
 
 Store access is via `updatePart4(patch: Partial<Part4Data>)`
