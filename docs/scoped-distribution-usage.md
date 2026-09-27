@@ -51,16 +51,39 @@ editing the scope by hand.
 ## 3. Consolidate (secretariat)
 
 1. Open the **master** → **Consolidate returned files…** (sidebar file-actions ⋯ menu).
-2. Select one or more returned `.issp` files. A **review screen** shows what each
-   will do: overlay fields, replace that office's shared-table rows (stakeholders,
-   Annex 1), flag overlapped sections, or surface a scalar conflict.
-3. For any **scalar conflict** (two offices wrote the same field differently), pick
-   which value to keep.
-4. **Apply**. The master is updated; sections that need a dedup look get a **review
-   flag** (a banner on the section + a badge in the sidebar).
+2. Select one or more returned `.issp` files. Files made with an older version of
+   the tool are **upgraded** first (the office chip says "upgraded from vN"); data
+   the older version could not hold keeps the master's value.
+3. The **merge review** opens full-screen. Nothing changes until you click
+   **Apply merge**. It compares the master with what the files would make it:
+   - The **summary bar** leads with what needs attention — unresolved conflicts,
+     overwrites, clears, removals, broken links, file warnings — each a jump link.
+     Filter by office; tick **Show unchanged** to see untouched fields too.
+   - Sections run in document order. Each change is tagged **New**,
+     **Overwritten**, **Cleared**, **Added row**, **Replaced row** (expand to see
+     the changed fields), **Removed row**, **Appended** (two offices added rows),
+     **Kept (office deleted)**, or **Office rows replaced** (stakeholders,
+     Annex 1), with the office that made it and **Master | Incoming** side by side.
+     Text shows word-level highlights; diagrams show both images; Part IV shows
+     each line item's cost change and the budget totals per bucket.
+   - **Keep the master's value** on any Overwritten, Cleared, Replaced-row or
+     Removed-row change discards that office's change. In a flagged section,
+     **Don't add this row** skips a likely duplicate.
+   - A **conflict** (two offices changed the same field or row differently, or one
+     edited a row another deleted) has no default: pick an office's version or
+     **Keep master value**. Apply stays off until every conflict is answered.
+   - **A file may belong to another ISSP** warns when a file's agency, title or
+     years differ from the master's. **Links would break** names any reference
+     (concern → program, project → proposed system, KPIs/budget → project) the
+     merge would leave pointing at nothing.
+4. **Apply merge**. The master is updated; sections that still need a look keep a
+   **review flag** (a banner on the section + a badge in the sidebar).
 
-Re-importing an office's file is idempotent — it replaces *their* rows/fields and
-leaves everyone else's untouched, so you can re-consolidate corrected files freely.
+Offices' files are judged against the master: a field or row an office returned
+unchanged is not a change, so only real edits count, and file order never
+decides a winner. Re-importing an office's file is idempotent — it replaces
+*their* rows/fields and leaves everyone else's untouched, so you can
+re-consolidate corrected files freely.
 
 ## 4. Review flags
 
@@ -138,6 +161,9 @@ its projects reach:
 - Scope types/resolver: `src/lib/scope/types.ts`, `src/lib/scope/paths.ts`
 - Slice (Distribute) + merge (Consolidate): `src/lib/scope/slice.ts`,
   `src/lib/scope/consolidate.ts`
+- Merge review (changes, decisions, broken links): `src/lib/scope/merge-review.ts`;
+  returned-file upgrade: `src/lib/scope/upgrade.ts`
 - Dialogs: `src/components/editor/distribute-dialog.tsx`,
-  `src/components/editor/consolidate-dialog.tsx`
-- Design spec: `docs/scoped-issp-distribution-design-2026-07-21.md`
+  `src/components/editor/consolidate-dialog.tsx` (+ `merge-review/` parts)
+- Design spec: `docs/scoped-issp-distribution-design-2026-07-21.md`; merge review:
+  `docs/superpowers/specs/2026-09-27-consolidate-merge-review-design.md`

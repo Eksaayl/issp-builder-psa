@@ -313,3 +313,27 @@ latest dated window per the ≥1-week rule), `docs/project-status.md`.
 - Stable document id in the schema + `sourceDocId` check (Q8 option c).
 - Annex 1 unsaved-changes tracker keyed by `officeId` (E).
 - Cell-level Keep master (Q18 option b).
+
+## Implementation notes (after the two-axis review, 2026-09-27)
+
+Where the build differs from the text above, deliberately:
+
+- **Attribution without an exported strategy map (Q12).** `consolidate()`
+  stays unchanged; `merge-review.ts` attributes each change by comparing each
+  owning office's latest file with the master, counting only offices whose
+  file holds that list (a project file never "removed" another project's rows).
+  The engine's output is still the only source of *what* changes.
+- **Q19 flags are recomputed, not tracked by cause.** A decision is applied by
+  restoring the master in the returning office's file and re-running
+  `consolidate()`, so a flag disappears exactly when its engine condition no
+  longer holds (e.g. skipping one of two offices' added rows leaves only one
+  office adding rows → no "possible duplicates" flag). Conflicts always keep
+  their flag.
+- **Keep master on a removed shared-table row** restores the row among that
+  office's rows; the engine places each office's rows after the others, so the
+  row's position in the whole stakeholder list is not preserved (same as any
+  shared-table merge).
+- **Conflicts have no default choice** in the review; Apply stays off until each
+  one is answered.
+- **Part IV totals** are per budget group (Office Productivity, each project,
+  Continuing Costs), computed from the master and the merge result documents.
