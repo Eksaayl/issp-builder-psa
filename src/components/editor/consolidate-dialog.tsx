@@ -22,7 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { useIsspStore, parseScopedIsspFile } from "@/lib/store";
-import { consolidate, type ScalarConflict } from "@/lib/scope/consolidate";
+import { consolidate, conflictKey, ROW_REMOVED, type ScalarConflict } from "@/lib/scope/consolidate";
 import { resolveScope, SHARED_TABLE_PATHS } from "@/lib/scope/paths";
 import { SECTION_FIELDS } from "@/lib/section-fields";
 import {
@@ -108,7 +108,7 @@ function computePreview(currentDoc: IsspDocument, parsedDocs: IsspDocument[]): P
   const merge = consolidate(currentDoc, parsedDocs);
   const flaggedSections = new Set(merge.reviewFlags);
   const conflictKeys = new Set(
-    merge.scalarConflicts.map((c) => `${c.sectionId}.${c.fieldKey}`)
+    merge.scalarConflicts.filter((c) => c.rowId === undefined).map(conflictKey)
   );
 
   const summaries: FileSummary[] = parsedDocs.map((d) => {
@@ -199,6 +199,34 @@ function displayValue(value: unknown): string {
   }
 }
 
+/** A row's human name — the first of its usual name-like fields, else its id. */
+function rowName(row: unknown): string {
+  if (typeof row !== "object" || row === null) return "row";
+  const r = row as Record<string, unknown>;
+  for (const k of ["title", "name", "term", "position", "concern", "criticalSystem"]) {
+    if (typeof r[k] === "string" && r[k]) return r[k] as string;
+  }
+  return typeof r.id === "string" ? r.id : "row";
+}
+
+/**
+ * One choice in a row conflict, in words: a removal, or the row plus which of
+ * its fields differ from the master's row. (The full side-by-side comparison
+ * is the merge review's job — spec 2026-09-27, Slice 4.)
+ */
+function rowChoiceText(value: unknown, master: unknown): string {
+  if (value === ROW_REMOVED) return master === ROW_REMOVED ? "Do not add this row" : "Remove this row";
+  if (typeof value !== "object" || value === null) return displayValue(value);
+  if (value === master) return `${rowName(value)} (as in the master)`;
+  if (typeof master !== "object" || master === null) return `${rowName(value)} (new row)`;
+  const a = value as Record<string, unknown>;
+  const b = master as Record<string, unknown>;
+  const changed = [...new Set([...Object.keys(a), ...Object.keys(b)])].filter(
+    (k) => JSON.stringify(a[k]) !== JSON.stringify(b[k])
+  );
+  return `${rowName(value)} — changed: ${changed.join(", ") || "nothing"}`;
+}
+
 function officeLabel(office: OfficeIdentity): string {
   return office.displayLabel || office.name || office.id;
 }
@@ -243,7 +271,7 @@ export function ConsolidateDialog({
     if (!preview || preview.scalarConflicts.length === 0) return resolutions;
     const defaults: Record<string, unknown> = {};
     for (const c of preview.scalarConflicts) {
-      if (c.values.length > 0) defaults[`${c.sectionId}.${c.fieldKey}`] = c.values[0].value;
+      if (c.values.length > 0) defaults[conflictKey(c)] = c.values[0].value;
     }
     return { ...defaults, ...resolutions };
   }, [preview, resolutions]);
@@ -298,8 +326,8 @@ export function ConsolidateDialog({
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
-  function pickResolution(sectionId: string, fieldKey: string, value: unknown) {
-    setResolutions((prev) => ({ ...prev, [`${sectionId}.${fieldKey}`]: value }));
+  function pickResolution(key: string, value: unknown) {
+    setResolutions((prev) => ({ ...prev, [key]: value }));
   }
 
   async function handleApply() {
@@ -309,9 +337,7 @@ export function ConsolidateDialog({
     const chosen = effectiveResolutions;
     // Require an explicit pick (default counts) for every surfaced conflict —
     // Apply is the one place a choice is unavoidable.
-    const allResolved = preview.scalarConflicts.every(
-      (c) => `${c.sectionId}.${c.fieldKey}` in chosen
-    );
+    const allResolved = preview.scalarConflicts.every((c) => conflictKey(c) in chosen);
     if (!allResolved) {
       toast.error("Resolve every conflict before applying.");
       return;
@@ -352,7 +378,7 @@ export function ConsolidateDialog({
     !hasRejections &&
     hasParsed &&
     preview.summaries.length > 0 &&
-    preview.scalarConflicts.every((c) => `${c.sectionId}.${c.fieldKey}` in effectiveResolutions);
+    preview.scalarConflicts.every((c) => conflictKey(c) in effectiveResolutions);
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && resetAndClose()}>
@@ -496,43 +522,52 @@ export function ConsolidateDialog({
                     Resolve {preview.scalarConflicts.length} conflict{preview.scalarConflicts.length === 1 ? "" : "s"}
                   </div>
                   <p className="text-[11px] leading-snug text-warning/80">
-                    Each field below was written differently by two or more offices. Pick which value
-                    to keep — the section is flagged for review either way.
+                    Each field or row below was changed differently by two or more offices (or edited
+                    by one office and deleted by another). Pick which version to keep — the section is
+                    flagged for review either way.
                   </p>
                   <ul className="space-y-2">
                     {preview.scalarConflicts.map((c) => {
-                      const key = `${c.sectionId}.${c.fieldKey}`;
+                      const key = conflictKey(c);
                       const chosen = effectiveResolutions[key];
+                      const options = [
+                        ...c.values.map((v) => ({
+                          id: v.officeId,
+                          who: officeLabel(
+                            preview.summaries.find((s) => s.office.id === v.officeId)?.office ?? {
+                              id: v.officeId,
+                              name: v.officeId,
+                              displayLabel: v.officeId,
+                            }
+                          ),
+                          value: v.value,
+                        })),
+                        { id: "__master", who: "Keep master value", value: c.master },
+                      ];
                       return (
                         <li key={key} className="rounded-md border border-warning-border/60 bg-card/70 px-2.5 py-2">
                           <p className="text-xs font-medium text-foreground">
                             {sectionLabel(c.sectionId)} · {fieldLabel(c.sectionId, c.fieldKey)}
+                            {c.rowId !== undefined && <> · {rowName(c.master !== ROW_REMOVED ? c.master : c.values[0]?.value)}</>}
                           </p>
                           <ul className="mt-1.5 space-y-1">
-                            {c.values.map((v) => {
-                              const id = `${key}::${v.officeId}`;
+                            {options.map((o) => {
+                              const id = `${key}::${o.id}`;
                               return (
-                                <li key={v.officeId} className="flex items-center gap-2 text-xs">
+                                <li key={o.id} className="flex items-center gap-2 text-xs">
                                   <input
                                     type="radio"
                                     id={id}
                                     name={key}
-                                    checked={chosen === v.value}
-                                    onChange={() => pickResolution(c.sectionId, c.fieldKey, v.value)}
+                                    checked={chosen === o.value}
+                                    onChange={() => pickResolution(key, o.value)}
                                     className="h-3.5 w-3.5 align-middle"
                                   />
                                   <label htmlFor={id} className="flex-1 min-w-0 cursor-pointer">
-                                    <span className="font-medium text-muted-foreground">
-                                      {officeLabel(
-                                        preview.summaries.find((s) => s.office.id === v.officeId)?.office ?? {
-                                          id: v.officeId,
-                                          name: v.officeId,
-                                          displayLabel: v.officeId,
-                                        }
-                                      )}
-                                      :
-                                    </span>{" "}
-                                    <span className="text-foreground">{displayValue(v.value)}</span>
+                                    <span className="font-medium text-muted-foreground">{o.who}:</span>{" "}
+                                    <span className="text-foreground">
+                                      {c.rowId !== undefined ? rowChoiceText(o.value, c.master) : displayValue(o.value)}
+                                    </span>
                                   </label>
                                 </li>
                               );

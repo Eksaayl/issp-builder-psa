@@ -165,7 +165,12 @@ function scoped(
     "(o) differing double-write on p1 flagged despite clean per-id merge");
 }
 
-// ── (p) legacy regression: no projectIds anywhere → today's strategies ──────
+// ── (p) no projectIds anywhere → multi-owner list merges by row id ──────────
+// (Before 2026-09-27 this was a blind union: master + A's list + B's list.
+// Since the row-id merge (spec 2026-09-27, Q14/D2) each list is judged
+// against the master: both offices returned files WITHOUT p1, and neither
+// changed it, so p1 is removed; each office's new project is appended and
+// the section is flagged because two offices added rows.)
 {
   const master = makeMaster();
   master.part3.internalProjects = [proj("p1", "One")];
@@ -176,9 +181,9 @@ function scoped(
     d.part3.internalProjects = [proj("pb", "From B")];
   });
   const r = consolidate(master, [a, b]);
-  assert.equal(r.merged.part3.internalProjects.length, 3,
-    "(p) legacy multi-owner list → union (master + both), unchanged");
-  assert.ok(r.reviewFlags.includes("part3/e1"), "(p) legacy union flagged");
+  assert.deepEqual(r.merged.part3.internalProjects.map((p) => p.id), ["pa", "pb"],
+    "(p) multi-owner list → master row both offices deleted is removed; new rows appended");
+  assert.ok(r.reviewFlags.includes("part3/e1"), "(p) flagged: two offices added rows");
 }
 
 // ── Part IV imports for the new cases ───────────────────────────────────────

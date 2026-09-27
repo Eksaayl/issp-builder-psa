@@ -2,11 +2,32 @@ import type { IsspDocument } from "@/lib/store/types";
 import { resolveScope, SHARED_TABLE_PATHS, PROJECT_BEARING_FIELDS } from "@/lib/scope/paths";
 import { SECTION_FIELDS } from "@/lib/section-fields";
 
-/** A scalar field written by ≥2 offices — surfaced for human pick (no silent winner). */
+/**
+ * Resolution value meaning "this row is not in the result" — an office's
+ * deletion in a row conflict, or "keep master" for a row the master never had.
+ * A string, so it can never equal a row (rows are objects).
+ */
+export const ROW_REMOVED = "\u0000row-removed";
+
+/**
+ * Two or more offices changed the same field — or the same row (`rowId` set)
+ * of a list — differently from the master: surfaced for a human pick (no
+ * silent winner). `values` holds only the offices that changed it; a row
+ * value of {@link ROW_REMOVED} means that office deleted the row. `master` is
+ * the master's value (or {@link ROW_REMOVED} for a row the master lacks) —
+ * the "keep master" choice.
+ */
 export interface ScalarConflict {
   sectionId: string;
   fieldKey: string;
+  rowId?: string;
   values: { officeId: string; value: unknown }[];
+  master: unknown;
+}
+
+/** Key a conflict's resolution is stored under (see {@link applyResolutions}). */
+export function conflictKey(c: Pick<ScalarConflict, "sectionId" | "fieldKey" | "rowId">): string {
+  return c.rowId === undefined ? `${c.sectionId}.${c.fieldKey}` : `${c.sectionId}.${c.fieldKey}#${c.rowId}`;
 }
 
 export interface ConsolidateResult {
@@ -25,7 +46,7 @@ function partKeyFor(sectionId: string): PartKey | undefined {
 }
 
 /** Per-field merge strategy — computed across the whole batch in the pre-pass. */
-type Strategy = "shared-table" | "list-union" | "scalar-conflict" | "overlay" | "project-keyed";
+type Strategy = "shared-table" | "list-by-id" | "list-union" | "scalar-agreed" | "scalar-conflict" | "overlay" | "project-keyed";
 
 /**
  * Deep-equality via JSON serialization. IsspDocument field values are plain
@@ -40,17 +61,41 @@ function jsonEqual(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
-/** Read one office's value for `${sid}.${fk}` from its file (or undefined). */
+/**
+ * Read one office's value for `${sid}.${fk}` from its file (or undefined). An
+ * office that sent several files in the batch speaks through its LAST one —
+ * a resend replaces the earlier submission.
+ */
 function readFieldValue(
   files: IsspDocument[],
   officeId: string,
   partKey: PartKey,
   fk: string
 ): unknown {
-  const f = files.find((x) => x.editScope!.office.id === officeId);
+  const f = files.findLast((x) => x.editScope!.office.id === officeId);
   if (!f) return undefined;
   const fp = f[partKey] as unknown as Record<string, unknown>;
   return fp[fk];
+}
+
+/**
+ * The owners that changed a multi-owner scalar relative to the master (the
+ * merge base), with their values. Owners that returned the master's value
+ * did not write the field and are left out.
+ */
+function scalarChanges(
+  key: string,
+  owners: string[],
+  files: IsspDocument[],
+  master: IsspDocument
+): { officeId: string; value: unknown }[] {
+  const dot = key.indexOf(".");
+  const partKey = partKeyFor(key.slice(0, dot))!;
+  const fk = key.slice(dot + 1);
+  const masterValue = (master[partKey] as unknown as Record<string, unknown>)[fk];
+  return owners
+    .map((officeId) => ({ officeId, value: readFieldValue(files, officeId, partKey, fk) }))
+    .filter((c) => !jsonEqual(c.value, masterValue));
 }
 
 function strategyFor(
@@ -58,6 +103,7 @@ function strategyFor(
   sid: string,
   owners: string[],
   files: IsspDocument[],
+  master: IsspDocument,
   anyProjectFilter: boolean
 ): Strategy {
   if (SHARED_TABLE_PATHS.has(key) || SHARED_TABLE_PATHS.has(sid)) {
@@ -85,14 +131,85 @@ function strategyFor(
   if (!partKey) return "overlay";
   const fk = key.slice(key.indexOf(".") + 1);
   const values = owners.map((oid) => readFieldValue(files, oid, partKey, fk));
-  // All list-valued → union + flag (lossless). List owners are unioned even
-  // when equal so each row's office-of-origin is preserved.
-  if (values.every((v) => Array.isArray(v))) return "list-union";
-  // Same scalar value across every owner → implicit agreement. Overlay the
-  // agreed value once; emit NO conflict (nothing to surface for human pick).
-  if (values.every((v) => jsonEqual(v, values[0]))) return "overlay";
-  // Values differ → surface for human pick (no silent winner).
-  return "scalar-conflict";
+  // All lists of id-bearing rows → merge row by row against the master
+  // (mergeListById). Any other list shape → the older lossless union + flag.
+  if (values.every((v) => Array.isArray(v))) {
+    return values.every((v) => (v as unknown[]).every(hasRowId)) ? "list-by-id" : "list-union";
+  }
+  // Scalars are judged against the master (the merge base): at most one
+  // distinct change across the owners → that value (or the master's, if none
+  // changed it) is agreed; ≥2 distinct changes → surface for human pick.
+  const distinct = new Set(scalarChanges(key, owners, files, master).map((c) => JSON.stringify(c.value)));
+  return distinct.size <= 1 ? "scalar-agreed" : "scalar-conflict";
+}
+
+type Row = { id: string };
+
+function hasRowId(r: unknown): r is Row {
+  return typeof r === "object" && r !== null && typeof (r as { id?: unknown }).id === "string";
+}
+
+/**
+ * Merge several offices' versions of one id-bearing list, using the master's
+ * list as the merge base. Per row id:
+ *  - no office changed it → the master row;
+ *  - exactly one distinct change → that version (replace in place);
+ *  - deleted by some office(s), changed by none → removed;
+ *  - ≥2 distinct changes, or changed by one office and deleted by another →
+ *    a row conflict; the result keeps the master row until resolved;
+ *  - an id the master lacks → appended (batch order); the same new id with
+ *    different content from ≥2 offices → a row conflict, left out until resolved.
+ * `flag` is set on any conflict, or when ≥2 offices added rows (possible
+ * duplicates by meaning, not id).
+ */
+function mergeListById(
+  masterRows: Row[],
+  versions: { officeId: string; rows: Row[] }[]
+): { rows: Row[]; conflicts: { rowId: string; values: { officeId: string; value: unknown }[]; master: unknown }[]; flag: boolean } {
+  const conflicts: { rowId: string; values: { officeId: string; value: unknown }[]; master: unknown }[] = [];
+  const result: Row[] = [];
+
+  for (const masterRow of masterRows) {
+    const changed: { officeId: string; value: unknown }[] = [];
+    const deletedBy: string[] = [];
+    for (const v of versions) {
+      const row = v.rows.find((r) => r.id === masterRow.id);
+      if (!row) deletedBy.push(v.officeId);
+      else if (!jsonEqual(row, masterRow)) changed.push({ officeId: v.officeId, value: row });
+    }
+    const distinct = new Set(changed.map((c) => JSON.stringify(c.value)));
+    if (distinct.size === 0 && deletedBy.length === 0) result.push(masterRow);
+    else if (distinct.size === 1 && deletedBy.length === 0) result.push(changed[0].value as Row);
+    else if (distinct.size === 0) continue; // deleted, and no other office changed it
+    else {
+      conflicts.push({
+        rowId: masterRow.id,
+        values: [...changed, ...deletedBy.map((officeId) => ({ officeId, value: ROW_REMOVED }))],
+        master: masterRow,
+      });
+      result.push(masterRow);
+    }
+  }
+
+  const masterIds = new Set(masterRows.map((r) => r.id));
+  const added = new Map<string, { officeId: string; value: Row }[]>(); // new id → contributions (batch order)
+  for (const v of versions) {
+    for (const row of v.rows) {
+      if (masterIds.has(row.id)) continue;
+      const list = added.get(row.id) ?? [];
+      list.push({ officeId: v.officeId, value: row });
+      added.set(row.id, list);
+    }
+  }
+  const addingOffices = new Set<string>();
+  for (const [rowId, contributions] of added) {
+    for (const c of contributions) addingOffices.add(c.officeId);
+    const distinct = new Set(contributions.map((c) => JSON.stringify(c.value)));
+    if (distinct.size === 1) result.push(contributions[0].value);
+    else conflicts.push({ rowId, values: contributions, master: ROW_REMOVED });
+  }
+
+  return { rows: result, conflicts, flag: conflicts.length > 0 || addingOffices.size >= 2 };
 }
 
 /** (projectId, value) pairs a file contributes for a project-bearing key. */
@@ -127,16 +244,22 @@ function projectEntries(file: IsspDocument, key: string): [string, unknown][] {
  *    are preserved (they belong to no office in the batch).
  *  - **Non-shared path, unique owner**: write each leaf field's value into the
  *    master (path-keyed overlay).
- *  - **Same non-shared path, ≥2 owners, list-valued**: union the contributed
- *    items and set a review flag on the section — never silently discard.
- *  - **Same scalar field, ≥2 owners, values differ**: record a
+ *  - **The master is the merge base for every multi-owner field.** Each
+ *    office's file starts from the same master data (Distribute copies it),
+ *    so an owner that returns the master's value has not written it.
+ *  - **Same non-shared path, ≥2 owners, list of id-bearing rows**: merge row
+ *    by row against the master ({@link mergeListById}) — one change wins,
+ *    unchanged-but-missing rows are removed, new ids are appended, and
+ *    differing changes (or edit-vs-delete) become row conflicts. Other list
+ *    shapes keep the older union + review flag.
+ *  - **Same scalar field, ≥2 owners, ≥2 distinct changes**: record a
  *    {@link ScalarConflict} and flag the section for review; do NOT silently
- *    pick. The merged doc keeps the master's existing value for that field;
- *    Task 10's review screen resolves it (and the flag persists post-apply so
+ *    pick. The merged doc keeps the master's existing value for that field
+ *    until the review screen resolves it (and the flag persists post-apply so
  *    downstream reviewers see the contested write).
- *  - **Same scalar field, ≥2 owners, all values equal**: implicit agreement —
- *    overlay the agreed value once (no conflict, nothing for human review).
- *    Per spec a conflict arises only when a field is "written differently."
+ *  - **Same scalar field, ≥2 owners, at most one distinct change**: that
+ *    change (or the master's value) is written once, whatever the file order —
+ *    no conflict, nothing for human review.
  *  - **Definitions** (front-matter): last-write-wins, but if ≥2 offices owned it
  *    the section is flagged for review (treat `"definitions.definitions"` as a
  *    single leaf).
@@ -166,7 +289,38 @@ export function consolidate(master: IsspDocument, files: IsspDocument[]): Consol
   for (const key of fieldOwners.keys()) {
     const dot = key.indexOf(".");
     const sid = key.slice(0, dot);
-    strategy.set(key, strategyFor(key, sid, fieldOwners.get(key)!, files, anyProjectFilter));
+    strategy.set(key, strategyFor(key, sid, fieldOwners.get(key)!, files, master, anyProjectFilter));
+  }
+
+  // Multi-owner scalars with at most one distinct change: the single value
+  // every owner's file writes (so file order cannot matter).
+  const agreedValues = new Map<string, unknown>();
+  for (const [key, strat] of strategy) {
+    if (strat !== "scalar-agreed") continue;
+    const dot = key.indexOf(".");
+    const partKey = partKeyFor(key.slice(0, dot))!;
+    const fk = key.slice(dot + 1);
+    const changes = scalarChanges(key, fieldOwners.get(key)!, files, master);
+    agreedValues.set(key, changes.length > 0 ? changes[0].value : (master[partKey] as unknown as Record<string, unknown>)[fk]);
+  }
+
+  // Row-id list merges are decided once, batch-wide, against the master.
+  const resolvedLists = new Map<string, Row[]>();
+  for (const [key, strat] of strategy) {
+    if (strat !== "list-by-id") continue;
+    const dot = key.indexOf(".");
+    const sid = key.slice(0, dot);
+    const fk = key.slice(dot + 1);
+    const partKey = partKeyFor(sid)!;
+    const masterRows = ((master[partKey] as unknown as Record<string, unknown>)[fk] as Row[]) ?? [];
+    const versions = fieldOwners.get(key)!.map((officeId) => ({
+      officeId,
+      rows: readFieldValue(files, officeId, partKey, fk) as Row[],
+    }));
+    const m = mergeListById(masterRows, versions);
+    resolvedLists.set(key, m.rows);
+    for (const c of m.conflicts) scalarConflicts.push({ sectionId: sid, fieldKey: fk, ...c });
+    if (m.flag) reviewFlags.add(sid);
   }
 
   // For project-keyed fields, only each office's LAST file (batch order)
@@ -211,6 +365,9 @@ export function consolidate(master: IsspDocument, files: IsspDocument[]): Consol
   // conflicts. FieldKey is NESTED ("year1.officeProductivity") so the store's
   // resolution applier can address the sub-object.
   const subConflicts = new Set<string>(); // `${sid}.${fk}.${sub}`
+  // Sub-objects with at most one distinct change vs the master: the value
+  // every unfiltered contributor writes (so file order cannot matter).
+  const subAgreed = new Map<string, unknown>(); // `${sid}.${fk}.${sub}` → value
   if (anyProjectFilter) {
     for (const [key, strat] of strategy) {
       if (strat !== "project-keyed") continue;
@@ -230,11 +387,16 @@ export function consolidate(master: IsspDocument, files: IsspDocument[]): Consol
           if (!yb) continue; // like projectEntries: a file lacking this year contributes nothing
           values.push({ officeId: file.editScope!.office.id, value: yb[sub] });
         }
-        const distinct = new Set(values.map((v) => JSON.stringify(v.value)));
+        // Judged against the master (the merge base), like scalars.
+        const masterSub = master.part4[fk as "year1" | "year2" | "year3"][sub];
+        const changes = values.filter((v) => !jsonEqual(v.value, masterSub));
+        const distinct = new Set(changes.map((v) => JSON.stringify(v.value)));
         if (distinct.size > 1) {
           subConflicts.add(`${sid}.${fk}.${sub}`);
           reviewFlags.add(sid);
-          scalarConflicts.push({ sectionId: sid, fieldKey: `${fk}.${sub}`, values });
+          scalarConflicts.push({ sectionId: sid, fieldKey: `${fk}.${sub}`, values: changes, master: masterSub });
+        } else if (values.length > 0) {
+          subAgreed.set(`${sid}.${fk}.${sub}`, changes.length > 0 ? changes[0].value : masterSub);
         }
       }
     }
@@ -256,11 +418,8 @@ export function consolidate(master: IsspDocument, files: IsspDocument[]): Consol
     scalarConflicts.push({
       sectionId: sid,
       fieldKey: fk,
-      values: fieldOwners.get(key)!.map((oid) => {
-        const f = files.find((x) => x.editScope!.office.id === oid)!;
-        const fp = f[partKey] as unknown as Record<string, unknown>;
-        return { officeId: oid, value: fp[fk] };
-      }),
+      master: (master[partKey] as unknown as Record<string, unknown>)[fk],
+      values: scalarChanges(key, fieldOwners.get(key)!, files, master),
     });
   }
 
@@ -326,6 +485,14 @@ export function consolidate(master: IsspDocument, files: IsspDocument[]): Consol
           target[fk] = [...others, ...mine.map((r) => structuredClone(r))];
           break;
         }
+        case "scalar-agreed":
+          target[fk] = structuredClone(agreedValues.get(key));
+          break;
+        case "list-by-id":
+          // Decided in the pre-pass (mergeListById); every owner's file
+          // writes the same resolved list.
+          target[fk] = structuredClone(resolvedLists.get(key));
+          break;
         case "list-union": {
           // Lossless union — both offices' items survive; flag for human dedup.
           // Deep-clone contributed items so mutating `merged` can't write back
@@ -417,12 +584,10 @@ export function consolidate(master: IsspDocument, files: IsspDocument[]): Consol
             // Explicit per-sub writes (not a `for sub of [...]` loop): a
             // union-keyed write `dstYB[sub] = …` must satisfy the INTERSECTION
             // of both sub-object types, which the cloned union never does.
-            if (!pids && !subConflicts.has(`${sid}.${fk}.officeProductivity`)) {
-              dstYB.officeProductivity = structuredClone(srcYB.officeProductivity);
-            }
-            if (!pids && !subConflicts.has(`${sid}.${fk}.continuingCosts`)) {
-              dstYB.continuingCosts = structuredClone(srcYB.continuingCosts);
-            }
+            const agreedOP = subAgreed.get(`${sid}.${fk}.officeProductivity`) as typeof srcYB.officeProductivity | undefined;
+            if (!pids && agreedOP) dstYB.officeProductivity = structuredClone(agreedOP);
+            const agreedCC = subAgreed.get(`${sid}.${fk}.continuingCosts`) as typeof srcYB.continuingCosts | undefined;
+            if (!pids && agreedCC) dstYB.continuingCosts = structuredClone(agreedCC);
           }
 
           if (changed) reviewFlags.add(sid);
@@ -444,24 +609,41 @@ export function consolidate(master: IsspDocument, files: IsspDocument[]): Consol
 }
 
 /**
- * Apply the secretariat's scalar-conflict resolutions onto a merged doc.
- * Keys are `${sectionId}.${fieldKey}`; Part IV sub-field conflicts use a
- * NESTED fieldKey (`"part4/year1" + "." + "year1.officeProductivity"`).
- * Deep-clones values so the merged doc shares no reference with the dialog's
- * choice state. Unknown sections are ignored (definitions/annex never
- * produce scalar conflicts).
+ * Apply the secretariat's conflict resolutions onto a merged doc. Keys come
+ * from {@link conflictKey}: `${sectionId}.${fieldKey}` for a field (Part IV
+ * sub-field conflicts use a NESTED fieldKey: `"part4/year1" + "." +
+ * "year1.officeProductivity"`), plus `#${rowId}` for a row. A row value
+ * replaces the row with that id (or appends it if the merged list lacks it);
+ * {@link ROW_REMOVED} removes it. Deep-clones values so the merged doc shares
+ * no reference with the dialog's choice state. Unknown sections are ignored
+ * (definitions/annex never produce conflicts).
  */
 export function applyResolutions(
   merged: IsspDocument,
   resolutions: Record<string, unknown>
 ): void {
   for (const [key, value] of Object.entries(resolutions)) {
-    const dot = key.indexOf(".");
-    const sid = key.slice(0, dot);
-    const fk = key.slice(dot + 1);
+    const hash = key.indexOf("#");
+    const fieldPath = hash >= 0 ? key.slice(0, hash) : key;
+    const dot = fieldPath.indexOf(".");
+    const sid = fieldPath.slice(0, dot);
+    const fk = fieldPath.slice(dot + 1);
     const partKey = SECTION_FIELDS[sid]?.partKey;
     if (!partKey) continue;
     const target = merged[partKey] as unknown as Record<string, unknown>;
+
+    if (hash >= 0) {
+      const rowId = key.slice(hash + 1);
+      const rows = ((target[fk] as Row[]) ?? []).filter((r) => value !== ROW_REMOVED || r.id !== rowId);
+      if (value !== ROW_REMOVED) {
+        const i = rows.findIndex((r) => r.id === rowId);
+        if (i >= 0) rows[i] = structuredClone(value as Row);
+        else rows.push(structuredClone(value as Row));
+      }
+      target[fk] = rows;
+      continue;
+    }
+
     const nested = fk.indexOf(".");
     if (nested >= 0) {
       const outer = fk.slice(0, nested);
