@@ -93,10 +93,14 @@ export function setBucket(
  * cell filled yet, else it starts a new row. Two distinct items that share a
  * name within the same group+class can therefore mis-pair; this is an
  * accepted trade-off documented in the design spec (no schema change).
+ *
+ * `rowKey` is the id of the LineItem that started the row (its earliest
+ * populated year), so a row keeps its key when other rows are added,
+ * removed, or reassigned around it — React state held per row (a focused
+ * name input, an open drawer) stays attached to the right row.
  */
 export function groupLineItemsAcrossCycle(part4: Part4Data, groups: CycleGroupDescriptor[]): CycleRow[] {
   const rows: CycleRow[] = [];
-  let seq = 0;
 
   for (const year of YEAR_KEYS) {
     const yearBudget = part4[year];
@@ -118,7 +122,7 @@ export function groupLineItemsAcrossCycle(part4: Part4Data, groups: CycleGroupDe
             match.cells[year] = cell;
           } else {
             rows.push({
-              rowKey: `row-${seq++}`,
+              rowKey: `row-${lineItem.id}`,
               group,
               expenseClass,
               item: lineItem.item,
@@ -253,7 +257,7 @@ export function addNewRow(
     cells[year] = { id: newLine.id, qty: newLine.qty, unitCost: newLine.unitCost };
   }
   const row: CycleRow = {
-    rowKey: `row-new-${uuid()}`, group, expenseClass,
+    rowKey: `row-${YEAR_KEYS.map((y) => cells[y]?.id).find(Boolean) ?? uuid()}`, group, expenseClass,
     item: "", office: "", uacsCode: "", uacsLabel: "", fundSource: "General Appropriations Act",
     cells,
   };

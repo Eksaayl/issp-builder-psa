@@ -1,8 +1,9 @@
 // End-to-end smoke for the Part IV Cycle View (/editor/part4/cycle):
 //   load the demo fixture → open Cycle View → exercise Table mode (add,
-//   rename, delete, n/a-cell invariant) → exercise List mode (add, edit via
-//   the details drawer, delete via the drawer) → assert every change lands
-//   in IDB.
+//   rename, two-tap delete, n/a-cell invariant) → exercise List mode (add
+//   opens the details drawer, name + Office edits, expense-class reassignment
+//   with the drawer staying on the row, two-tap delete) → assert every change
+//   lands in IDB.
 //
 // Carlos reaches dev over HTTP at the public IP = a NON-SECURE browsing
 // context, where crypto.randomUUID is undefined. We reproduce that on
@@ -86,12 +87,28 @@ function countAllLines(part4) {
   return n;
 }
 
+// Every bucket ("year1/officeProductivity/mooe", …) holding a line item
+// with this exact name.
+function bucketsOf(part4, name) {
+  const found = [];
+  for (const y of ["year1", "year2", "year3"]) {
+    const yb = part4[y];
+    const check = (path, lines) => { if (lines.some((l) => l.item === name)) found.push(`${y}/${path}`); };
+    check("officeProductivity/capitalOutlay", yb.officeProductivity.capitalOutlay);
+    check("officeProductivity/mooe", yb.officeProductivity.mooe);
+    check("continuingCosts/mooe", yb.continuingCosts.mooe);
+    for (const [id, pb] of Object.entries(yb.internalProjects)) { check(`internal:${id}/capitalOutlay`, pb.capitalOutlay); check(`internal:${id}/mooe`, pb.mooe); }
+    for (const [id, pb] of Object.entries(yb.crossAgencyProjects)) { check(`cross:${id}/capitalOutlay`, pb.capitalOutlay); check(`cross:${id}/mooe`, pb.mooe); }
+  }
+  return found;
+}
+
 // Click the mode toggle ("List" or "Table") and wait for the corresponding
 // markup to actually appear — the click alone doesn't guarantee the render
 // committed before the next assertion runs.
 async function switchMode(page, mode) {
   const clicked = await page.evaluate((label) => {
-    const btn = [...document.querySelectorAll("button")].find(
+    const btn = [...document.querySelectorAll("button[aria-pressed]")].find(
       (b) => b.textContent?.trim() === label
     );
     if (!btn) return false;
@@ -113,7 +130,7 @@ try {
   await loadFile(page, DEMO);
 
   await page.goto(BASE + "/editor/part4/cycle", { waitUntil: "networkidle2", timeout: 20000 });
-  await page.waitForSelector('input[placeholder="Item description…"]', { timeout: 15000 });
+  await page.waitForSelector('button[aria-label="Edit details"]', { timeout: 15000 });
   const heading = await page.evaluate(() => document.body.textContent || "");
   if (!/Cycle View/.test(heading)) fail("page heading missing 'Cycle View'");
   else ok("Cycle View page rendered");
@@ -125,6 +142,14 @@ try {
   const startsAsTable = await page.evaluate(() => document.querySelector("table") !== null);
   if (startsAsTable) fail("List should be the default view mode, but a <table> rendered on first load");
   else ok("List is the default view mode (no <table> on first load)");
+
+  const listNameInputs = await page.$$eval('input[placeholder="Item description…"]', (els) => els.length);
+  if (listNameInputs > 0) fail(`List mode rows should show the item name read-only, found ${listNameInputs} name input(s)`);
+  else ok("List mode rows show item names read-only");
+
+  const hasYearHeader = await page.evaluate(() => /Qty × Unit Cost/.test(document.body.textContent || ""));
+  if (!hasYearHeader) fail("List mode year-column headers not found");
+  else ok("List mode shows year-column headers");
 
   // ═══ Table mode ═════════════════════════════════════════════════════════
   console.log("\n=== Switch to Table mode ===");
@@ -186,8 +211,12 @@ try {
   });
   if (!(await deleteBtn.asElement())) fail("delete button for the smoke row not found");
   else {
-    page.once("dialog", (d) => d.accept());
-    await deleteBtn.asElement().click();
+    await deleteBtn.asElement().click(); // arms ("Delete all years?")
+    await sleep(300);
+    const armedStillThere = JSON.stringify(await readPart4(page)).includes("Smoke Test Line Item");
+    if (!armedStillThere) fail("first tap on delete removed the row — expected it to only arm");
+    else ok("first tap on delete only arms it");
+    await deleteBtn.asElement().click(); // confirms
   }
   await sleep(2000); // past the 1500ms save debounce
 
@@ -236,61 +265,57 @@ try {
   if (afterAddListCount <= beforeListCount) fail(`List mode: expected line count to grow, before=${beforeListCount} after=${afterAddListCount}`);
   else ok(`List mode: Add Line grew total line count ${beforeListCount} → ${afterAddListCount}`);
 
-  console.log("\n=== List mode: open the details drawer and edit Office ===");
-  // Same "value === ''" disambiguation as the table-mode rename above —
-  // List mode's item input carries the same placeholder on every row.
-  const listNameInputHandle = await page.evaluateHandle(() =>
-    [...document.querySelectorAll('input[placeholder="Item description…"]')].find((el) => el.value === "")
-  );
-  const listNameInput = await listNameInputHandle.asElement();
-  if (!listNameInput) fail("List mode: new row's item-description input not found");
+  console.log("\n=== List mode: Add Line opens the drawer on the new row ===");
+  const drawerName = await page.waitForSelector("#cycle-drawer-item", { timeout: 5000 }).catch(() => null);
+  if (!drawerName) fail("details drawer did not open on the new row after Add Line");
   else {
-    await listNameInput.click({ clickCount: 3 });
-    await listNameInput.type("Smoke Drawer Item");
-    await listNameInput.evaluate((el) => el.blur());
+    ok("details drawer opened on the new row");
+    await drawerName.click({ clickCount: 3 });
+    await drawerName.type("Smoke Drawer Item");
+    await drawerName.press("Enter"); // Enter blurs → commits
   }
   await sleep(2000);
+  if (!JSON.stringify(await readPart4(page)).includes("Smoke Drawer Item")) fail("drawer's name edit not found in IDB part4");
+  else ok("drawer's name edit persisted to IDB");
 
-  const editBtn = await page.evaluateHandle(() => {
-    const input = [...document.querySelectorAll('input[placeholder="Item description…"]')].find(
-      (el) => el.value === "Smoke Drawer Item"
-    );
-    // The item input and its row's "Edit details" button are siblings within
-    // the same flex row container (not a <tr> in List mode).
-    const row = input?.closest("div.flex.items-start");
-    return row?.querySelector('button[aria-label="Edit details"]') ?? null;
-  });
-  if (!(await editBtn.asElement())) fail("List mode: 'Edit details' button for the new row not found");
-  else await editBtn.asElement().click();
-
-  await page.waitForFunction(
-    () => /Office \/ Unit/.test(document.body.textContent || ""),
-    { timeout: 5000 }
-  ).catch(() => fail("details drawer did not open (Office / Unit field not found)"));
-  ok("details drawer opened for the new row");
-
-  const officeInput = await page.evaluateHandle(() =>
-    [...document.querySelectorAll("input")].find((el) => el.placeholder === "Which office or unit will use this?")
-  );
-  if (!(await officeInput.asElement())) fail("drawer's Office input not found");
+  const officeInput = await page.$("#cycle-drawer-office");
+  if (!officeInput) fail("drawer's Office input not found");
   else {
-    await officeInput.asElement().click({ clickCount: 3 });
-    await officeInput.asElement().type("Smoke Test Office");
+    await officeInput.click({ clickCount: 3 });
+    await officeInput.type("Smoke Test Office");
   }
   await sleep(2000);
-
-  const afterOfficeEdit = await readPart4(page);
-  if (!JSON.stringify(afterOfficeEdit).includes("Smoke Test Office")) fail("drawer's Office edit not found in IDB part4");
+  if (!JSON.stringify(await readPart4(page)).includes("Smoke Test Office")) fail("drawer's Office edit not found in IDB part4");
   else ok("drawer's Office edit persisted to IDB");
 
-  console.log("\n=== List mode: delete via the drawer ===");
-  const drawerDeleteBtn = await page.evaluateHandle(() =>
-    [...document.querySelectorAll("button")].find((b) => b.textContent?.trim() === "Delete")
-  );
-  if (!(await drawerDeleteBtn.asElement())) fail("drawer's Delete button not found");
+  console.log("\n=== List mode: reassign the expense class from the drawer ===");
+  const bucketsBefore = bucketsOf(await readPart4(page), "Smoke Drawer Item");
+  const classBefore = await page.$eval("#cycle-drawer-class", (el) => el.value).catch(() => null);
+  if (!classBefore) fail("drawer's Expense Class select not found");
   else {
-    page.once("dialog", (d) => d.accept());
-    await drawerDeleteBtn.asElement().click();
+    const target = classBefore === "mooe" ? "capitalOutlay" : "mooe";
+    await page.select("#cycle-drawer-class", target);
+    await sleep(2000);
+    const bucketsAfter = bucketsOf(await readPart4(page), "Smoke Drawer Item");
+    const suffix = target === "mooe" ? "/mooe" : "/capitalOutlay";
+    if (bucketsAfter.length !== bucketsBefore.length || !bucketsAfter.every((b) => b.endsWith(suffix))) {
+      fail(`reassign: expected every year's item under ${suffix}, before=${bucketsBefore.join(",")} after=${bucketsAfter.join(",")}`);
+    } else ok(`reassign moved ${bucketsAfter.length} year(s) of the item to ${target}`);
+    const drawerStill = await page.evaluate(() => {
+      const title = document.querySelector('[data-slot="sheet-title"]')?.textContent ?? document.body.textContent ?? "";
+      return /Smoke Drawer Item/.test(title) && document.querySelector("#cycle-drawer-class")?.value;
+    });
+    if (drawerStill !== target) fail(`drawer lost its row after reassign (class select shows ${drawerStill})`);
+    else ok("drawer stays on the same row after reassign");
+  }
+
+  console.log("\n=== List mode: delete via the drawer (two-tap) ===");
+  const drawerDeleteBtn = await page.$('button[aria-label="Delete item from every year"]');
+  if (!drawerDeleteBtn) fail("drawer's Delete button not found");
+  else {
+    await drawerDeleteBtn.click(); // arms
+    await sleep(300);
+    await drawerDeleteBtn.click(); // confirms
   }
   await sleep(2000);
 

@@ -1,10 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, Plus, Trash2, Pencil, ChevronDown, ChevronRight, Table2, LayoutList } from "lucide-react";
+import { Search, Plus, Trash2, Pencil, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
+import { ConfirmDeleteButton } from "@/components/ui/confirm-delete-button";
 import { UacsCombobox } from "@/components/issp-editor/uacs-combobox";
 import { SectionShell } from "@/components/editor/section-shell";
 import {
@@ -35,6 +36,7 @@ import {
   type ExpenseClass,
   type YearKey,
 } from "./part4-cycle-model";
+import { LineModeToggle, usePersistedLineMode, type LineMode } from "./line-mode";
 
 const FUND_SOURCES = [
   "General Appropriations Act",
@@ -44,7 +46,9 @@ const FUND_SOURCES = [
 ];
 const OFFICE_SUGGESTIONS = ["Central Office", "Regional Offices", "Central Office and Regional Offices"];
 const OFFICE_LIST_ID = "issp-cycle-office-suggestions";
-const LS_KEY = "issp-part4-cycle-line-mode";
+// Deliberately separate from the per-year pages' key: Cycle View's Table mode
+// is far wider (11 columns), so its List/Table choice is remembered on its own.
+const CYCLE_LINE_MODE_STORAGE_KEY = "issp-part4-cycle-line-mode";
 const INPUT_CLS =
   "w-full rounded px-2 py-1.5 text-sm bg-card/70 hover:bg-card focus:bg-card focus:outline-none focus:ring-1 focus:ring-ring";
 const SELECT_CLS =
@@ -90,9 +94,7 @@ export function Part4CycleView({
   const [part4, setPart4] = useState(initialPart4);
   const [query, setQuery] = useState("");
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-  const [mode, setMode] = useState<"list" | "table">(() => {
-    try { return (localStorage.getItem(LS_KEY) as "list" | "table") ?? "list"; } catch { return "list"; }
-  });
+  const [mode, switchMode] = usePersistedLineMode(CYCLE_LINE_MODE_STORAGE_KEY);
   // The row a drawer edit targets is tracked by a stable LineItem id (one of
   // its populated cells), not the row object itself or its rowKey — both are
   // recomputed fresh by groupLineItemsAcrossCycle on every edit (including an
@@ -100,11 +102,6 @@ export function Part4CycleView({
   // reference would go stale the moment anything changes. Re-resolving by id
   // on every render keeps the drawer pointed at the same conceptual row.
   const [drawerAnchorId, setDrawerAnchorId] = useState<string | null>(null);
-
-  function switchMode(m: "list" | "table") {
-    setMode(m);
-    try { localStorage.setItem(LS_KEY, m); } catch {}
-  }
 
   function save(next: Part4Data, touchedYears: YearKey[]) {
     setPart4(next);
@@ -152,6 +149,17 @@ export function Part4CycleView({
     const anchor = YEAR_KEYS.map((y) => row.cells[y]?.id).find((id) => id !== undefined);
     if (anchor) setDrawerAnchorId(anchor);
   }
+  function addRow(group: CycleGroupDescriptor, expenseClass: ExpenseClass) {
+    // The new row starts with an empty item name, so an active search would
+    // filter it out and the click would look like a no-op (repeat clicks
+    // silently piling up hidden blank rows).
+    setQuery("");
+    const r = addNewRow(part4, group, expenseClass);
+    save(r.part4, r.touchedYears);
+    // List mode names and details a row in the drawer, so a new row opens
+    // straight into it — the add is visible and the name field is one tap away.
+    if (mode === "list") openDrawer(r.row);
+  }
   function closeDrawer() {
     setDrawerAnchorId(null);
   }
@@ -170,8 +178,8 @@ export function Part4CycleView({
     save(r.part4, r.touchedYears);
   }
 
+  // Both delete controls are two-tap (ConfirmDeleteButton), so no extra prompt here.
   function handleDelete(row: CycleRowData) {
-    if (!confirm(`Remove "${row.item || "this item"}" from every year? This cannot be undone.`)) return;
     const r = deleteRow(part4, row);
     save(r.part4, r.touchedYears);
     closeDrawer();
@@ -196,23 +204,7 @@ export function Part4CycleView({
             className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           />
         </div>
-        <div className="flex items-center rounded-md border p-0.5 bg-muted/30">
-          {(["list", "table"] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => switchMode(m)}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs transition-colors ${
-                mode === m
-                  ? "bg-card shadow-sm font-medium text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {m === "list" ? <LayoutList className="h-3 w-3" /> : <Table2 className="h-3 w-3" />}
-              {m === "list" ? "List" : "Table"}
-            </button>
-          ))}
-        </div>
+        <LineModeToggle mode={mode} onChange={switchMode} />
       </div>
 
       <datalist id={OFFICE_LIST_ID}>
@@ -246,14 +238,7 @@ export function Part4CycleView({
                 groups={groups}
                 currentGroup={group}
                 currentExpenseClass={expenseClass}
-                onAdd={() => {
-                  // The new row starts with an empty item name, so an active
-                  // search would filter it out and the click would look like a
-                  // no-op (repeat clicks silently piling up hidden blank rows).
-                  setQuery("");
-                  const r = addNewRow(part4, group, expenseClass);
-                  save(r.part4, r.touchedYears);
-                }}
+                onAdd={() => addRow(group, expenseClass)}
                 onEditShared={(row, patch) => { const r = updateRowSharedFields(part4, row, patch); save(r.part4, r.touchedYears); }}
                 onEditYear={(row, year, patch) => { const r = updateYearCell(part4, row, year, patch); save(r.part4, r.touchedYears); }}
                 onAddYear={(row, year) => { const r = addYearCell(part4, row, year); save(r.part4, r.touchedYears); }}
@@ -364,7 +349,7 @@ function YearCellControls({
       <div className="flex items-center gap-1">
         <NumberInput
           unstyled min={1}
-          className="w-11 shrink-0 rounded px-1.5 py-1.5 text-sm text-right bg-card/70 hover:bg-card focus:bg-card focus:outline-none focus:ring-1 focus:ring-ring"
+          className="w-14 shrink-0 rounded px-1.5 py-1.5 text-sm text-right bg-card/70 hover:bg-card focus:bg-card focus:outline-none focus:ring-1 focus:ring-ring"
           value={cell.qty} onValueChange={(n) => onEdit({ qty: n })}
           aria-label={`${yearLabel} quantity`}
         />
@@ -389,16 +374,23 @@ function YearCellControls({
 }
 
 /**
- * Slideout for everything a List-mode row doesn't show inline: office, UACS,
- * fund source, and where the row belongs (project/category, expense class),
- * plus delete. Table mode keeps all of these inline instead and has no
- * drawer of its own — this component only ever renders for List mode.
+ * Slideout for everything a List-mode row doesn't show inline: the item name,
+ * office, UACS, fund source, and where the row belongs (project/category,
+ * expense class), plus delete. Table mode keeps all of these inline instead
+ * and has no drawer of its own — this component only ever renders for List
+ * mode. Like Table mode, every field commits as it is edited; there is no
+ * separate save step.
  *
  * `row` is re-resolved by the parent on every render from a stable LineItem
  * id (see `drawerAnchorId` in Part4CycleView), so editing a field here —
  * including reassigning the row to a different project/class, which changes
  * which group+class bucket it lives in — never leaves the drawer pointing at
  * stale data.
+ *
+ * The item name follows ItemNameInput's rule (commit on blur / Enter, never
+ * per keystroke — see there), with one addition: closing the drawer while
+ * the name field still holds an uncommitted draft (Escape, outside tap,
+ * "Done") commits it first, since the input may unmount before it blurs.
  */
 function CycleRowDrawer({
   row,
@@ -411,12 +403,24 @@ function CycleRowDrawer({
   row: CycleRowData | null;
   groups: CycleGroupDescriptor[];
   onClose: () => void;
-  onEditShared: (row: CycleRowData, patch: Partial<Pick<LineItem, "office" | "uacsCode" | "uacsLabel" | "fundSource">>) => void;
+  onEditShared: (row: CycleRowData, patch: Partial<Pick<LineItem, "item" | "office" | "uacsCode" | "uacsLabel" | "fundSource">>) => void;
   onReassign: (row: CycleRowData, group: CycleGroupDescriptor, expenseClass: ExpenseClass) => void;
   onDelete: (row: CycleRowData) => void;
 }) {
+  // null = the name field is not being edited (it shows the row's live name).
+  const [nameDraft, setNameDraft] = useState<string | null>(null);
+
+  function commitName() {
+    if (row && nameDraft !== null && nameDraft !== row.item) onEditShared(row, { item: nameDraft });
+    setNameDraft(null);
+  }
+  function close() {
+    commitName();
+    onClose();
+  }
+
   return (
-    <Sheet open={row !== null} onOpenChange={(o) => { if (!o) onClose(); }}>
+    <Sheet open={row !== null} onOpenChange={(o) => { if (!o) close(); }}>
       <SheetContent side="right" showCloseButton={false} style={{ maxWidth: 480 }} className="flex flex-col p-0 gap-0">
         {row && (
           <>
@@ -424,13 +428,30 @@ function CycleRowDrawer({
               <SheetTitle className="line-clamp-2 break-words">
                 {row.item || <span className="text-muted-foreground italic">Unnamed item</span>}
               </SheetTitle>
-              <SheetDescription>Office, UACS, fund source, and where this item belongs.</SheetDescription>
+              <SheetDescription>
+                Changes apply to this item in every year it appears ({YEAR_KEYS.filter((y) => row.cells[y]).length} of 3).
+              </SheetDescription>
             </SheetHeader>
 
             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Project / Category</label>
+                <label htmlFor="cycle-drawer-item" className="text-sm font-medium">Item / Description</label>
+                <Input
+                  id="cycle-drawer-item"
+                  type="text"
+                  placeholder="e.g. Laptop computers for ICT staff"
+                  value={nameDraft ?? row.item}
+                  onFocus={() => setNameDraft(row.item)}
+                  onChange={(e) => setNameDraft(e.target.value)}
+                  onBlur={commitName}
+                  onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="cycle-drawer-group" className="text-sm font-medium">Project / Category</label>
                 <select
+                  id="cycle-drawer-group"
                   className={SELECT_CLS}
                   value={groupKeyOf(row.group)}
                   onChange={(e) => {
@@ -443,8 +464,9 @@ function CycleRowDrawer({
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Expense Class</label>
+                <label htmlFor="cycle-drawer-class" className="text-sm font-medium">Expense Class</label>
                 <select
+                  id="cycle-drawer-class"
                   className={SELECT_CLS}
                   value={row.expenseClass}
                   disabled={row.group.kind === "continuingCosts"}
@@ -456,8 +478,9 @@ function CycleRowDrawer({
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Office / Unit</label>
+                <label htmlFor="cycle-drawer-office" className="text-sm font-medium">Office / Unit</label>
                 <Input
+                  id="cycle-drawer-office"
                   type="text" list={OFFICE_LIST_ID}
                   value={row.office}
                   onChange={(e) => onEditShared(row, { office: e.target.value })}
@@ -475,8 +498,9 @@ function CycleRowDrawer({
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Fund Source</label>
+                <label htmlFor="cycle-drawer-fund" className="text-sm font-medium">Fund Source</label>
                 <select
+                  id="cycle-drawer-fund"
                   className={SELECT_CLS}
                   value={row.fundSource}
                   onChange={(e) => onEditShared(row, { fundSource: e.target.value })}
@@ -487,15 +511,13 @@ function CycleRowDrawer({
             </div>
 
             <SheetFooter className="px-6 py-4 border-t flex-row items-center justify-between gap-2 shrink-0">
-              <Button
-                variant="ghost" size="sm"
-                className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                onClick={() => onDelete(row)}
-              >
-                <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-                Delete
-              </Button>
-              <Button size="sm" onClick={onClose}>Done</Button>
+              <ConfirmDeleteButton
+                ariaLabel="Delete item from every year"
+                confirmText="Delete from every year?"
+                className="coarse:h-10 coarse:min-w-10"
+                onDelete={() => { setNameDraft(null); onDelete(row); }}
+              />
+              <Button size="sm" onClick={close}>Done</Button>
             </SheetFooter>
           </>
         )}
@@ -522,7 +544,7 @@ function CycleSubTable({
   onOpenDrawer,
 }: {
   title: string;
-  mode: "list" | "table";
+  mode: LineMode;
   planYears: [string, string, string];
   rows: CycleRowData[];
   groups: CycleGroupDescriptor[];
@@ -553,42 +575,60 @@ function CycleSubTable({
 
       {mode === "list" ? (
         rows.length > 0 ? (
-          <div className="divide-y divide-border">
-            {rows.map((row) => (
-              <div key={row.rowKey} className="flex items-start gap-3 px-4 py-3 hover:bg-muted/20">
-                <div className="flex-1 min-w-0 pt-0.5">
-                  <ItemNameInput
-                    value={row.item}
-                    onCommit={(item) => onEditShared(row, { item })}
-                    className="w-full rounded px-2 py-1 -mx-2 text-sm font-medium bg-transparent hover:bg-card/70 focus:bg-card focus:outline-none focus:ring-1 focus:ring-ring truncate"
-                  />
-                  <p className="text-xs text-muted-foreground truncate mt-0.5 px-2">{rowSubtitle(row)}</p>
-                </div>
-                {YEAR_KEYS.map((year, i) => (
-                  <div key={year} className="w-44 shrink-0">
-                    <YearCellControls
-                      cell={row.cells[year]}
-                      canAdd={currentGroup.activeYears.includes(year)}
-                      yearLabel={planYears[i]}
-                      onEdit={(patch) => onEditYear(row, year, patch)}
-                      onAdd={() => onAddYear(row, year)}
-                      onClear={() => onClearYear(row, year)}
-                    />
-                  </div>
+          // Fixed-width year columns need ~960px; below that the rows scroll
+          // sideways instead of clipping the year controls.
+          <div className="overflow-x-auto">
+            <div className="min-w-[960px] divide-y divide-border">
+              <div className="flex items-center gap-3 px-4 py-1.5 text-xs font-medium text-muted-foreground">
+                <span className="flex-1 min-w-[160px]">Item</span>
+                {planYears.map((label) => (
+                  <span key={label} className="w-48 shrink-0 text-right">{label} · Qty × Unit Cost</span>
                 ))}
-                <div className="w-24 shrink-0 pt-1.5 text-right text-sm font-semibold tabular-nums">
-                  {php(rowTotal(row))}
-                </div>
-                <button
-                  type="button"
-                  aria-label="Edit details"
-                  className="h-7 w-7 shrink-0 mt-0.5 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                  onClick={() => onOpenDrawer(row)}
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                </button>
+                <span className="w-24 shrink-0 text-right">Cycle Total</span>
+                <span className="w-7 coarse:w-10 shrink-0" />
               </div>
-            ))}
+              {rows.map((row) => (
+                <div key={row.rowKey} className="flex items-start gap-3 px-4 py-3 hover:bg-muted/20">
+                  <button
+                    type="button"
+                    onClick={() => onOpenDrawer(row)}
+                    className="flex-1 min-w-[160px] pt-1 text-left"
+                  >
+                    <p className="text-sm font-medium line-clamp-2 break-words">
+                      {row.item || <span className="text-muted-foreground/60 italic">Unnamed item</span>}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate mt-0.5">{rowSubtitle(row)}</p>
+                  </button>
+                  {YEAR_KEYS.map((year, i) => (
+                    <div key={year} className="w-48 shrink-0">
+                      <YearCellControls
+                        cell={row.cells[year]}
+                        canAdd={currentGroup.activeYears.includes(year)}
+                        yearLabel={planYears[i]}
+                        onEdit={(patch) => onEditYear(row, year, patch)}
+                        onAdd={() => onAddYear(row, year)}
+                        onClear={() => onClearYear(row, year)}
+                      />
+                    </div>
+                  ))}
+                  <div className="w-24 shrink-0 pt-1.5 text-right text-sm font-semibold tabular-nums">
+                    {php(rowTotal(row))}
+                  </div>
+                  <button
+                    type="button"
+                    aria-label="Edit details"
+                    className="h-7 w-7 coarse:h-10 coarse:w-10 shrink-0 mt-0.5 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                    onClick={() => onOpenDrawer(row)}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+              <div className="flex items-center justify-between px-4 py-2.5 bg-muted/50">
+                <span className="text-sm font-semibold text-muted-foreground">Subtotal</span>
+                <span className="text-sm font-bold tabular-nums">{php(subtotal)}</span>
+              </div>
+            </div>
           </div>
         ) : (
           <div className="py-6 text-center">
@@ -610,7 +650,7 @@ function CycleSubTable({
                 <th className="border-r px-3 py-2 text-left font-semibold w-32">UACS</th>
                 <th className="border-r px-3 py-2 text-left font-semibold w-36">Fund Source</th>
                 {planYears.map((label) => (
-                  <th key={label} className="border-r px-3 py-2 text-right font-semibold w-44">{label}</th>
+                  <th key={label} className="border-r px-3 py-2 text-right font-semibold w-48">{label}</th>
                 ))}
                 <th className="border-r px-3 py-2 text-right font-semibold w-28">Cycle Total</th>
                 <th className="px-2 py-2 w-8" />
@@ -689,13 +729,12 @@ function CycleSubTable({
                   ))}
                   <td className="border-r px-3 py-2 text-right tabular-nums text-sm font-medium">{php(rowTotal(row))}</td>
                   <td className="px-1 py-1 text-center">
-                    <Button
-                      variant="ghost" size="icon" aria-label="Delete row"
-                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                      onClick={() => onDeleteRow(row)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    <ConfirmDeleteButton
+                      ariaLabel="Delete row"
+                      confirmText="Delete all years?"
+                      className="coarse:h-10 coarse:min-w-10"
+                      onDelete={() => onDeleteRow(row)}
+                    />
                   </td>
                 </tr>
               ))}
