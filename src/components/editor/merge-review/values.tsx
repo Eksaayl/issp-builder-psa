@@ -74,6 +74,8 @@ export function TextDiff({ before, after, rich }: { before: unknown; after: unkn
   );
 }
 
+const isImage = (v: unknown): v is string => typeof v === "string" && v.startsWith("data:image/");
+
 function Thumb({ src }: { src: unknown }) {
   if (typeof src !== "string" || !src) return <span className="italic text-muted-foreground">No image</span>;
   // eslint-disable-next-line @next/next/no-img-element -- data URL preview, not an optimizable asset
@@ -102,8 +104,8 @@ export function CellTable({ fieldKey, cells }: { fieldKey: string; cells: CellDi
             return (
               <tr key={c.path.join(".")} className="border-t border-border align-top">
                 <td className="px-2 py-1 font-medium text-muted-foreground">{cellLabel(fieldKey, c)}</td>
-                <td className="px-2 py-1 break-words text-destructive/90">{formatValue(c.before, key)}</td>
-                <td className="px-2 py-1 break-words text-success">{formatValue(c.after, key)}</td>
+                <td className="px-2 py-1 break-words text-destructive/90">{isImage(c.before) ? <Thumb src={c.before} /> : formatValue(c.before, key)}</td>
+                <td className="px-2 py-1 break-words text-success">{isImage(c.after) ? <Thumb src={c.after} /> : formatValue(c.after, key)}</td>
               </tr>
             );
           })}
@@ -113,9 +115,15 @@ export function CellTable({ fieldKey, cells }: { fieldKey: string; cells: CellDi
   );
 }
 
-/** A whole row in words — for added and removed rows. */
+/** A whole row in words — for added and removed rows (with its image, for a diagram row). */
 export function RowSummary({ row }: { row: unknown }) {
-  return <p className="text-xs text-foreground line-clamp-3 break-words">{formatValue(row)}</p>;
+  const image = typeof row === "object" && row !== null ? Object.values(row).find(isImage) : undefined;
+  return (
+    <div className="space-y-1">
+      {image && <Thumb src={image} />}
+      <p className="text-xs text-foreground line-clamp-3 break-words">{formatValue(row)}</p>
+    </div>
+  );
 }
 
 /** A Part IV line item's cost before → after, with the signed difference. */

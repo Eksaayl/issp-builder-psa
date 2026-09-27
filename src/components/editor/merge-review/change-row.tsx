@@ -99,20 +99,21 @@ function ChangeBody({ change }: { change: ReviewChange }) {
 export function ChangeRow({
   change,
   officeName,
-  rejected,
+  keepMaster,
   onToggle,
 }: {
   change: ReviewChange;
   officeName: (officeId: string) => string;
-  rejected: boolean;
-  onToggle: (rejected: boolean) => void;
+  /** True when the secretariat keeps the master for this change (Keep master / Skip row). */
+  keepMaster: boolean;
+  onToggle: (keepMaster: boolean) => void;
 }) {
   const offices = change.officeIds.map(officeName).join(" and ");
   return (
-    <li id={`change-${change.id}`} className={`space-y-1.5 px-3 py-2.5 ${rejected ? "bg-muted/30" : ""}`}>
+    <li id={`change-${change.id}`} className={`space-y-1.5 px-3 py-2.5 ${keepMaster ? "bg-muted/30" : ""}`}>
       <div className="flex flex-wrap items-center gap-1.5">
         <KindBadge kind={change.kind} />
-        <span className={`min-w-0 text-xs font-medium break-words ${rejected ? "text-muted-foreground line-through" : "text-foreground"}`}>
+        <span className={`min-w-0 text-xs font-medium break-words ${keepMaster ? "text-muted-foreground line-through" : "text-foreground"}`}>
           {change.label}
         </span>
         {offices && (
@@ -124,11 +125,11 @@ export function ChangeRow({
         <label className="flex cursor-pointer items-start gap-2 text-xs text-muted-foreground">
           <input
             type="checkbox"
-            checked={rejected}
+            checked={keepMaster}
             onChange={(e) => onToggle(e.target.checked)}
             className="mt-0.5 h-3.5 w-3.5 coarse:h-5 coarse:w-5"
           />
-          <span className={rejected ? "font-medium text-foreground" : ""}>{decisionLabel(change, offices || "the office")}</span>
+          <span className={keepMaster ? "font-medium text-foreground" : ""}>{decisionLabel(change, offices || "the office")}</span>
         </label>
       )}
     </li>

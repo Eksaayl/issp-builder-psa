@@ -66,7 +66,7 @@ export interface IsspStoreValue {
   loadFromFile: (file: File, options?: LoadFromFileOptions) => Promise<StoreActionResult>;
   /**
    * Merge one or more returned scoped `.issp` files into the current master.
-   * The merge review previews with the same functions: this action re-parses
+   * The merge review is built with the same functions: this action re-parses
    * the files, applies the secretariat's `decisions` (Keep master / Skip row
    * and conflict resolutions) via `applyReviewDecisions`, then writes the
    * merged doc. Non-scoped / malformed files are named in `error` — never
@@ -256,7 +256,7 @@ function editScopeProblem(scope: unknown): string | null {
 /**
  * Parse, validate, and prepare a single returned scoped `.issp` file for
  * merging into `master` — the shared gate between the consolidate dialog's
- * preview and the {@link consolidateFiles} store action. Rejects
+ * merge review and the {@link consolidateFiles} store action. Rejects
  * non-`.issp-main`, files missing `editScope` (i.e., a plain master dropped
  * into Consolidate), and the same size/image gates as {@link loadFromFile}.
  *
@@ -1141,7 +1141,7 @@ export function IsspStoreProvider({ children }: { children: ReactNode }) {
         return { success: false, error: `Could not consolidate: ${rejected.join("; ")}` };
       }
 
-      // The same pure function the review previews with: decisions undone in
+      // The same pure function the merge review shows: decisions restored in
       // the returned files, re-merged, conflict resolutions applied.
       const { doc: merged, reviewFlags } = applyReviewDecisions(doc, parsed, decisions);
 

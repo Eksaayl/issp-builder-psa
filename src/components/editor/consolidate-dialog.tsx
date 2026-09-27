@@ -20,7 +20,8 @@ import { ANNEX_SECTIONS, FRONT_MATTER_SECTIONS, PARTS } from "@/lib/sections";
 import { php } from "@/lib/utils";
 import { ChangeRow } from "./merge-review/change-row";
 import { ConflictCard } from "./merge-review/conflict-card";
-import { lineItemCost, signedPhp } from "./merge-review/format";
+import { signedPhp } from "./merge-review/format";
+import type { IsspDocument } from "@/lib/store/types";
 
 // ─── Sections in document order ───────────────────────────────────────────────
 
@@ -48,20 +49,41 @@ interface LoadedFile {
   parsed: ParsedScopedFile;
 }
 
-/** Part IV bucket totals (master vs result) from the section's line-item rows. */
-function budgetTotals(changes: ReviewChange[], rejected: Set<string>) {
-  const buckets = new Map<string, { before: number; after: number }>();
-  for (const c of changes) {
-    if (!c.rowId) continue;
-    const bucket = c.label.split(" › ").slice(1, -1).join(" › ");
-    const t = buckets.get(bucket) ?? { before: 0, after: 0 };
-    const beforeTotal = lineItemCost(c.before)?.total ?? 0;
-    t.before += beforeTotal;
-    t.after += rejected.has(c.id) ? beforeTotal : lineItemCost(c.after)?.total ?? 0;
-    buckets.set(bucket, t);
+/**
+ * Part IV totals per budget group (Office Productivity, each project,
+ * Continuing Costs) for one year: the master's vs the merge result's.
+ */
+function budgetTotals(master: IsspDocument, result: IsspDocument, year: "year1" | "year2" | "year3") {
+  const sum = (lines: { qty: number; unitCost: number }[] | undefined) => (lines ?? []).reduce((t, l) => t + l.qty * l.unitCost, 0);
+  const m = master.part4[year];
+  const r = result.part4[year];
+  const rows: { label: string; before: number; after: number }[] = [
+    { label: "Office Productivity", before: sum(m.officeProductivity.capitalOutlay) + sum(m.officeProductivity.mooe), after: sum(r.officeProductivity.capitalOutlay) + sum(r.officeProductivity.mooe) },
+  ];
+  for (const group of ["internalProjects", "crossAgencyProjects"] as const) {
+    for (const pid of new Set([...Object.keys(m[group]), ...Object.keys(r[group])])) {
+      const mb = m[group][pid];
+      const rb = r[group][pid];
+      rows.push({
+        label: rb?.projectTitle || mb?.projectTitle || pid,
+        before: sum(mb?.capitalOutlay) + sum(mb?.mooe),
+        after: sum(rb?.capitalOutlay) + sum(rb?.mooe),
+      });
+    }
   }
-  return [...buckets.entries()].filter(([, t]) => t.before !== 0 || t.after !== 0);
+  rows.push({ label: "Continuing Costs", before: sum(m.continuingCosts.mooe), after: sum(r.continuingCosts.mooe) });
+  return rows.filter((t) => t.before !== 0 || t.after !== 0);
 }
+
+const PROVENANCE_FIELD: Record<"agency" | "title" | "startYear" | "endYear", string> = {
+  agency: "agency",
+  title: "title",
+  startYear: "start year",
+  endYear: "end year",
+};
+
+/** Kinds that are headers or notes, not changes that apply. */
+const INFORMATIONAL: ReadonlySet<ReviewChange["kind"]> = new Set(["unchanged", "office-rows-replaced", "kept-office-deleted"]);
 
 // ─── Dialog ───────────────────────────────────────────────────────────────────
 
@@ -72,21 +94,22 @@ export function ConsolidateDialog({ open, onClose }: { open: boolean; onClose: (
   const [loaded, setLoaded] = useState<LoadedFile[]>([]);
   const [selectedCount, setSelectedCount] = useState(0);
   const [parsing, setParsing] = useState(false);
-  const [rejectedFiles, setRejectedFiles] = useState<string[]>([]);
-  const [rejectedChanges, setRejectedChanges] = useState<Set<string>>(new Set());
+  const [unreadableFiles, setUnreadableFiles] = useState<string[]>([]);
+  const [keptFromMaster, setKeptFromMaster] = useState<Set<string>>(new Set());
   const [resolutions, setResolutions] = useState<Record<string, unknown>>({});
   const [officeFilter, setOfficeFilter] = useState<Set<string>>(new Set());
   const [showUnchanged, setShowUnchanged] = useState(false);
   const [applying, setApplying] = useState(false);
 
   const files = useMemo(() => loaded.map((l) => l.parsed), [loaded]);
-  const inReview = !!doc && loaded.length > 0 && rejectedFiles.length === 0 && !parsing;
+  const inReview = !!doc && loaded.length > 0 && unreadableFiles.length === 0 && !parsing;
 
   const review = useMemo(() => (doc && inReview ? buildMergeReview(doc, files) : null), [doc, files, inReview]);
-  // The same pure function Apply uses — so what the review shows is what lands.
+  // The same pure function Apply uses — so what the merge review shows is
+  // what lands. The already-built review is reused, so each decision re-merges once.
   const result = useMemo(
-    () => (doc && review ? applyReviewDecisions(doc, files, { rejected: rejectedChanges, resolutions }) : null),
-    [doc, review, files, rejectedChanges, resolutions]
+    () => (doc && review ? applyReviewDecisions(doc, files, { keptFromMaster, resolutions }, review) : null),
+    [doc, review, files, keptFromMaster, resolutions]
   );
   const brokenLinks = useMemo(() => (doc && result ? findBrokenLinks(result.doc, doc) : []), [doc, result]);
 
@@ -99,8 +122,8 @@ export function ConsolidateDialog({ open, onClose }: { open: boolean; onClose: (
     setLoaded([]);
     setSelectedCount(0);
     setParsing(false);
-    setRejectedFiles([]);
-    setRejectedChanges(new Set());
+    setUnreadableFiles([]);
+    setKeptFromMaster(new Set());
     setResolutions({});
     setOfficeFilter(new Set());
     setShowUnchanged(false);
@@ -126,14 +149,14 @@ export function ConsolidateDialog({ open, onClose }: { open: boolean; onClose: (
       else bad.push(r.error);
     }
     setLoaded(ok);
-    setRejectedFiles(bad);
+    setUnreadableFiles(bad);
     setParsing(false);
   }
 
-  function toggleRejected(id: string, reject: boolean) {
-    setRejectedChanges((prev) => {
+  function toggleKeepMaster(id: string, keep: boolean) {
+    setKeptFromMaster((prev) => {
       const next = new Set(prev);
-      if (reject) next.add(id);
+      if (keep) next.add(id);
       else next.delete(id);
       return next;
     });
@@ -150,13 +173,14 @@ export function ConsolidateDialog({ open, onClose }: { open: boolean; onClose: (
 
   const unresolved = review ? review.conflicts.filter((c) => !(conflictKey(c) in resolutions)) : [];
   const realChanges = review ? review.changes.filter((c) => c.kind !== "unchanged") : [];
+  const applyingCount = realChanges.filter((c) => !INFORMATIONAL.has(c.kind)).length - keptFromMaster.size;
   const canApply = !!review && unresolved.length === 0 && !applying;
 
   async function handleApply() {
     if (!canApply) return;
     setApplying(true);
     try {
-      const r = await consolidateFiles(loaded.map((l) => l.file), { rejected: rejectedChanges, resolutions });
+      const r = await consolidateFiles(loaded.map((l) => l.file), { keptFromMaster, resolutions });
       if (r.success) {
         const parts = [`Merged ${loaded.length} file${loaded.length === 1 ? "" : "s"}.`];
         if (r.reviewFlags.length > 0) parts.push(`${r.reviewFlags.length} section${r.reviewFlags.length === 1 ? "" : "s"} flagged for review.`);
@@ -184,19 +208,32 @@ export function ConsolidateDialog({ open, onClose }: { open: boolean; onClose: (
   const sectionIds = SECTION_ORDER.filter(
     (sid) => visibleChanges.some((c) => c.sectionId === sid) || visibleConflicts.some((c) => c.sectionId === sid)
   );
-  const countBySection = (sid: string) =>
-    realChanges.filter((c) => c.sectionId === sid).length + (review?.conflicts ?? []).filter((c) => c.sectionId === sid).length;
+  const visibleCountBySection = (sid: string) =>
+    visibleChanges.filter((c) => c.sectionId === sid).length + visibleConflicts.filter((c) => c.sectionId === sid).length;
 
+  // Jump to an item; if a filter hides it, clear the filters first and jump
+  // once it has rendered.
   const jump = (elementId: string | undefined) => {
-    if (elementId) document.getElementById(elementId)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (!elementId) return;
+    const el = document.getElementById(elementId);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    setOfficeFilter(new Set());
+    setShowUnchanged(false);
+    setTimeout(() => document.getElementById(elementId)?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
   };
-  const firstOfKind = (kind: ReviewChange["kind"]) => realChanges.find((c) => c.kind === kind);
+  const summaryEntry = (label: string, kinds: ReviewChange["kind"][], tone: string) => {
+    const matches = realChanges.filter((c) => kinds.includes(c.kind));
+    return { label, count: matches.length, target: matches[0] && `change-${matches[0].id}`, tone };
+  };
   const summary: { label: string; count: number; target?: string; tone: string }[] = review
     ? [
         { label: "unresolved conflict", count: unresolved.length, target: unresolved[0] && `conflict-${conflictKey(unresolved[0])}`, tone: "text-warning" },
-        { label: "overwrite", count: realChanges.filter((c) => c.kind === "overwritten" || c.kind === "replaced-row").length, target: (firstOfKind("overwritten") ?? firstOfKind("replaced-row")) && `change-${(firstOfKind("overwritten") ?? firstOfKind("replaced-row"))!.id}`, tone: "text-warning" },
-        { label: "clear", count: realChanges.filter((c) => c.kind === "cleared").length, target: firstOfKind("cleared") && `change-${firstOfKind("cleared")!.id}`, tone: "text-destructive" },
-        { label: "removal", count: realChanges.filter((c) => c.kind === "removed-row").length, target: firstOfKind("removed-row") && `change-${firstOfKind("removed-row")!.id}`, tone: "text-destructive" },
+        summaryEntry("overwrite", ["overwritten", "replaced-row"], "text-warning"),
+        summaryEntry("clear", ["cleared"], "text-destructive"),
+        summaryEntry("removal", ["removed-row"], "text-destructive"),
         { label: "broken link", count: brokenLinks.length, target: "review-broken-links", tone: "text-destructive" },
         { label: "file warning", count: review.provenance.length, target: "review-provenance", tone: "text-warning" },
       ]
@@ -255,16 +292,16 @@ export function ConsolidateDialog({ open, onClose }: { open: boolean; onClose: (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" /> Reading files…
               </p>
             )}
-            {rejectedFiles.length > 0 && (
+            {unreadableFiles.length > 0 && (
               <div className="space-y-1 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-destructive">
                 <div className="flex items-center gap-1.5 text-sm font-semibold">
                   <FileWarning className="h-4 w-4 shrink-0" />
-                  {rejectedFiles.length} file{rejectedFiles.length === 1 ? "" : "s"} rejected
+                  {unreadableFiles.length} file{unreadableFiles.length === 1 ? "" : "s"} rejected
                 </div>
                 <ul className="space-y-0.5 text-xs leading-snug">
-                  {rejectedFiles.map((msg, i) => <li key={i}>{msg}</li>)}
+                  {unreadableFiles.map((msg, i) => <li key={i}>{msg}</li>)}
                 </ul>
-                <p className="text-[11px] text-destructive/80">Fix or remove the rejected file{rejectedFiles.length === 1 ? "" : "s"}, then select the files again.</p>
+                <p className="text-[11px] text-destructive/80">Fix or remove the rejected file{unreadableFiles.length === 1 ? "" : "s"}, then select the files again.</p>
               </div>
             )}
             {!parsing && selectedCount === 0 && (
@@ -287,10 +324,10 @@ export function ConsolidateDialog({ open, onClose }: { open: boolean; onClose: (
             <div className="space-y-2 border-b bg-muted/20 px-4 py-2">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
                 <span className="font-semibold text-foreground">
-                  {realChanges.length} change{realChanges.length === 1 ? "" : "s"} from {loaded.length} file{loaded.length === 1 ? "" : "s"}
+                  {applyingCount + keptFromMaster.size} change{applyingCount + keptFromMaster.size === 1 ? "" : "s"} from {loaded.length} file{loaded.length === 1 ? "" : "s"}
                 </span>
                 {summary.filter((s) => s.count > 0).map((s) => (
-                  <button key={s.label} type="button" onClick={() => jump(s.target)} className={`font-medium underline-offset-2 hover:underline ${s.tone}`}>
+                  <button key={s.label} type="button" onClick={() => jump(s.target)} className={`font-medium underline-offset-2 hover:underline coarse:py-1.5 ${s.tone}`}>
                     {s.count} {s.label}{s.count === 1 ? "" : "s"}
                   </button>
                 ))}
@@ -310,17 +347,18 @@ export function ConsolidateDialog({ open, onClose }: { open: boolean; onClose: (
                       type="button"
                       aria-pressed={active}
                       onClick={() => toggleOffice(id)}
-                      title={`${l.file.name}${upgradedFrom.has(id) ? ` — upgraded from schema v${upgradedFrom.get(id)}` : ""}`}
+                      title={`Show only ${officeName(id)}'s changes (${l.file.name})`}
                       className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 coarse:py-1.5 ${active ? "border-primary bg-primary/10 text-foreground" : "border-border bg-card text-muted-foreground hover:text-foreground"}`}
                     >
                       {warn && <AlertTriangle className="h-3 w-3 text-warning" />}
                       {officeName(id)}
+                      <span className="max-w-[12rem] truncate text-muted-foreground/80">· {l.file.name}</span>
                       {upgradedFrom.has(id) && <span className="text-info">· upgraded from v{upgradedFrom.get(id)}</span>}
                     </button>
                   );
                 })}
                 {officeFilter.size > 0 && (
-                  <button type="button" onClick={() => setOfficeFilter(new Set())} className="text-primary hover:underline">All offices</button>
+                  <button type="button" onClick={() => setOfficeFilter(new Set())} className="text-primary hover:underline coarse:py-1.5">All offices</button>
                 )}
                 <label className="ml-auto inline-flex cursor-pointer items-center gap-1.5 text-muted-foreground">
                   <input type="checkbox" checked={showUnchanged} onChange={(e) => setShowUnchanged(e.target.checked)} className="h-3.5 w-3.5" />
@@ -333,7 +371,7 @@ export function ConsolidateDialog({ open, onClose }: { open: boolean; onClose: (
               {/* Left rail: sections in document order */}
               <nav className="hidden w-56 shrink-0 overflow-y-auto border-r px-2 py-3 md:block" aria-label="Sections with changes">
                 <ul className="space-y-0.5">
-                  {SECTION_ORDER.filter((sid) => countBySection(sid) > 0).map((sid) => (
+                  {sectionIds.map((sid) => (
                     <li key={sid}>
                       <button
                         type="button"
@@ -341,7 +379,7 @@ export function ConsolidateDialog({ open, onClose }: { open: boolean; onClose: (
                         className="flex w-full items-center justify-between gap-2 rounded px-2 py-1 text-left text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
                       >
                         <span className="min-w-0 line-clamp-2 break-words">{sectionLabel(sid)}</span>
-                        <span className="shrink-0 tabular-nums">{countBySection(sid)}</span>
+                        <span className="shrink-0 tabular-nums">{visibleCountBySection(sid)}</span>
                       </button>
                     </li>
                   ))}
@@ -358,7 +396,7 @@ export function ConsolidateDialog({ open, onClose }: { open: boolean; onClose: (
                     <ul className="space-y-0.5 text-xs text-foreground">
                       {review.provenance.map((w, i) => (
                         <li key={i}>
-                          {officeName(w.officeId)}&apos;s file has {w.field === "agency" ? "agency" : w.field === "title" ? "title" : w.field === "startYear" ? "start year" : "end year"} &quot;{w.file}&quot; — the master has &quot;{w.master}&quot;.
+                          {officeName(w.officeId)}&apos;s file has {PROVENANCE_FIELD[w.field]} &quot;{w.file}&quot; — the master has &quot;{w.master}&quot;.
                         </li>
                       ))}
                     </ul>
@@ -387,12 +425,12 @@ export function ConsolidateDialog({ open, onClose }: { open: boolean; onClose: (
                 {sectionIds.map((sid) => {
                   const sectionChanges = visibleChanges.filter((c) => c.sectionId === sid);
                   const sectionConflicts = visibleConflicts.filter((c) => c.sectionId === sid);
-                  const totals = sid.startsWith("part4/year") ? budgetTotals(review.changes.filter((c) => c.sectionId === sid), rejectedChanges) : [];
+                  const totals = sid.startsWith("part4/year") && result ? budgetTotals(doc, result.doc, sid.slice("part4/".length) as "year1" | "year2" | "year3") : [];
                   return (
                     <section key={sid} id={`section-${sid}`} className="overflow-hidden rounded-lg border border-border bg-card/40">
                       <header className="flex items-center justify-between gap-2 border-b bg-muted/40 px-3 py-2">
                         <h3 className="text-sm font-semibold text-foreground">{sectionLabel(sid)}</h3>
-                        {review.reviewFlags.includes(sid) && (
+                        {result?.reviewFlags.includes(sid) && (
                           <span className="text-[10px] font-semibold text-info">Flagged for review after the merge</span>
                         )}
                       </header>
@@ -413,8 +451,8 @@ export function ConsolidateDialog({ open, onClose }: { open: boolean; onClose: (
                             key={c.id}
                             change={c}
                             officeName={officeName}
-                            rejected={rejectedChanges.has(c.id)}
-                            onToggle={(r) => toggleRejected(c.id, r)}
+                            keepMaster={keptFromMaster.has(c.id)}
+                            onToggle={(r) => toggleKeepMaster(c.id, r)}
                           />
                         ))}
                       </ul>
@@ -422,9 +460,9 @@ export function ConsolidateDialog({ open, onClose }: { open: boolean; onClose: (
                         <div className="border-t bg-muted/20 px-3 py-2">
                           <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Budget totals</p>
                           <ul className="space-y-0.5 text-xs tabular-nums">
-                            {totals.map(([bucket, t]) => (
-                              <li key={bucket} className="flex flex-wrap justify-between gap-x-3">
-                                <span className="text-muted-foreground">{bucket}</span>
+                            {totals.map((t) => (
+                              <li key={t.label} className="flex flex-wrap justify-between gap-x-3">
+                                <span className="text-muted-foreground">{t.label}</span>
                                 <span>
                                   {php(t.before)} → <span className="font-semibold text-foreground">{php(t.after)}</span>
                                   {t.after !== t.before && (
@@ -450,7 +488,7 @@ export function ConsolidateDialog({ open, onClose }: { open: boolean; onClose: (
             {review
               ? unresolved.length > 0
                 ? `Pick a version for ${unresolved.length} conflict${unresolved.length === 1 ? "" : "s"} to apply.`
-                : `${realChanges.length - rejectedChanges.size} change${realChanges.length - rejectedChanges.size === 1 ? "" : "s"} apply · ${rejectedChanges.size} kept from the master`
+                : `${applyingCount} change${applyingCount === 1 ? "" : "s"} apply · ${keptFromMaster.size} kept from the master`
               : ""}
           </p>
           <div className="flex items-center gap-2">

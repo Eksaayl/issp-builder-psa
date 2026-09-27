@@ -2,19 +2,9 @@
 
 import { AlertTriangle } from "lucide-react";
 import { conflictKey, ROW_REMOVED, type ScalarConflict } from "@/lib/scope/consolidate";
-import { rowName, type CellDiff } from "@/lib/scope/merge-review";
+import { rowCells, rowName } from "@/lib/scope/merge-review";
 import { formatValue, htmlToPlainText } from "./format";
 import { CellTable } from "./values";
-
-/** Top-level fields where a row version differs from the master's row. */
-function rowDiffCells(value: unknown, master: unknown): CellDiff[] {
-  if (typeof value !== "object" || value === null || typeof master !== "object" || master === null) return [];
-  const a = value as Record<string, unknown>;
-  const b = master as Record<string, unknown>;
-  return [...new Set([...Object.keys(b), ...Object.keys(a)])]
-    .filter((k) => JSON.stringify(a[k]) !== JSON.stringify(b[k]))
-    .map((k) => ({ path: [k], label: k, before: b[k], after: a[k] }));
-}
 
 function OptionBody({ conflict, value, isMaster }: { conflict: ScalarConflict; value: unknown; isMaster: boolean }) {
   if (conflict.rowId === undefined) {
@@ -27,7 +17,7 @@ function OptionBody({ conflict, value, isMaster }: { conflict: ScalarConflict; v
   if (isMaster || conflict.master === ROW_REMOVED) {
     return <span className="text-foreground">{rowName(value)} {isMaster ? "(as in the master)" : "(new row)"}</span>;
   }
-  const cells = rowDiffCells(value, conflict.master);
+  const cells = rowCells(conflict.master, value);
   return (
     <div className="space-y-1">
       <span className="text-foreground">{rowName(value)}</span>

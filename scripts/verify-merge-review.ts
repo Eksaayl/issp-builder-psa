@@ -75,7 +75,7 @@ function only(changes: ReviewChange[], label: string): ReviewChange {
   assert.deepEqual(byField.cioUnit.officeIds, [], "(2) an unchanged field is attributed to nobody");
 }
 
-const NONE = { rejected: new Set<string>(), resolutions: {} as Record<string, unknown> };
+const NONE = { keptFromMaster: new Set<string>(), resolutions: {} as Record<string, unknown> };
 
 // ─── (3) Keep master on a field; no decisions = today's merge ────────────────
 {
@@ -88,7 +88,7 @@ const NONE = { rejected: new Set<string>(), resolutions: {} as Record<string, un
   const review = buildMergeReview(master, [a]);
   const cio = review.changes.find((c) => c.fieldKey === "cioName")!;
 
-  const kept = applyReviewDecisions(master, [a], { ...NONE, rejected: new Set([cio.id]) });
+  const kept = applyReviewDecisions(master, [a], { ...NONE, keptFromMaster: new Set([cio.id]) });
   assert.equal(kept.doc.part1.cioName, "Atty. Old", "(3) Keep master restores the master value");
   assert.equal(kept.doc.part1.cioUnit, "ICT Division", "(3) other changes still apply");
 
@@ -119,7 +119,7 @@ const IS = ["part2/c.informationSystems"];
   const review = buildMergeReview(master, [a]);
   const rows: Record<string, ReviewChange> = Object.fromEntries(review.changes.filter((c) => c.fieldKey === "informationSystems").map((c) => [c.rowId, c]));
   assert.equal(rows.s1.kind, "replaced-row", "(4) edited row → Replaced row");
-  assert.deepEqual(rows.s1.cells!.map((x) => [x.label, x.before, x.after]), [["Name", "HRIS", "HRIS v2"], ["Url", "", "https://hris.gov.ph"]], "(4) changed cells only");
+  assert.deepEqual(rows.s1.cells!.map((x) => [x.path.join("."), x.before, x.after]), [["name", "HRIS", "HRIS v2"], ["url", "", "https://hris.gov.ph"]], "(4) changed cells only");
   assert.equal(rows.s1.decision, "keep-master", "(4) Keep master on a replaced row");
   assert.equal(rows.s1.label, "IS Inventory › HRIS v2", "(4) row label names the row");
   assert.equal(rows.s2.kind, "removed-row", "(4) deleted row → Removed row");
@@ -139,7 +139,7 @@ const IS = ["part2/c.informationSystems"];
   });
   const review = buildMergeReview(master, [a]);
   const id = (rowId: string) => review.changes.find((c) => c.rowId === rowId)!.id;
-  const out = applyReviewDecisions(master, [a], { ...NONE, rejected: new Set([id("s1"), id("s2")]) });
+  const out = applyReviewDecisions(master, [a], { ...NONE, keptFromMaster: new Set([id("s1"), id("s2")]) });
   assert.deepEqual(
     out.doc.part2.informationSystems.map((x) => `${x.id}:${x.name}`),
     ["s1:HRIS", "s2:Payroll", "s3:Records"],
@@ -156,9 +156,9 @@ const IS = ["part2/c.informationSystems"];
   const s5 = review.changes.find((c) => c.rowId === "s5")!;
   assert.equal(s5.kind, "appended", "(5) rows added by two offices → Appended");
   assert.equal(s5.decision, "skip-row", "(5) Skip row offered in a flagged section");
-  const out = applyReviewDecisions(master, [a, b], { ...NONE, rejected: new Set([s5.id]) });
+  const out = applyReviewDecisions(master, [a, b], { ...NONE, keptFromMaster: new Set([s5.id]) });
   assert.deepEqual(out.doc.part2.informationSystems.map((x) => x.id), ["s1", "s4"], "(5) the skipped row is not added");
-  assert.ok(!out.reviewFlags.includes("part2/c"), "(5) Q19: the flag drops once its cause is rejected");
+  assert.ok(!out.reviewFlags.includes("part2/c"), "(5) Q19: the flag drops once its cause is kept from the master");
 }
 
 // ─── (6) object fields: one change listing only the changed sub-items ───────
@@ -205,7 +205,7 @@ function line(id: string, item: string, qty = 1, unitCost = 1000): LineItem {
   );
   assert.deepEqual(changes[0].cells!.map((x) => [x.path[0], x.before, x.after]), [["qty", 1, 3]], "(7) only Qty changed");
 
-  const out = applyReviewDecisions(master, [a], { ...NONE, rejected: new Set([changes[1].id]) });
+  const out = applyReviewDecisions(master, [a], { ...NONE, keptFromMaster: new Set([changes[1].id]) });
   assert.deepEqual(out.doc.part4.year1.internalProjects["p1"].mooe.map((l) => l.id), ["li2", "li3"], "(7) Keep master puts a removed line item back");
 }
 
@@ -253,7 +253,7 @@ function line(id: string, item: string, qty = 1, unitCost = 1000): LineItem {
   const summaries = review.changes.filter((c) => c.kind === "office-rows-replaced");
   assert.deepEqual(summaries.map((c) => c.officeIds[0]), ["a", "b"], "(9) one 'Office rows replaced' summary per office");
 
-  const out = applyReviewDecisions(master, [a, b], { ...NONE, rejected: new Set([byRow.a2.id]) });
+  const out = applyReviewDecisions(master, [a, b], { ...NONE, keptFromMaster: new Set([byRow.a2.id]) });
   assert.deepEqual(out.doc.part1.stakeholders.map((x) => x.id).sort(), ["a1", "a2", "b1", "b2"], "(9) Keep master restores a2");
 }
 
@@ -294,7 +294,7 @@ function line(id: string, item: string, qty = 1, unitCost = 1000): LineItem {
     "(10) Annex 1: office summary + equipment rows"
   );
   assert.equal(changes[1].label, "Annex 1 › Office a › Equipment › Desktop", "(10) Annex 1 row label");
-  const out = applyReviewDecisions(master, [a], { ...NONE, rejected: new Set([changes[1].id]) });
+  const out = applyReviewDecisions(master, [a], { ...NONE, keptFromMaster: new Set([changes[1].id]) });
   const e1 = out.doc.annexedOffices![0].annex1.equipment.find((e) => e.id === "e1")!;
   assert.equal((e1 as unknown as { centralOffice: { operational: number } }).centralOffice.operational, 10, "(10) Keep master restores an Annex 1 row");
 }
@@ -403,14 +403,58 @@ function line(id: string, item: string, qty = 1, unitCost = 1000): LineItem {
   assert.equal(review.conflicts.length, 1, "(15) CIO name is a conflict");
   const unit = review.changes.find((c) => c.fieldKey === "cioUnit")!;
   const out = applyReviewDecisions(master, [a, b], {
-    rejected: new Set([unit.id]),
+    keptFromMaster: new Set([unit.id]),
     resolutions: { [conflictKey(review.conflicts[0])]: review.conflicts[0].master },
   });
   assert.equal(out.doc.part1.cioName, "Atty. Old", "(15) conflict resolved to the master value");
-  assert.equal(out.doc.part1.cioUnit, "ICT", "(15) rejected overwrite kept the master value");
+  assert.equal(out.doc.part1.cioUnit, "ICT", "(15) Keep master on an overwrite keeps the master value");
   assert.ok(out.reviewFlags.includes("part1/b"), "(15) a conflict keeps its flag");
   assert.equal(JSON.stringify(master), masterSnap, "(15) master not mutated");
   assert.equal(JSON.stringify(a.doc), aSnap, "(15) returned file not mutated");
+}
+
+// ─── (16) project files: a removal names only the office that removed it ─────
+{
+  const master = makeMaster();
+  master.part4.year1.internalProjects["p1"] = { projectTitle: "HRIS", capitalOutlay: [line("l1", "Servers")], mooe: [] };
+  master.part4.year1.internalProjects["p2"] = { projectTitle: "Payroll", capitalOutlay: [line("l2", "Laptops"), line("l3", "Printers")], mooe: [] };
+  const Y1 = ["part4/year1.year1"];
+  const a = returned(master, "a", Y1, (d) => {
+    d.editScope!.projectIds = ["p1"];
+    delete d.part4.year1.internalProjects["p2"]; // a p1 file never carries p2
+  });
+  const b = returned(master, "b", Y1, (d) => {
+    d.editScope!.projectIds = ["p2"];
+    delete d.part4.year1.internalProjects["p1"];
+    d.part4.year1.internalProjects["p2"].capitalOutlay = [line("l2", "Laptops")]; // removes l3
+  });
+  const l3 = buildMergeReview(master, [a, b]).changes.find((c) => c.rowId === "l3")!;
+  assert.equal(l3.kind, "removed-row", "(16) l3 removed");
+  assert.deepEqual(l3.officeIds, ["b"], "(16) only B removed it — A's file never held p2");
+}
+
+// ─── (17) a whole project deleted from a project file → Kept (office deleted) ─
+{
+  const kpi = (id: string) => ({ id, hierarchy: "Output" as const, targetedResult: "", indicator: `KPI ${id}`, baseline: "", year1Target: "", year2Target: "", year3Target: "", dataCollectionMethod: "", responsibleUnit: "" });
+  const master = makeMaster();
+  master.part3.performanceFramework["p2"] = { projectTitle: "Payroll", projectCategory: "internal", rows: [kpi("k1")] };
+  master.part4.year1.internalProjects["p2"] = { projectTitle: "Payroll", capitalOutlay: [line("l2", "Laptops")], mooe: [] };
+  const b = returned(master, "b", ["part3/f.performanceFramework", "part4/year1.year1"], (d) => {
+    d.editScope!.projectIds = ["p2"];
+    delete d.part3.performanceFramework["p2"];
+    delete d.part4.year1.internalProjects["p2"];
+  });
+  const review = buildMergeReview(master, [b]);
+  const kept = review.changes.filter((c) => c.kind === "kept-office-deleted");
+  assert.deepEqual(
+    kept.map((c) => [c.sectionId, c.label, c.officeIds.join()]),
+    [
+      ["part3/f", "Performance Framework › Payroll", "b"],
+      ["part4/year1", "Year 1 Budget › Payroll", "b"],
+    ],
+    "(17) the kept KPI set and the kept project budget are both reported"
+  );
+  assert.ok(review.reviewFlags.includes("part3/f") && review.reviewFlags.includes("part4/year1"), "(17) engine flags both");
 }
 
 console.log("✓ merge-review verification passed");
