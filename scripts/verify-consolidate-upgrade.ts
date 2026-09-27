@@ -131,6 +131,25 @@ async function main() {
   assert.deepEqual(sc2.programIds, [], "(c) a concern the office added gets the empty default");
 }
 
+// ─── (d) a damaged editScope is rejected, naming the file and the bad key ───
+{
+  const master = makeMaster();
+  const cases: [string, (scope: Record<string, unknown>) => void, RegExp][] = [
+    ["office.id", (sc) => { (sc.office as Record<string, unknown>).id = ""; }, /office\.id/],
+    ["editable", (sc) => { sc.editable = "part1"; }, /editable/],
+    ["projectIds", (sc) => { sc.projectIds = [1, 2]; }, /projectIds/],
+  ];
+  for (const [what, damage, pattern] of cases) {
+    const file = returnedFile(master, ["part1/b.cioName"], (raw) => damage(raw.editScope as Record<string, unknown>));
+    const r = await parseScopedIsspFile(file, master);
+    assert.equal(r.success, false, `(d) damaged ${what} is rejected`);
+    if (!r.success) {
+      assert.match(r.error, /office-a\.issp/, `(d) the error names the file (${what})`);
+      assert.match(r.error, pattern, `(d) the error names the bad key (${what})`);
+    }
+  }
+}
+
 console.log("✓ consolidate-upgrade verification passed");
 }
 

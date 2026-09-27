@@ -448,7 +448,7 @@ export interface IsspDocument {
   fileType: "issp-main";
   exportedAt: string;
   tool: "issp-platform";
-  /** Schema version for migration. 12 = current. */
+  /** Schema version for migration. Current = CURRENT_SCHEMA_VERSION (src/lib/migration-review.ts). */
   schemaVersion?: number;
   title: string;
   startYear: number;
