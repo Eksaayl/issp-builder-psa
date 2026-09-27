@@ -15,6 +15,7 @@ import { idbClear, idbLoad, idbSave } from "./idb";
 import { CURRENT_SCHEMA_VERSION, getRequiredMigrationReviewSectionIds } from "@/lib/migration-review";
 import { recordIsspUsage } from "@/lib/record-usage";
 import { applyResolutions, consolidate, type ScalarConflict } from "@/lib/scope/consolidate";
+import { backfillFromMaster } from "@/lib/scope/upgrade";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -239,18 +240,27 @@ function normalizeImportShape(raw: unknown): { success: true; doc: IsspDocument 
 }
 
 /**
- * Parse and validate a single returned scoped `.issp` file — the shared gate
- * between the consolidate dialog's pure preview and the {@link consolidateFiles}
- * store action. Rejects non-`.issp-main`, files missing `editScope` (i.e., a
- * plain master dropped into Consolidate), and the same size/image gates as
- * {@link loadFromFile}. Does NOT migrate — scoped files are v11+ by construction
- * (Phase 1+ feature); the consolidate engine reads fields by shape, not version.
+ * Parse, validate, and prepare a single returned scoped `.issp` file for
+ * merging into `master` — the shared gate between the consolidate dialog's
+ * preview and the {@link consolidateFiles} store action. Rejects
+ * non-`.issp-main`, files missing `editScope` (i.e., a plain master dropped
+ * into Consolidate), and the same size/image gates as {@link loadFromFile}.
+ *
+ * A file made with an older schema is upgraded with {@link migrateLegacyDoc}
+ * (the same path a normal load takes), then every piece of data its original
+ * schema could not hold takes the master's value (`backfillFromMaster`), so
+ * the upgrade's defaults never overwrite real master data on merge.
+ * `sourceSchemaVersion` is the file's version before the upgrade.
  *
  * Returns the file's name in the error string so a reject toast can name it.
  */
 export async function parseScopedIsspFile(
-  file: File
-): Promise<{ success: true; doc: IsspDocument } | { success: false; error: string }> {
+  file: File,
+  master: IsspDocument
+): Promise<
+  | { success: true; doc: IsspDocument; sourceSchemaVersion: number }
+  | { success: false; error: string }
+> {
   try {
     if (file.size > MAX_ISSP_FILE_SIZE_BYTES) {
       return { success: false, error: `"${file.name}" is too large to load safely.` };
@@ -269,7 +279,13 @@ export async function parseScopedIsspFile(
     }
     const imageValidation = validateEmbeddedImages(normalized.doc);
     if (!imageValidation.success) return { success: false, error: `"${file.name}": ${imageValidation.error}` };
-    return { success: true, doc: normalized.doc };
+
+    const sourceSchemaVersion = normalized.doc.schemaVersion ?? 1;
+    // The merge never reads migrationReview; drop it so the prepared file
+    // carries no review state of its own.
+    const upgraded: IsspDocument = { ...migrateLegacyDoc(normalized.doc), migrationReview: undefined };
+    const doc = backfillFromMaster(upgraded, master, sourceSchemaVersion);
+    return { success: true, doc, sourceSchemaVersion };
   } catch {
     return { success: false, error: `"${file.name}" could not be read as a valid .issp file.` };
   }
@@ -1102,7 +1118,7 @@ export function IsspStoreProvider({ children }: { children: ReactNode }) {
       const parsed: IsspDocument[] = [];
       const rejected: string[] = [];
       for (const f of files) {
-        const r = await parseScopedIsspFile(f);
+        const r = await parseScopedIsspFile(f, doc);
         if (r.success) parsed.push(r.doc);
         else rejected.push(r.error);
       }

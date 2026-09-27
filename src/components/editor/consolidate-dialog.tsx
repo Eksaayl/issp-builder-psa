@@ -33,6 +33,7 @@ import {
 } from "@/lib/sections";
 import type { IsspDocument } from "@/lib/store/types";
 import type { OfficeIdentity } from "@/lib/scope/types";
+import { CURRENT_SCHEMA_VERSION } from "@/lib/migration-review";
 import { toast } from "sonner";
 
 // ─── Section label lookup (id → label) ───────────────────────────────────────
@@ -218,6 +219,9 @@ export function ConsolidateDialog({
   const [parsing, setParsing] = useState(false);
   const [parsedDocs, setParsedDocs] = useState<IsspDocument[]>([]);
   const [rejected, setRejected] = useState<string[]>([]);
+  // File name → the schema version it was made with, for files older than the
+  // app's current schema (they were upgraded before the preview).
+  const [upgradedFrom, setUpgradedFrom] = useState<Record<string, number>>({});
   // User overrides for surfaced scalar conflicts. Defaults are memoized from
   // the preview (first office's value) and merged in below; only the user's
   // explicit picks live here, so re-renders don't clobber their choices.
@@ -252,6 +256,7 @@ export function ConsolidateDialog({
     setParsing(false);
     setParsedDocs([]);
     setRejected([]);
+    setUpgradedFrom({});
     setResolutions({});
     setApplying(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -259,23 +264,28 @@ export function ConsolidateDialog({
   }
 
   async function handleSelect(selected: FileList | null) {
-    if (!selected || selected.length === 0) return;
+    if (!doc || !selected || selected.length === 0) return;
     const next = Array.from(selected);
     setFiles(next);
     setParsing(true);
     setParsedDocs([]);
     setRejected([]);
+    setUpgradedFrom({});
     setResolutions({});
 
     const ok: IsspDocument[] = [];
     const bad: string[] = [];
+    const upgraded: Record<string, number> = {};
     for (const f of next) {
-      const r = await parseScopedIsspFile(f);
-      if (r.success) ok.push(r.doc);
-      else bad.push(r.error);
+      const r = await parseScopedIsspFile(f, doc);
+      if (r.success) {
+        ok.push(r.doc);
+        if (r.sourceSchemaVersion < CURRENT_SCHEMA_VERSION) upgraded[f.name] = r.sourceSchemaVersion;
+      } else bad.push(r.error);
     }
     setParsedDocs(ok);
     setRejected(bad);
+    setUpgradedFrom(upgraded);
     setParsing(false);
   }
 
@@ -283,6 +293,7 @@ export function ConsolidateDialog({
     setFiles([]);
     setParsedDocs([]);
     setRejected([]);
+    setUpgradedFrom({});
     setResolutions({});
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
@@ -406,6 +417,14 @@ export function ConsolidateDialog({
                 >
                   <Upload className="h-3 w-3 shrink-0" />
                   <span className="truncate max-w-[14rem]">{f.name}</span>
+                  {upgradedFrom[f.name] !== undefined && (
+                    <span
+                      className="shrink-0 text-info"
+                      title="This file was made with an older version of the tool. It was upgraded before the preview; data the older version could not hold keeps the master's value."
+                    >
+                      · upgraded from schema v{upgradedFrom[f.name]}
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>
