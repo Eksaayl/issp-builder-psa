@@ -739,6 +739,14 @@ export default function HomePageClient({ aboutHtml, privacyHtml }: { aboutHtml: 
               </p>
             </div>
 
+            {/* Fund source fix */}
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold text-foreground uppercase tracking-wide">One Row per Fund Source Again</p>
+              <p>
+                Plans started before September 17 stored &ldquo;General Appropriations Act (GAA)&rdquo;, &ldquo;Foreign-Assisted&rdquo; and &ldquo;Locally Funded&rdquo;, while newer line items used the updated wording — so the Part IV Summary and the PDF&apos;s B.2 Fund Source table could show GAA twice, and the fund-source dropdowns did not show the stored choice. Older files are now updated automatically when you open them, and B.2 always shows one row per fund source. Your totals were never affected.
+              </p>
+            </div>
+
             {/* Previously — September 15–17, 2026 entry, collapsed */}
             <details className="group rounded-lg border bg-muted/30">
               <summary className="flex cursor-pointer select-none items-center justify-between px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground list-none [&::-webkit-details-marker]:hidden">
