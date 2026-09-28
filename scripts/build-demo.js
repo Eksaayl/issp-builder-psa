@@ -857,7 +857,7 @@ const issp = {
         "year2Deliverables": "UQMP v2.0 deployed nationally; all 17 ROMS instances decommissioned; CFCP fully operational with SMS notifications; monitored agency onboarding at 60%",
         "year3Deliverables": "",
         "implementingUnit": "ICT Division",
-        "fundingSource": "General Appropriations Act (GAA)"
+        "fundingSource": "General Appropriations Act"
       },
       {
         "id": "proj-bilis",
@@ -879,7 +879,7 @@ const issp = {
         "year2Deliverables": "Network monitoring dashboard operational; 99.5% uptime SLA compliance verified; redundant connection established for Central Office",
         "year3Deliverables": "Network refresh and capacity planning assessment; options for 10 Gbps Central Office upgrade evaluated",
         "implementingUnit": "ICT Division — Infrastructure and Networks Section",
-        "fundingSource": "General Appropriations Act (GAA)"
+        "fundingSource": "General Appropriations Act"
       },
       {
         "id": "proj-handa",
@@ -903,7 +903,7 @@ const issp = {
         "year2Deliverables": "iHRPS performance review; self-service HR portal rolled out to all regional offices; payroll reconciliation with DBM fully automated",
         "year3Deliverables": "iHRPS optimization and feature enhancement; knowledge management documentation completed; succession plan for system administration formalized",
         "implementingUnit": "Human Resources Division and ICT Division",
-        "fundingSource": "General Appropriations Act (GAA)"
+        "fundingSource": "General Appropriations Act"
       }
     ],
     "crossAgencyProjects": [],
@@ -1058,7 +1058,7 @@ const issp = {
             "office": "ICT Division",
             "uacsCode": "5060405003",
             "uacsLabel": "Information and Communication Technology Equipment",
-            "fundSource": "General Appropriations Act (GAA)",
+            "fundSource": "General Appropriations Act",
             "qty": 25,
             "unitCost": 45000
           },
@@ -1068,7 +1068,7 @@ const issp = {
             "office": "ICT Division",
             "uacsCode": "5060405003",
             "uacsLabel": "Information and Communication Technology Equipment",
-            "fundSource": "General Appropriations Act (GAA)",
+            "fundSource": "General Appropriations Act",
             "qty": 1,
             "unitCost": 380000
           },
@@ -1078,7 +1078,7 @@ const issp = {
             "office": "ICT Division",
             "uacsCode": "5060405003",
             "uacsLabel": "Information and Communication Technology Equipment",
-            "fundSource": "General Appropriations Act (GAA)",
+            "fundSource": "General Appropriations Act",
             "qty": 2,
             "unitCost": 95000
           },
@@ -1088,7 +1088,7 @@ const issp = {
             "office": "ICT Division",
             "uacsCode": "5060405015",
             "uacsLabel": "ICT Software",
-            "fundSource": "General Appropriations Act (GAA)",
+            "fundSource": "General Appropriations Act",
             "qty": 1,
             "unitCost": 420000
           }
@@ -1100,7 +1100,7 @@ const issp = {
             "office": "ICT Division",
             "uacsCode": "5020503000",
             "uacsLabel": "Internet Subscription Expenses",
-            "fundSource": "General Appropriations Act (GAA)",
+            "fundSource": "General Appropriations Act",
             "qty": 12,
             "unitCost": 28000
           },
@@ -1110,7 +1110,7 @@ const issp = {
             "office": "ICT Division",
             "uacsCode": "5020301001",
             "uacsLabel": "ICT Office Supplies Expenses",
-            "fundSource": "General Appropriations Act (GAA)",
+            "fundSource": "General Appropriations Act",
             "qty": 1,
             "unitCost": 180000
           },
@@ -1120,7 +1120,7 @@ const issp = {
             "office": "ICT Division",
             "uacsCode": "5021103001",
             "uacsLabel": "ICT Consultancy Services",
-            "fundSource": "General Appropriations Act (GAA)",
+            "fundSource": "General Appropriations Act",
             "qty": 1,
             "unitCost": 850000
           }
@@ -1136,7 +1136,7 @@ const issp = {
               "office": "ICT Division",
               "uacsCode": "5060405015",
               "uacsLabel": "ICT Software",
-              "fundSource": "General Appropriations Act (GAA)",
+              "fundSource": "General Appropriations Act",
               "qty": 1,
               "unitCost": 9500000
             }
@@ -1148,7 +1148,7 @@ const issp = {
               "office": "ICT Division",
               "uacsCode": "5020503000",
               "uacsLabel": "Internet Subscription Expenses",
-              "fundSource": "General Appropriations Act (GAA)",
+              "fundSource": "General Appropriations Act",
               "qty": 12,
               "unitCost": 45000
             },
@@ -1158,7 +1158,7 @@ const issp = {
               "office": "ICT Division",
               "uacsCode": "5021103001",
               "uacsLabel": "ICT Consultancy Services",
-              "fundSource": "General Appropriations Act (GAA)",
+              "fundSource": "General Appropriations Act",
               "qty": 1,
               "unitCost": 480000
             }
@@ -1173,7 +1173,7 @@ const issp = {
               "office": "ICT Division — Infrastructure Section",
               "uacsCode": "5060405003",
               "uacsLabel": "Information and Communication Technology Equipment",
-              "fundSource": "General Appropriations Act (GAA)",
+              "fundSource": "General Appropriations Act",
               "qty": 15,
               "unitCost": 85000
             },
@@ -1183,7 +1183,7 @@ const issp = {
               "office": "ICT Division — Infrastructure Section",
               "uacsCode": "5060405003",
               "uacsLabel": "Information and Communication Technology Equipment",
-              "fundSource": "General Appropriations Act (GAA)",
+              "fundSource": "General Appropriations Act",
               "qty": 3,
               "unitCost": 120000
             }
@@ -1195,7 +1195,7 @@ const issp = {
               "office": "ICT Division",
               "uacsCode": "5020503000",
               "uacsLabel": "Internet Subscription Expenses",
-              "fundSource": "General Appropriations Act (GAA)",
+              "fundSource": "General Appropriations Act",
               "qty": 144,
               "unitCost": 18500
             },
@@ -1205,7 +1205,7 @@ const issp = {
               "office": "ICT Division",
               "uacsCode": "5020503000",
               "uacsLabel": "Internet Subscription Expenses",
-              "fundSource": "General Appropriations Act (GAA)",
+              "fundSource": "General Appropriations Act",
               "qty": 36,
               "unitCost": 12000
             }
@@ -1220,7 +1220,7 @@ const issp = {
               "office": "Human Resources Division",
               "uacsCode": "5060405015",
               "uacsLabel": "ICT Software",
-              "fundSource": "General Appropriations Act (GAA)",
+              "fundSource": "General Appropriations Act",
               "qty": 1,
               "unitCost": 1200000
             }
@@ -1232,7 +1232,7 @@ const issp = {
               "office": "Human Resources Division",
               "uacsCode": "5021103001",
               "uacsLabel": "ICT Consultancy Services",
-              "fundSource": "General Appropriations Act (GAA)",
+              "fundSource": "General Appropriations Act",
               "qty": 1,
               "unitCost": 380000
             },
@@ -1242,7 +1242,7 @@ const issp = {
               "office": "Human Resources Division",
               "uacsCode": "5020201001",
               "uacsLabel": "ICT Training Expenses",
-              "fundSource": "General Appropriations Act (GAA)",
+              "fundSource": "General Appropriations Act",
               "qty": 1,
               "unitCost": 420000
             }
@@ -1258,7 +1258,7 @@ const issp = {
             "office": "ICT Division",
             "uacsCode": "5020503000",
             "uacsLabel": "Internet Subscription Expenses",
-            "fundSource": "General Appropriations Act (GAA)",
+            "fundSource": "General Appropriations Act",
             "qty": 1,
             "unitCost": 240000
           }
@@ -1274,7 +1274,7 @@ const issp = {
             "office": "ICT Division",
             "uacsCode": "5060405003",
             "uacsLabel": "Information and Communication Technology Equipment",
-            "fundSource": "General Appropriations Act (GAA)",
+            "fundSource": "General Appropriations Act",
             "qty": 17,
             "unitCost": 52000
           },
@@ -1284,7 +1284,7 @@ const issp = {
             "office": "ICT Division",
             "uacsCode": "5060405003",
             "uacsLabel": "Information and Communication Technology Equipment",
-            "fundSource": "General Appropriations Act (GAA)",
+            "fundSource": "General Appropriations Act",
             "qty": 1,
             "unitCost": 85000
           }
@@ -1296,7 +1296,7 @@ const issp = {
             "office": "ICT Division",
             "uacsCode": "5020503000",
             "uacsLabel": "Internet Subscription Expenses",
-            "fundSource": "General Appropriations Act (GAA)",
+            "fundSource": "General Appropriations Act",
             "qty": 12,
             "unitCost": 28000
           },
@@ -1306,7 +1306,7 @@ const issp = {
             "office": "ICT Division",
             "uacsCode": "5020301001",
             "uacsLabel": "ICT Office Supplies Expenses",
-            "fundSource": "General Appropriations Act (GAA)",
+            "fundSource": "General Appropriations Act",
             "qty": 1,
             "unitCost": 150000
           }
@@ -1322,7 +1322,7 @@ const issp = {
               "office": "ICT Division",
               "uacsCode": "5060405015",
               "uacsLabel": "ICT Software",
-              "fundSource": "General Appropriations Act (GAA)",
+              "fundSource": "General Appropriations Act",
               "qty": 1,
               "unitCost": 7500000
             }
@@ -1334,7 +1334,7 @@ const issp = {
               "office": "ICT Division",
               "uacsCode": "5020503000",
               "uacsLabel": "Internet Subscription Expenses",
-              "fundSource": "General Appropriations Act (GAA)",
+              "fundSource": "General Appropriations Act",
               "qty": 12,
               "unitCost": 68000
             },
@@ -1344,7 +1344,7 @@ const issp = {
               "office": "ICT Division",
               "uacsCode": "5021103001",
               "uacsLabel": "ICT Consultancy Services",
-              "fundSource": "General Appropriations Act (GAA)",
+              "fundSource": "General Appropriations Act",
               "qty": 1,
               "unitCost": 360000
             },
@@ -1354,7 +1354,7 @@ const issp = {
               "office": "ICT Division",
               "uacsCode": "5020502001",
               "uacsLabel": "Mobile",
-              "fundSource": "General Appropriations Act (GAA)",
+              "fundSource": "General Appropriations Act",
               "qty": 1,
               "unitCost": 250000
             }
@@ -1370,7 +1370,7 @@ const issp = {
               "office": "ICT Division",
               "uacsCode": "5020503000",
               "uacsLabel": "Internet Subscription Expenses",
-              "fundSource": "General Appropriations Act (GAA)",
+              "fundSource": "General Appropriations Act",
               "qty": 144,
               "unitCost": 18500
             },
@@ -1380,7 +1380,7 @@ const issp = {
               "office": "ICT Division",
               "uacsCode": "5020503000",
               "uacsLabel": "Internet Subscription Expenses",
-              "fundSource": "General Appropriations Act (GAA)",
+              "fundSource": "General Appropriations Act",
               "qty": 36,
               "unitCost": 12000
             }
@@ -1403,7 +1403,7 @@ const issp = {
             "office": "ICT Division",
             "uacsCode": "5021103001",
             "uacsLabel": "ICT Consultancy Services",
-            "fundSource": "General Appropriations Act (GAA)",
+            "fundSource": "General Appropriations Act",
             "qty": 1,
             "unitCost": 350000
           },
@@ -1413,7 +1413,7 @@ const issp = {
               "office": "Human Resources Division",
               "uacsCode": "5021103001",
               "uacsLabel": "ICT Consultancy Services",
-              "fundSource": "General Appropriations Act (GAA)",
+              "fundSource": "General Appropriations Act",
               "qty": 1,
               "unitCost": 1200000
             },
@@ -1423,7 +1423,7 @@ const issp = {
               "office": "Human Resources Division",
               "uacsCode": "5020201001",
               "uacsLabel": "ICT Training Expenses",
-              "fundSource": "General Appropriations Act (GAA)",
+              "fundSource": "General Appropriations Act",
               "qty": 1,
               "unitCost": 180000
             }
@@ -1439,7 +1439,7 @@ const issp = {
             "office": "ICT Division",
             "uacsCode": "5060405003",
             "uacsLabel": "Information and Communication Technology Equipment",
-            "fundSource": "General Appropriations Act (GAA)",
+            "fundSource": "General Appropriations Act",
             "qty": 1,
             "unitCost": 480000
           }
@@ -1451,7 +1451,7 @@ const issp = {
             "office": "ICT Division",
             "uacsCode": "5020503000",
             "uacsLabel": "Internet Subscription Expenses",
-            "fundSource": "General Appropriations Act (GAA)",
+            "fundSource": "General Appropriations Act",
             "qty": 12,
             "unitCost": 28000
           },
@@ -1461,7 +1461,7 @@ const issp = {
             "office": "ICT Division",
             "uacsCode": "5020301001",
             "uacsLabel": "ICT Office Supplies Expenses",
-            "fundSource": "General Appropriations Act (GAA)",
+            "fundSource": "General Appropriations Act",
             "qty": 1,
             "unitCost": 150000
           }
@@ -1485,7 +1485,7 @@ const issp = {
               "office": "ICT Division",
               "uacsCode": "5020503000",
               "uacsLabel": "Internet Subscription Expenses",
-              "fundSource": "General Appropriations Act (GAA)",
+              "fundSource": "General Appropriations Act",
               "qty": 144,
               "unitCost": 18500
             },
@@ -1495,7 +1495,7 @@ const issp = {
               "office": "ICT Division",
               "uacsCode": "5020503000",
               "uacsLabel": "Internet Subscription Expenses",
-              "fundSource": "General Appropriations Act (GAA)",
+              "fundSource": "General Appropriations Act",
               "qty": 36,
               "unitCost": 12000
             }
@@ -1518,7 +1518,7 @@ const issp = {
             "office": "ICT Division",
             "uacsCode": "5021103001",
             "uacsLabel": "ICT Consultancy Services",
-            "fundSource": "General Appropriations Act (GAA)",
+            "fundSource": "General Appropriations Act",
             "qty": 1,
             "unitCost": 680000
           },
@@ -1528,7 +1528,7 @@ const issp = {
             "office": "ICT Division",
             "uacsCode": "5020502001",
             "uacsLabel": "Mobile",
-            "fundSource": "General Appropriations Act (GAA)",
+            "fundSource": "General Appropriations Act",
             "qty": 1,
             "unitCost": 480000
           },
@@ -1538,7 +1538,7 @@ const issp = {
               "office": "Human Resources Division",
               "uacsCode": "5021103001",
               "uacsLabel": "ICT Consultancy Services",
-              "fundSource": "General Appropriations Act (GAA)",
+              "fundSource": "General Appropriations Act",
               "qty": 1,
               "unitCost": 1200000
             },
@@ -1548,7 +1548,7 @@ const issp = {
               "office": "Human Resources Division",
               "uacsCode": "5020201001",
               "uacsLabel": "ICT Training Expenses",
-              "fundSource": "General Appropriations Act (GAA)",
+              "fundSource": "General Appropriations Act",
               "qty": 1,
               "unitCost": 120000
             },
@@ -1558,7 +1558,7 @@ const issp = {
               "office": "ICT Division",
               "uacsCode": "5020503000",
               "uacsLabel": "Internet Subscription Expenses",
-              "fundSource": "General Appropriations Act (GAA)",
+              "fundSource": "General Appropriations Act",
               "qty": 12,
               "unitCost": 72000
             },
@@ -1568,7 +1568,7 @@ const issp = {
               "office": "ICT Division",
               "uacsCode": "5021103001",
               "uacsLabel": "ICT Consultancy Services",
-              "fundSource": "General Appropriations Act (GAA)",
+              "fundSource": "General Appropriations Act",
               "qty": 1,
               "unitCost": 480000
             },
@@ -1578,7 +1578,7 @@ const issp = {
               "office": "ICT Division",
               "uacsCode": "5020201002",
               "uacsLabel": "Training Expenses",
-              "fundSource": "General Appropriations Act (GAA)",
+              "fundSource": "General Appropriations Act",
               "qty": 1,
               "unitCost": 85000
             }
