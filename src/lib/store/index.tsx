@@ -16,6 +16,7 @@ import { CURRENT_SCHEMA_VERSION, getRequiredMigrationReviewSectionIds } from "@/
 import { recordIsspUsage } from "@/lib/record-usage";
 import { applyReviewDecisions, type ParsedScopedFile, type ReviewDecisions } from "@/lib/scope/merge-review";
 import { backfillFromMaster } from "@/lib/scope/upgrade";
+import { canonicalFundSource } from "@/lib/fund-sources";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -442,6 +443,29 @@ function normalizeProjectType<T extends { projectType?: any; linkedSystemIds?: s
   return { ...p, projectType: t, linkedSystemIds: p.linkedSystemIds ?? [] };
 }
 
+function withCanonicalFunding<T extends { fundingSource: string }>(p: T): T {
+  const fundingSource = canonicalFundSource(p.fundingSource ?? "");
+  return fundingSource === p.fundingSource ? p : { ...p, fundingSource };
+}
+
+/** Every Part IV line item's fund source as the current dropdown value. */
+function withCanonicalFundSources(year: YearBudget): YearBudget {
+  const lines = <L extends { fundSource: string }>(ls: L[]) =>
+    ls.map((l) => {
+      const fundSource = canonicalFundSource(l.fundSource ?? "");
+      return fundSource === l.fundSource ? l : { ...l, fundSource };
+    });
+  const budgets = (rec: YearBudget["internalProjects"]) =>
+    Object.fromEntries(Object.entries(rec).map(([id, b]) => [id, { ...b, capitalOutlay: lines(b.capitalOutlay), mooe: lines(b.mooe) }]));
+  return {
+    ...year,
+    officeProductivity: { capitalOutlay: lines(year.officeProductivity.capitalOutlay), mooe: lines(year.officeProductivity.mooe) },
+    internalProjects: budgets(year.internalProjects),
+    crossAgencyProjects: budgets(year.crossAgencyProjects),
+    continuingCosts: { ...year.continuingCosts, mooe: lines(year.continuingCosts.mooe) },
+  };
+}
+
 export function migrateLegacyDoc(doc: IsspDocument): IsspDocument {
   const sourceSchemaVersion = doc.schemaVersion ?? 1;
   // v1 → v2: planStatus, submissionTarget, sectionMeta
@@ -808,8 +832,17 @@ export function migrateLegacyDoc(doc: IsspDocument): IsspDocument {
       performanceFramework: Object.fromEntries(Object.entries(base.part3.performanceFramework).map(([k, e]: [string, any]) => [k, { ...e, rows: (e.rows ?? []).map((r: any) => ({ ...r, targetedResult: r.targetedResult ?? "" })) }])),
       // Normalize projectType: freeform pre-enum values → enum; derive IS_DRIVEN from
       // existing links so the gated "Linked Proposed Systems" picker isn't hidden on old docs
-      internalProjects: base.part3.internalProjects.map(normalizeProjectType),
-      crossAgencyProjects: base.part3.crossAgencyProjects.map(normalizeProjectType),
+      // Fund sources: pre-2026-09-17 spellings ("General Appropriations Act (GAA)",
+      // "Foreign-Assisted", "Locally Funded") → the current dropdown values
+      // (see fund-sources.ts). Unknown values are kept as they are.
+      internalProjects: base.part3.internalProjects.map(normalizeProjectType).map(withCanonicalFunding),
+      crossAgencyProjects: base.part3.crossAgencyProjects.map(normalizeProjectType).map(withCanonicalFunding),
+    },
+    part4: {
+      ...base.part4,
+      year1: withCanonicalFundSources(base.part4.year1),
+      year2: withCanonicalFundSources(base.part4.year2),
+      year3: withCanonicalFundSources(base.part4.year3),
     },
   };
 

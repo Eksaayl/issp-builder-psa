@@ -1,4 +1,5 @@
 import { uuid } from "@/lib/uuid";
+import { DEFAULT_FUND_SOURCE } from "@/lib/fund-sources";
 import type { Part4Data } from "@/lib/store/types";
 import type { LineItem, YearBudget } from "./part4-year-form";
 
@@ -249,7 +250,7 @@ export function addNewRow(
   for (const year of group.activeYears) {
     const newLine: LineItem = {
       id: uuid(), item: "", office: "", uacsCode: "", uacsLabel: "",
-      fundSource: "General Appropriations Act", qty: 1, unitCost: 0,
+      fundSource: DEFAULT_FUND_SOURCE, qty: 1, unitCost: 0,
     };
     const yearBudget = next[year];
     const lines = getBucket(yearBudget, group, expenseClass);
@@ -258,7 +259,7 @@ export function addNewRow(
   }
   const row: CycleRow = {
     rowKey: `row-${YEAR_KEYS.map((y) => cells[y]?.id).find(Boolean) ?? uuid()}`, group, expenseClass,
-    item: "", office: "", uacsCode: "", uacsLabel: "", fundSource: "General Appropriations Act",
+    item: "", office: "", uacsCode: "", uacsLabel: "", fundSource: DEFAULT_FUND_SOURCE,
     cells,
   };
   return { part4: next, touchedYears: [...group.activeYears], row };

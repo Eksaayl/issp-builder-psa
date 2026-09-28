@@ -1,4 +1,5 @@
 import type { YearBudget, LineItem, ProjectBudget } from "./part4-year-form";
+import { groupByFundSource } from "@/lib/fund-sources";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -144,29 +145,18 @@ export function buildB1(
   return rows;
 }
 
-export const FUND_SOURCE_ORDER = [
-  "General Appropriations Act",
-  "Foreign-assisted projects",
-  "Locally funded",
-  "Other Income Generating Sources",
-];
-
 export function buildB2(years: [YearBudget, YearBudget, YearBudget]): SummaryRow[] {
+  // One row per fund source (old and new spellings share a row — see
+  // fund-sources.ts), in template order.
+  const perYear = years.map((y) => groupByFundSource(allLines(y), lineTotal));
   const map: Record<string, [number, number, number]> = {};
-  years.forEach((y, yi) => {
-    for (const l of allLines(y)) {
-      const fs = l.fundSource || "Unspecified";
+  perYear.forEach((sums, yi) => {
+    for (const [fs, amount] of sums) {
       if (!map[fs]) map[fs] = [0, 0, 0];
-      map[fs][yi] += lineTotal(l);
+      map[fs][yi] += amount;
     }
   });
-  const keys = Object.keys(map).sort((a, b) => {
-    const ai = FUND_SOURCE_ORDER.indexOf(a), bi = FUND_SOURCE_ORDER.indexOf(b);
-    if (ai !== -1 && bi !== -1) return ai - bi;
-    if (ai !== -1) return -1;
-    if (bi !== -1) return 1;
-    return a.localeCompare(b);
-  });
+  const keys = [...groupByFundSource(years.flatMap((y) => allLines(y)), lineTotal).keys()];
   const rows: SummaryRow[] = keys.map((fs) => ({
     label: fs, year1: map[fs][0], year2: map[fs][1], year3: map[fs][2],
     total: map[fs][0] + map[fs][1] + map[fs][2],

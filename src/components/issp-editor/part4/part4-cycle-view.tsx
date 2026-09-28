@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { FUND_SOURCE_OPTIONS } from "@/lib/fund-sources";
 import { Search, Plus, Trash2, Pencil, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,12 +39,7 @@ import {
 } from "./part4-cycle-model";
 import { LineModeToggle, usePersistedLineMode, type LineMode } from "./line-mode";
 
-const FUND_SOURCES = [
-  "General Appropriations Act",
-  "Foreign-assisted projects",
-  "Locally funded",
-  "Other Income Generating Sources",
-];
+const FUND_SOURCES = FUND_SOURCE_OPTIONS;
 const OFFICE_SUGGESTIONS = ["Central Office", "Regional Offices", "Central Office and Regional Offices"];
 const OFFICE_LIST_ID = "issp-cycle-office-suggestions";
 // Deliberately separate from the per-year pages' key: Cycle View's Table mode

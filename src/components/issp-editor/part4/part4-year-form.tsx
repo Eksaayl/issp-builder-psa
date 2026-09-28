@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { DEFAULT_FUND_SOURCE, FUND_SOURCE_OPTIONS } from "@/lib/fund-sources";
 import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,7 +72,7 @@ const BLANK_LINE = (): LineItem => ({
   office: "",
   uacsCode: "",
   uacsLabel: "",
-  fundSource: "General Appropriations Act",
+  fundSource: DEFAULT_FUND_SOURCE,
   qty: 1,
   unitCost: 0,
 });
@@ -84,12 +85,7 @@ function sumLines(lines: LineItem[]) {
   return lines.reduce((s, l) => s + totalLine(l), 0);
 }
 
-const FUND_SOURCES = [
-  "General Appropriations Act",
-  "Foreign-assisted projects",
-  "Locally funded",
-  "Other Income Generating Sources",
-];
+const FUND_SOURCES = FUND_SOURCE_OPTIONS;
 
 const OFFICE_SUGGESTIONS = [
   "Central Office",

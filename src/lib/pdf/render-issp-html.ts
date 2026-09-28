@@ -1,4 +1,5 @@
 import { STANDARD_DEFINITIONS } from "@/lib/store/defaults";
+import { fundSourceAbbr, groupByFundSource } from "@/lib/fund-sources";
 import { CYBER_GROUPS } from "@/lib/cyber-controls";
 import { isRichText, sanitizeRichText } from "@/lib/rich-text";
 import { durationCoversYear } from "@/lib/duration";
@@ -262,25 +263,8 @@ function ooLabel(agencyType: string): string {
   return "Organizational Outcomes (OO)";
 }
 
-function fundSourceAbbr(s: string): string {
-  const map: Record<string, string> = {
-    "General Appropriations Act (GAA)": "GAA",
-    "General Appropriations Act": "GAA",
-    "Foreign-assisted projects": "FAP",
-    "Foreign Assisted Projects": "FAP",
-    "Locally funded": "LF",
-    "Locally Funded": "LF",
-    "Other Income Generating Sources": "OIGS",
-  };
-  return map[s] ?? s;
-}
-
 function isFundSource(s: string, expected: "gaa" | "foreign" | "local" | "other"): boolean {
-  const normalized = s.toLowerCase().replace(/[-\s()]/g, "");
-  if (expected === "gaa") return normalized === "gaa" || normalized.includes("generalappropriationsact");
-  if (expected === "foreign") return normalized.includes("foreignassisted");
-  if (expected === "local") return normalized.includes("locallyfunded");
-  return normalized.includes("otherincomegeneratingsources");
+  return fundSourceAbbr(s) === { gaa: "GAA", foreign: "FAP", local: "LF", other: "OIGS" }[expected];
 }
 
 // Group line items by UACS code, compute subtotals
@@ -1460,13 +1444,9 @@ function renderPart4(issp: IsspData): string {
   const grandY3 = sumLines(allY3);
 
   // B.2 Fund source
-  function byFundSource(lines: LineItem[]) {
-    const m = new Map<string, number>();
-    for (const l of lines) { m.set(l.fundSource, (m.get(l.fundSource) ?? 0) + total(l)); }
-    return m;
-  }
-  const fs1 = byFundSource(allY1), fs2 = byFundSource(allY2), fs3 = byFundSource(allY3);
-  const allFundSources = Array.from(new Set([...fs1.keys(), ...fs2.keys(), ...fs3.keys()]));
+  // One row per fund source: old and new spellings share a row (fund-sources.ts).
+  const fs1 = groupByFundSource(allY1, total), fs2 = groupByFundSource(allY2, total), fs3 = groupByFundSource(allY3, total);
+  const allFundSources = [...groupByFundSource([...allY1, ...allY2, ...allY3], total).keys()];
 
   // B.3 CO vs MOOE
   function coLines(year: YearBudget): LineItem[] {
