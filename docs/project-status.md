@@ -55,7 +55,7 @@ Last full gate: 2026-09-15 (tsc + lint + verify scripts + Puppeteer/PDF smokes; 
 |---|---|---|
 | `npx tsc --noEmit` | Pass | Dev type-gate. NEVER use `npm run build` as a gate — see `docs/production-safety.md`. |
 | `npm run lint` | Pass | One standing warning: unused `sysByShort` in `references/csc-issp/build_csc_issp.mjs` (outside app code). |
-| Security gates (Trivy/Semgrep/SBOM) | Pass | Dependency CVEs cleared through `c9ce38f` (2026-08-14). NVD re-publishes transitive CVEs over time; fix via `npm override` + `--package-lock-only`, never `npm audit fix --force`. |
+| Security gates (Trivy/Semgrep/SBOM) | Pass | Dependency CVEs cleared through `c9ce38f` (2026-08-14) and `9b48d7a` (2026-09-29, fast-uri 3.1.6→3.1.7 for CVE-2026-84292/-84394). NVD re-publishes transitive CVEs over time; fix via `npm override` + `--package-lock-only`, never `npm audit fix --force`. |
 
 ## Implemented Features
 
