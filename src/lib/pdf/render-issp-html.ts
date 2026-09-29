@@ -224,6 +224,59 @@ function tocMark(id: string): string {
   return `<span class="toc-marker">@@toc:${id}@@</span>`;
 }
 
+// ─── Page-filling diagrams ────────────────────────────────────────────────────
+// Every export style: each diagram gets its own page, with its title on top.
+// "measure": the diagram renders as a 1px placeholder after an invisible
+// @@dg:img:id@@ marker; generate-pdf reads where the markers land and
+// sizes each diagram to fill the rest of its page. "fill": the diagram renders
+// at that measured box (centered, aspect kept); a missing box falls back to
+// the default markup. Both modes force the same page breaks, so the measured
+// positions hold in the final layout.
+
+export interface DiagramBox {
+  widthMm: number;
+  heightMm: number;
+}
+
+export type DiagramLayout =
+  | { mode: "measure" }
+  | { mode: "fill"; boxes: Record<string, DiagramBox> };
+
+let DIAGRAMS: DiagramLayout | null = null;
+
+// ─── Section notes (Aptos 14 style) ───────────────────────────────────────────
+// Free-text notes printed at the top of a section's body, keyed by TOC row id.
+
+let SECTION_NOTES: Partial<Record<string, string>> = {};
+
+function sectionNote(id: string): string {
+  const note = SECTION_NOTES[id];
+  return note ? `<p style="font-weight:bold;margin-bottom:2mm;">${esc(note)}</p>` : "";
+}
+
+function diagramMark(id: string): string {
+  if (DIAGRAMS?.mode !== "measure") return "";
+  return `<span class="toc-marker">@@dg:img:${id}@@</span>`;
+}
+
+/**
+ * `ownPage` starts the diagram on a new page. Pass false only when the block
+ * already opens a fresh page (III-B's section heading forces the break), so
+ * the heading is not left alone on the page before.
+ */
+function diagramBlock(id: string, title: string, src: string, alt: string, defaultHtml: string, ownPage = true): string {
+  if (!DIAGRAMS) return defaultHtml;
+  const box = DIAGRAMS.mode === "fill" ? DIAGRAMS.boxes[id] : undefined;
+  if (DIAGRAMS.mode === "fill" && !box) return defaultHtml;
+  const img = box
+    ? `<img src="${esc(src)}" style="display:block;margin:0 auto;width:${box.widthMm.toFixed(2)}mm;height:${box.heightMm.toFixed(2)}mm;" alt="${esc(alt)}" />`
+    : `<img src="${esc(src)}" data-dg="${esc(id)}" style="display:block;width:1px;height:1px;" alt="" />`;
+  return `<div class="avoid-break" style="padding-top:3mm;${ownPage ? "page-break-before:always;" : ""}">
+    <p style="font-weight:bold;margin-bottom:2mm;text-align:center;">${esc(title)}</p>
+    ${diagramMark(id)}${img}
+  </div><div style="break-after:page;"></div>`;
+}
+
 function php(n: number): string {
   return new Intl.NumberFormat("en-PH", {
     style: "currency", currency: "PHP", minimumFractionDigits: 2,
@@ -679,7 +732,7 @@ function renderPart1(issp: IsspData): string {
     </ul></div>
 
     <div class="subsection-heading">${tocMark("part1-b2")}B.2. Human Capital</div>
-    <div class="subsection-block"><table>
+    <div class="subsection-block">${sectionNote("part1-b2")}<table>
       <thead>
         <tr>
           <th rowspan="2" style="width:30%">Employment Status</th>
@@ -1051,14 +1104,19 @@ function renderPart2(issp: IsspData): string {
 
     <div class="section-heading">${tocMark("part2-b")}B. Existing Network Infrastructure</div>
     <div class="subsection-heading">${tocMark("part2-b1")}B1. LAN/WAN Set-Up Including Connectivity Type and Bandwidth</div>
-    <div class="subsection-block">${diagrams.length === 0
+    <div class="subsection-block">${DIAGRAMS && p.networkDescription ? `<p>${nl2br(p.networkDescription)}</p>` : ""}${diagrams.length === 0
       ? `<p style="font-style:italic;">No network diagrams uploaded.</p>`
-      : diagrams.map((d, i) => `<div class="avoid-break" style="margin-bottom:5mm;">
-          <p style="font-weight:bold;margin-bottom:2mm;">${esc(d.title || `Network Diagram ${i + 1}`)}</p>
-          <img src="${esc(d.path.startsWith("data:image/") ? d.path : baseUrl + d.path)}" style="max-width:100%;max-height:120mm;object-fit:contain;display:block;" alt="${esc(d.title || `Diagram ${i + 1}`)}" />
-        </div>`).join("")
+      : diagrams.map((d, i) => {
+          const src = d.path.startsWith("data:image/") ? d.path : baseUrl + d.path;
+          const title = d.title || `Network Diagram ${i + 1}`;
+          const alt = d.title || `Diagram ${i + 1}`;
+          return diagramBlock(`net-${i}`, title, src, alt, `<div class="avoid-break" style="margin-bottom:5mm;">
+          <p style="font-weight:bold;margin-bottom:2mm;">${esc(title)}</p>
+          <img src="${esc(src)}" style="max-width:100%;max-height:120mm;object-fit:contain;display:block;" alt="${esc(alt)}" />
+        </div>`);
+        }).join("")
     }
-    ${p.networkDescription ? `<p style="margin-top:3mm;">${nl2br(p.networkDescription)}</p>` : ""}</div>
+    ${!DIAGRAMS && p.networkDescription ? `<p style="margin-top:3mm;">${nl2br(p.networkDescription)}</p>` : ""}</div>
 
     <div class="subsection-heading" style="margin-top:6mm;">${tocMark("part2-b2")}B2. Cybersecurity Control Checklist</div>
     <div class="subsection-block">${renderCyberTable(p.cybersecurityControls)}</div>
@@ -1161,10 +1219,10 @@ function renderPart3(issp: IsspData): string {
       : `<p style="font-style:italic;">No proposed network description specified.</p>`
     }
     ${p.proposedNetworkDataUrl
-      ? `<div class="avoid-break" style="margin-top:5mm;">
+      ? diagramBlock("proposed-net", "Proposed Network Diagram", p.proposedNetworkDataUrl, "Proposed Network Diagram", `<div class="avoid-break" style="margin-top:5mm;">
           <p style="font-weight:bold;margin-bottom:2mm;">Proposed Network Diagram</p>
           <img src="${esc(p.proposedNetworkDataUrl)}" style="max-width:100%;max-height:120mm;object-fit:contain;display:block;" alt="Proposed Network Diagram" />
-        </div>`
+        </div>`)
       : ""
     }</div>
 
@@ -1174,10 +1232,10 @@ function renderPart3(issp: IsspData): string {
     <div class="section-heading page-break">${tocMark("part3-b")}B. Enterprise Architecture</div>
     ${pageHeader(issp)}
     ${p.enterpriseArchDataUrl
-      ? `<div class="avoid-break">
+      ? diagramBlock("ea", "Enterprise Architecture Diagram", p.enterpriseArchDataUrl, "Enterprise Architecture Diagram", `<div class="avoid-break">
           <p style="font-weight:bold;margin-bottom:2mm;">Enterprise Architecture Diagram</p>
           <img src="${esc(p.enterpriseArchDataUrl)}" style="max-width:100%;max-height:145mm;object-fit:contain;display:block;" alt="Enterprise Architecture Diagram" />
-        </div>`
+        </div>`, false)
       : `<p style="font-style:italic;">Enterprise architecture diagram to be attached.</p>`
     }
 
@@ -1640,6 +1698,10 @@ export interface RenderOptions {
   tocPages?: Record<string, number> | null;
   /** Emit invisible @@toc:id@@ markers for the pass-1 page scan. */
   withTocMarkers?: boolean;
+  /** Page-filling diagram layout (Aptos 14 style). Absent = default diagram markup. */
+  diagrams?: DiagramLayout | null;
+  /** Notes printed above a section's body, keyed by TOC row id (Aptos 14 style). */
+  sectionNotes?: Partial<Record<string, string>>;
 }
 
 function htmlShell(title: string, body: string): string {
@@ -1681,6 +1743,8 @@ export function renderFrontMatterHtml(
  */
 export function renderContentHtml(issp: IsspData, opts: RenderOptions = {}): string {
   MARKERS_ENABLED = opts.withTocMarkers ?? false;
+  DIAGRAMS = opts.diagrams ?? null;
+  SECTION_NOTES = opts.sectionNotes ?? {};
   const body = [
     renderPart1(issp),
     renderPart2(issp),
@@ -1688,6 +1752,8 @@ export function renderContentHtml(issp: IsspData, opts: RenderOptions = {}): str
     renderPart4(issp),
   ].join("\n");
   MARKERS_ENABLED = false;
+  DIAGRAMS = null;
+  SECTION_NOTES = {};
   return htmlShell(issp.title, body);
 }
 

@@ -1,5 +1,6 @@
 import { getTocEntries, renderContentHtml, renderFrontMatterHtml, renderAnnex1Html, type IsspData } from "@/lib/pdf/render-issp-html";
 import { generatePdf } from "@/lib/pdf/generate-pdf";
+import { isPdfStyle } from "@/lib/pdf-style";
 import { computeProjectCosts } from "@/components/issp-editor/part4/part4-aggregations";
 import {
   CLASSIFICATION_LABELS,
@@ -340,6 +341,11 @@ export async function POST(req: Request) {
   }
 
   const issp = toRenderData(doc);
+  // Hidden per-browser style switch (see lib/pdf-style.ts); unknown values → default
+  const styleParam = new URL(req.url).searchParams.get("style");
+  const style = isPdfStyle(styleParam) ? styleParam : "default";
+  // Carlos's working notes, printed only in the Aptos 14 style
+  const sectionNotes = style === "aptos14" ? { "part1-b2": "NOTE: Awaiting data from OHRMD" } : undefined;
   const safeAcronym = (doc.agency.acronym ?? "AGENCY").replace(/[^\w\-]/g, "_");
   const filename = `${safeAcronym}-ISSP-${doc.startYear}-${doc.endYear}.pdf`;
 
@@ -355,8 +361,11 @@ export async function POST(req: Request) {
       try {
         const pdf = await generatePdf(
           {
-            contentHtml: renderContentHtml(issp, { withTocMarkers: true }),
-            finalizeContentHtml: () => renderContentHtml(issp),
+            contentHtml: (diagrams) => renderContentHtml(issp, { withTocMarkers: true, diagrams, sectionNotes }),
+            finalizeContentHtml: (_tocPages, diagrams) => renderContentHtml(issp, { diagrams, sectionNotes }),
+            // Page-filling diagrams run for EVERY style: a measure pass sizes
+            // each diagram to the rest of its own page (see render-issp-html).
+            measureDiagramsHtml: renderContentHtml(issp, { diagrams: { mode: "measure" }, sectionNotes }),
             frontHtml: (tocPages, withDefinitionMarker) => renderFrontMatterHtml(issp, tocPages, withDefinitionMarker),
             annex1Html: renderAnnex1Html(doc.title, doc.annexedOffices ?? []),
             tocEntries: getTocEntries(issp),
@@ -368,7 +377,8 @@ export async function POST(req: Request) {
             startYear: doc.startYear,
             endYear: doc.endYear,
           },
-          ({ stage, pct }) => send("progress", { stage, pct })
+          ({ stage, pct }) => send("progress", { stage, pct }),
+          style
         );
         send("done", { filename, pdf: pdf.toString("base64") });
       } catch (err) {
