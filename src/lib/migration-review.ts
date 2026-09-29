@@ -42,7 +42,7 @@ export const MIGRATION_REVIEW_SECTIONS = [
     id: "part4/categories",
     shortLabel: "IV",
     label: "Part IV · Expense Categories",
-    href: "/editor/part4",
+    href: "/editor/part4/cycle",
     reason: "UACS codes were replaced by the 30 official DICT expense categories. Items whose old code had no matching category are highlighted in Part IV — open each one and pick its category.",
   },
 ] as const;

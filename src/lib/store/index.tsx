@@ -924,11 +924,14 @@ export function migrateLegacyDoc(doc: IsspDocument): IsspDocument {
 
 /**
  * Strips implementation timestamps from the doc before comparing.
- * Keeps affirmative userMarkedDone state but drops lastEditedAt / updatedAt / exportedAt
- * and default-false metadata entries created by transient edits.
+ * Keeps affirmative userMarkedDone state but drops lastEditedAt / updatedAt /
+ * exportedAt and default-false metadata entries created by transient edits.
+ * migrationReview is stripped too: acknowledging a migration notice or
+ * clearing a review flag is bookkeeping, not file content — it must not mark
+ * the doc "unsaved to file" (which arms the browser's leave-site warning).
  */
 function docContentHash(doc: IsspDocument): string {
-  const { sectionMeta } = doc;
+  const { sectionMeta, migrationReview: _mr, ...rest } = doc;
   const metaStripped = sectionMeta
     ? Object.fromEntries(
         Object.entries(sectionMeta)
@@ -936,7 +939,7 @@ function docContentHash(doc: IsspDocument): string {
           .map(([k, v]) => [k, { userMarkedDone: v.userMarkedDone }])
       )
     : {};
-  return JSON.stringify({ ...doc, updatedAt: undefined, exportedAt: undefined, sectionMeta: metaStripped });
+  return JSON.stringify({ ...rest, updatedAt: undefined, exportedAt: undefined, sectionMeta: metaStripped });
 }
 
 // ─── Context ──────────────────────────────────────────────────────────────────
