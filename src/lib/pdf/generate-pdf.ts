@@ -8,7 +8,8 @@ import {
   PDFString,
   type PDFRef,
 } from "pdf-lib";
-import type { TocEntry } from "./render-issp-html";
+import type { DiagramBox, DiagramLayout, TocEntry } from "./render-issp-html";
+import type { PdfStyle } from "@/lib/pdf-style";
 
 export interface PdfHeaderOptions {
   agencyAcronym: string;
@@ -24,10 +25,17 @@ export interface IsspPdfParts {
    * header and "Page N" footer; numbering starts at 1 on Part I, per the
    * DICT template. When `finalizeContentHtml` is set, this build should
    * carry the invisible @@toc:id@@ markers for the pass-1 page scan.
+   * `diagrams` is the measured page-filling layout, or null when
+   * `measureDiagramsHtml` is not set.
    */
-  contentHtml: string;
+  contentHtml: (diagrams: DiagramLayout | null) => string;
   /** Re-render of the content without markers, given the scanned TOC pages. */
-  finalizeContentHtml?: (tocPages: Record<string, number>) => string;
+  finalizeContentHtml?: (tocPages: Record<string, number>, diagrams: DiagramLayout | null) => string;
+  /**
+   * Optional content build in diagram "measure" mode. When set, it is printed
+   * first and each diagram is sized to fill the rest of its page.
+   */
+  measureDiagramsHtml?: string;
   /**
    * Cover + TOC + definition of terms, given the scanned TOC pages.
    * Printed without header or footer.
@@ -63,6 +71,87 @@ async function scanTocMarkers(pdfBytes: Uint8Array): Promise<Record<string, numb
     await loadingTask.destroy();
   }
   return pages;
+}
+
+// ─── Page geometry & page-filling diagrams ────────────────────────────────────
+
+const MM_PER_PT = 25.4 / 72;
+const PAGE_MARGIN_MM = 25.4;
+// A4 landscape content area inside the 25.4 mm margins
+const CONTENT_WIDTH_MM = 297 - 2 * PAGE_MARGIN_MM;
+const CONTENT_HEIGHT_MM = 210 - 2 * PAGE_MARGIN_MM;
+/** Keep clear of the bottom margin so rounding never pushes a diagram onto the next page. */
+const DIAGRAM_SAFETY_MM = 4;
+
+const DIAGRAM_MARKER_RE = /@@dg:img:([a-z0-9-]+)@@/gi;
+
+/** Baseline height (pt from page bottom) of each @@dg:img:id@@ marker. */
+async function scanDiagramMarkers(pdfBytes: Uint8Array): Promise<Record<string, number>> {
+  const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const loadingTask = getDocument({ data: pdfBytes });
+  const marks: Record<string, number> = {};
+  try {
+    const doc = await loadingTask.promise;
+    for (let i = 1; i <= doc.numPages; i++) {
+      const page = await doc.getPage(i);
+      const content = await page.getTextContent();
+      for (const item of content.items) {
+        if (!("str" in item)) continue;
+        for (const match of item.str.matchAll(DIAGRAM_MARKER_RE)) {
+          const id = match[1].toLowerCase();
+          if (!(id in marks)) marks[id] = item.transform[5] as number;
+        }
+      }
+    }
+  } finally {
+    await loadingTask.destroy();
+  }
+  return marks;
+}
+
+/** Largest aspect-kept box for each measured diagram in the space left on its page. */
+function computeDiagramBoxes(
+  marks: Record<string, number>,
+  natural: Record<string, [number, number]>
+): Record<string, DiagramBox> {
+  const boxes: Record<string, DiagramBox> = {};
+  for (const [id, imgY] of Object.entries(marks)) {
+    const size = natural[id];
+    if (!size || size[0] <= 0 || size[1] <= 0) continue;
+    const ratio = size[1] / size[0]; // height per width
+    const availHeight = Math.min(CONTENT_HEIGHT_MM, imgY * MM_PER_PT - PAGE_MARGIN_MM) - DIAGRAM_SAFETY_MM;
+    let widthMm = CONTENT_WIDTH_MM;
+    let heightMm = widthMm * ratio;
+    if (heightMm > availHeight) {
+      heightMm = availHeight;
+      widthMm = heightMm / ratio;
+    }
+    boxes[id] = { widthMm, heightMm };
+  }
+  return boxes;
+}
+
+// ─── Style overrides ──────────────────────────────────────────────────────────
+
+const APTOS_FONT_STACK = "Aptos, Calibri, Arial, sans-serif";
+
+/**
+ * Aptos 14: every element in Aptos at 14 pt (TOC/diagram markers keep their
+ * 2px size). The cover is a fixed one-page box with overflow hidden, which
+ * would clip 14 pt text — let it grow instead, with tighter leading and
+ * signature spacing so it still fits one page.
+ */
+const APTOS14_CSS = `
+  *:not(.toc-marker) { font-family: ${APTOS_FONT_STACK} !important; font-size: 14pt !important; }
+  .cover { height: auto !important; min-height: 159mm; overflow: visible !important; line-height: 1.15; }
+  .cover-scope { line-height: 1.15 !important; }
+  .cover-sigs + .cover-sigs { margin-top: 4mm !important; }
+  .cover-sig-block > div:nth-child(2) { margin-top: 8mm !important; }
+`;
+
+function applyStyle(html: string, style: PdfStyle): string {
+  if (style !== "aptos14") return html;
+  return html.replace("</head>", `<style>${APTOS14_CSS}</style>\n</head>`);
 }
 
 const TOC_LINK_PREFIX = "https://issp.local/toc/";
@@ -193,7 +282,8 @@ export async function generatePdf(
   header: PdfHeaderOptions,
   /** Optional live-progress callback. Fired at the START of each pipeline
    *  stage with a human label and a cumulative 0–100 percentage. */
-  onProgress?: (info: { stage: string; pct: number }) => void
+  onProgress?: (info: { stage: string; pct: number }) => void,
+  style: PdfStyle = "default"
 ): Promise<Buffer> {
   const browser = await puppeteer.launch({
     headless: true,
@@ -210,13 +300,14 @@ export async function generatePdf(
   // bold acronym on the left when no logo is set.
   const logoBlock = header.logoSrc?.startsWith("data:image/")
     ? `<img src="${esc(header.logoSrc)}" style="height:34px;width:auto;object-fit:contain;" />`
-    : `<span style="font-size:10pt;font-weight:bold;">${esc(header.agencyAcronym)}</span>`;
+    : `<span style="font-size:${style === "aptos14" ? "14pt" : "10pt"};font-weight:bold;">${esc(header.agencyAcronym)}</span>`;
+  const templateFont = style === "aptos14" ? APTOS_FONT_STACK : "P052,'Palatino Linotype','Book Antiqua',Georgia,serif";
 
   const headerTemplate = `
     <div style="
       width:100%;
       height:58px;
-      font-family:P052,'Palatino Linotype','Book Antiqua',Georgia,serif;
+      font-family:${templateFont};
       padding:0 25.4mm;
       position:relative;
       display:flex;
@@ -225,14 +316,14 @@ export async function generatePdf(
       box-sizing:border-box;
     ">
       <div style="position:absolute;left:25.4mm;top:50%;transform:translateY(-50%);display:flex;align-items:center;">${logoBlock}</div>
-      <span style="font-size:10.5pt;font-weight:bold;letter-spacing:0.02em;">INFORMATION SYSTEMS STRATEGIC PLAN ${header.startYear} - ${header.endYear}</span>
+      <span style="font-size:${style === "aptos14" ? "14pt" : "10.5pt"};font-weight:bold;letter-spacing:0.02em;">INFORMATION SYSTEMS STRATEGIC PLAN ${header.startYear} - ${header.endYear}</span>
     </div>`;
 
   const footerTemplate = `
     <div style="
       width:100%;
-      font-family:P052,'Palatino Linotype','Book Antiqua',Georgia,serif;
-      font-size:8pt;
+      font-family:${templateFont};
+      font-size:${style === "aptos14" ? "14pt" : "8pt"};
       font-style:italic;
       padding:0 25.4mm;
       text-align:right;
@@ -285,19 +376,36 @@ export async function generatePdf(
     // page number, since content numbering restarts at Part I.
     onProgress?.({ stage: "Rendering content…", pct: 8 });
     let tocPages: Record<string, number> = {};
-    let contentHtml = parts.contentHtml;
+    let diagrams: DiagramLayout | null = null;
+    if (parts.measureDiagramsHtml) {
+      // Pass 0: print with diagram placeholders, then size each diagram to the
+      // space left on its page (see render-issp-html diagramBlock).
+      await page.setContent(applyStyle(parts.measureDiagramsHtml, style), { waitUntil: "load", timeout: 30000 });
+      await waitForImages();
+      const natural = await page.evaluate(() =>
+        Object.fromEntries(
+          [...document.querySelectorAll<HTMLImageElement>("img[data-dg]")].map((img) => [
+            img.dataset.dg as string,
+            [img.naturalWidth, img.naturalHeight] as [number, number],
+          ])
+        )
+      );
+      const measureBytes = await page.pdf({ ...pdfOptions, displayHeaderFooter: false });
+      diagrams = { mode: "fill", boxes: computeDiagramBoxes(await scanDiagramMarkers(measureBytes), natural) };
+    }
+    let contentHtml = parts.contentHtml(diagrams);
     if (parts.finalizeContentHtml) {
-      await page.setContent(contentHtml, { waitUntil: "load", timeout: 30000 });
+      await page.setContent(applyStyle(contentHtml, style), { waitUntil: "load", timeout: 30000 });
       await waitForImages();
       const passOneBytes = await page.pdf({ ...pdfOptions, displayHeaderFooter: false });
       onProgress?.({ stage: "Scanning page numbers…", pct: 30 });
       tocPages = await scanTocMarkers(passOneBytes);
-      contentHtml = parts.finalizeContentHtml(tocPages);
+      contentHtml = parts.finalizeContentHtml(tocPages, diagrams);
     }
 
     // Content (Parts I–IV) with the agency header and "Page N" footer.
     onProgress?.({ stage: "Finalizing content…", pct: 42 });
-    await page.setContent(contentHtml, { waitUntil: "load", timeout: 30000 });
+    await page.setContent(applyStyle(contentHtml, style), { waitUntil: "load", timeout: 30000 });
     await waitForImages();
     const contentPdfBytes = await page.pdf({
       ...pdfOptions,
@@ -308,13 +416,13 @@ export async function generatePdf(
 
     // Front matter (cover, TOC, definitions) — no header, no footer.
     onProgress?.({ stage: "Building front matter…", pct: 64 });
-    await page.setContent(parts.frontHtml(tocPages, true), { waitUntil: "load", timeout: 30000 });
+    await page.setContent(applyStyle(parts.frontHtml(tocPages, true), style), { waitUntil: "load", timeout: 30000 });
     await waitForImages();
     const markedFrontPdfBytes = await page.pdf({ ...pdfOptions, displayHeaderFooter: false });
     const frontMarkerPages = await scanTocMarkers(markedFrontPdfBytes);
     let frontPdfBytes = markedFrontPdfBytes;
     if (frontMarkerPages.defs) {
-      await page.setContent(parts.frontHtml(tocPages, false), { waitUntil: "load", timeout: 30000 });
+      await page.setContent(applyStyle(parts.frontHtml(tocPages, false), style), { waitUntil: "load", timeout: 30000 });
       await waitForImages();
       frontPdfBytes = await page.pdf({ ...pdfOptions, displayHeaderFooter: false });
     }
@@ -323,7 +431,7 @@ export async function generatePdf(
     let annex1PdfBytes: Uint8Array | null = null;
     if (parts.annex1Html) {
       onProgress?.({ stage: "Adding Annex 1…", pct: 80 });
-      await page.setContent(parts.annex1Html, { waitUntil: "load", timeout: 30000 });
+      await page.setContent(applyStyle(parts.annex1Html, style), { waitUntil: "load", timeout: 30000 });
       await waitForImages();
       annex1PdfBytes = await page.pdf({
         ...pdfOptions,

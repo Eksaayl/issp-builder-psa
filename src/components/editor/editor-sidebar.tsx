@@ -53,6 +53,7 @@ import { StatusDot } from "@/components/ui/status-dot";
 import { IsspPropertiesDialog } from "./issp-properties-dialog";
 import { DistributeDialog } from "./distribute-dialog";
 import { ConsolidateDialog } from "./consolidate-dialog";
+import { syncPdfStyleFromUrl } from "@/lib/pdf-style";
 import { THEME_MIGRATED_KEY, THEMES, isThemeId, useTheme, type ThemeId } from "@/lib/theme";
 import { toast } from "sonner";
 
@@ -330,6 +331,8 @@ export function EditorSidebar({
   const [distributeOpen, setDistributeOpen] = useState(false);
   const [consolidateOpen, setConsolidateOpen] = useState(false);
   const [exportState, setExportState] = useState<ExportState>({ status: "idle" });
+  // Hidden per-browser PDF style (?pdfstyle=aptos14 / ?pdfstyle=default)
+  const [pdfStyle] = useState(syncPdfStyleFromUrl);
   const [clearStep, setClearStep] = useState<"idle" | "step1" | "step2">("idle");
   const [showChanges, setShowChanges] = useState(false);
   const [themeNudgeDismissed, setThemeNudgeDismissed] = useState(() =>
@@ -474,7 +477,8 @@ export function EditorSidebar({
     setExportState({ status: "exporting", stage: "Starting…", pct: 0 });
     try {
       const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
-      const res = await fetch(`${base}/api/export`, {
+      const styleQuery = pdfStyle === "default" ? "" : `?style=${pdfStyle}`;
+      const res = await fetch(`${base}/api/export${styleQuery}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(doc),
@@ -857,6 +861,7 @@ export function EditorSidebar({
                 >
                   <FileOutput className="h-3 w-3" />
                   PDF
+                  {pdfStyle === "aptos14" && <span className="text-[9px] text-muted-foreground" title="PDF style: Aptos 14 pt">A14</span>}
                 </Button>
               )}
               <DropdownMenu modal={false}>
@@ -1229,6 +1234,7 @@ export function EditorSidebar({
                   >
                     <FileOutput className="h-3.5 w-3.5" />
                     Export PDF
+                    {pdfStyle === "aptos14" && <span className="text-[10px] text-muted-foreground" title="PDF style: Aptos 14 pt">A14</span>}
                   </Button>
                 </div>
               )}
