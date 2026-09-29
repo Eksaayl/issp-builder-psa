@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import { applyReviewDecisions, buildMergeReview, findBrokenLinks, type ParsedScopedFile, type ReviewChange } from "../src/lib/scope/merge-review";
 import { applyResolutions, consolidate, conflictKey } from "../src/lib/scope/consolidate";
 import { createEmptyDocument } from "../src/lib/store/defaults";
+import { CURRENT_SCHEMA_VERSION } from "../src/lib/migration-review";
 import type { Annex1FilePayload, IctProject, InformationSystem, IsspDocument, LineItem } from "../src/lib/store/types";
 
 function makeMaster(): IsspDocument {
@@ -31,7 +32,7 @@ function returned(master: IsspDocument, officeId: string, editable: string[], ed
     generatedAt: "2026-09-27T00:00:00.000Z",
   };
   edit(d);
-  return { doc: d, sourceSchemaVersion: 13 };
+  return { doc: d, sourceSchemaVersion: CURRENT_SCHEMA_VERSION };
 }
 
 function only(changes: ReviewChange[], label: string): ReviewChange {
@@ -180,7 +181,7 @@ const IS = ["part2/c.informationSystems"];
 }
 
 function line(id: string, item: string, qty = 1, unitCost = 1000): LineItem {
-  return { id, item, office: "", uacsCode: "", uacsLabel: "", fundSource: "General Appropriations Act", qty, unitCost };
+  return { id, item, office: "", categoryId: "", fundSource: "General Appropriations Act", qty, unitCost };
 }
 
 // ─── (7) Part IV: one row per line item, per bucket and project ─────────────

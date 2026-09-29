@@ -28,7 +28,7 @@ function kpiRow(id: string): KpiRow {
     year1Target: "", year2Target: "", year3Target: "", dataCollectionMethod: "", responsibleUnit: "IMD" };
 }
 function line(id: string, item: string): LineItem {
-  return { id, item, office: "IMD", uacsCode: "", uacsLabel: "",
+  return { id, item, office: "IMD", categoryId: "",
     fundSource: "General Appropriations Act (GAA)", qty: 1, unitCost: 1000 };
 }
 

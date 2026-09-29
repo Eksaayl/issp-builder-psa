@@ -363,8 +363,8 @@ export interface LineItem {
   id: string;
   item: string;
   office: string;
-  uacsCode: string;
-  uacsLabel: string;
+  /** One of the 30 DICT handout expense categories (src/lib/expense-categories.ts); "" = unset. */
+  categoryId: string;
   fundSource: string;
   qty: number;
   unitCost: number;

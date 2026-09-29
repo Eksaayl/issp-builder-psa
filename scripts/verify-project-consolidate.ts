@@ -206,7 +206,7 @@ function yearBudget(internals: Record<string, ProjectBudget>) {
     p2: { projectTitle: "Two", capitalOutlay: [], mooe: [] },
   });
   master.part4.year1.officeProductivity.mooe = [
-    { id: "op1", item: "Connectivity", office: "", uacsCode: "", uacsLabel: "",
+    { id: "op1", item: "Connectivity", office: "", categoryId: "",
       fundSource: "General Appropriations Act (GAA)", qty: 1, unitCost: 100 },
   ];
   const f = scoped("a", ["part4/year1"], ["p1"], (d) => {
@@ -214,7 +214,7 @@ function yearBudget(internals: Record<string, ProjectBudget>) {
       p1: { projectTitle: "One (revised)", capitalOutlay: [], mooe: [] },
     });
     d.part4.year1.officeProductivity.mooe = [
-      { id: "op1", item: "Connectivity (revised)", office: "", uacsCode: "", uacsLabel: "",
+      { id: "op1", item: "Connectivity (revised)", office: "", categoryId: "",
         fundSource: "General Appropriations Act (GAA)", qty: 2, unitCost: 100 },
     ];
   });
@@ -240,14 +240,14 @@ function yearBudget(internals: Record<string, ProjectBudget>) {
   const a = scoped("a", ["part4/year1"], ["p1"], (d) => {
     d.part4.year1 = yearBudget({ p1: { projectTitle: "One (by A)", capitalOutlay: [], mooe: [] } });
     d.part4.year1.officeProductivity.mooe = [
-      { id: "x", item: "From A", office: "", uacsCode: "", uacsLabel: "",
+      { id: "x", item: "From A", office: "", categoryId: "",
         fundSource: "General Appropriations Act (GAA)", qty: 1, unitCost: 1 },
     ];
   });
   const b = scoped("b", ["part4/year1"], ["p2"], (d) => {
     d.part4.year1 = yearBudget({ p2: { projectTitle: "Two", capitalOutlay: [], mooe: [] } });
     d.part4.year1.officeProductivity.mooe = [
-      { id: "x", item: "From B", office: "", uacsCode: "", uacsLabel: "",
+      { id: "x", item: "From B", office: "", categoryId: "",
         fundSource: "General Appropriations Act (GAA)", qty: 1, unitCost: 1 },
     ];
   });
@@ -263,7 +263,7 @@ function yearBudget(internals: Record<string, ProjectBudget>) {
   const bUn = scoped("b", ["part4/year1"], undefined, (d) => {
     d.part4.year1 = yearBudget({ p2: { projectTitle: "Two (by B)", capitalOutlay: [], mooe: [] } });
     d.part4.year1.officeProductivity.mooe = [
-      { id: "x", item: "From B (unfiltered)", office: "", uacsCode: "", uacsLabel: "",
+      { id: "x", item: "From B (unfiltered)", office: "", categoryId: "",
         fundSource: "General Appropriations Act (GAA)", qty: 1, unitCost: 1 },
     ];
   });
@@ -325,20 +325,20 @@ function yearBudget(internals: Record<string, ProjectBudget>) {
     p2: { projectTitle: "Two", capitalOutlay: [], mooe: [] },
   });
   master.part4.year1.continuingCosts.mooe = [
-    { id: "m", item: "Master licenses", office: "", uacsCode: "", uacsLabel: "",
+    { id: "m", item: "Master licenses", office: "", categoryId: "",
       fundSource: "General Appropriations Act (GAA)", qty: 1, unitCost: 1 },
   ];
   const a = scoped("a", ["part4/year1"], ["p1"], (d) => {
     d.part4.year1 = yearBudget({ p1: { projectTitle: "One", capitalOutlay: [], mooe: [] } });
     d.part4.year1.continuingCosts.mooe = [
-      { id: "x", item: "From A", office: "", uacsCode: "", uacsLabel: "",
+      { id: "x", item: "From A", office: "", categoryId: "",
         fundSource: "General Appropriations Act (GAA)", qty: 1, unitCost: 1 },
     ];
   });
   const b = scoped("b", ["part4/year1"], ["p2"], (d) => {
     d.part4.year1 = yearBudget({ p2: { projectTitle: "Two", capitalOutlay: [], mooe: [] } });
     d.part4.year1.continuingCosts.mooe = [
-      { id: "x", item: "From B", office: "", uacsCode: "", uacsLabel: "",
+      { id: "x", item: "From B", office: "", categoryId: "",
         fundSource: "General Appropriations Act (GAA)", qty: 1, unitCost: 1 },
     ];
   });

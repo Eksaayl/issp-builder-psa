@@ -1,5 +1,6 @@
 import { STANDARD_DEFINITIONS } from "@/lib/store/defaults";
 import { fundSourceAbbr, groupByFundSource } from "@/lib/fund-sources";
+import { categoryName, categoryOrder } from "@/lib/expense-categories";
 import { CYBER_GROUPS } from "@/lib/cyber-controls";
 import { isRichText, sanitizeRichText } from "@/lib/rich-text";
 import { durationCoversYear } from "@/lib/duration";
@@ -157,7 +158,7 @@ interface Part3 {
 
 interface LineItem {
   id: string; item: string; office: string;
-  uacsCode: string; uacsLabel: string;
+  categoryId: string;
   fundSource: string; qty: number; unitCost: number;
 }
 
@@ -267,17 +268,20 @@ function isFundSource(s: string, expected: "gaa" | "foreign" | "local" | "other"
   return fundSourceAbbr(s) === { gaa: "GAA", foreign: "FAP", local: "LF", other: "OIGS" }[expected];
 }
 
-// Group line items by UACS code, compute subtotals
-function groupByUacs(lines: LineItem[]): { code: string; label: string; items: LineItem[]; subtotal: number }[] {
-  const map = new Map<string, { label: string; items: LineItem[] }>();
+// Group line items by expense category (DICT handout, in handout order),
+// compute subtotals. Uncategorized items group under "Uncategorized" (last).
+function groupByCategory(lines: LineItem[]): { id: string; label: string; items: LineItem[]; subtotal: number }[] {
+  const map = new Map<string, LineItem[]>();
   for (const l of lines) {
-    const key = l.uacsCode || "—";
-    if (!map.has(key)) map.set(key, { label: l.uacsLabel || l.uacsCode || "—", items: [] });
-    map.get(key)!.items.push(l);
+    const key = l.categoryId || "";
+    if (!map.has(key)) map.set(key, []);
+    map.get(key)!.push(l);
   }
-  return Array.from(map.entries()).map(([code, { label, items }]) => ({
-    code, label, items, subtotal: sumLines(items),
-  }));
+  return Array.from(map.entries())
+    .sort(([a], [b]) => (a ? categoryOrder(a) : Infinity) - (b ? categoryOrder(b) : Infinity))
+    .map(([id, items]) => ({
+      id, label: id ? categoryName(id) : "Uncategorized", items, subtotal: sumLines(items),
+    }));
 }
 
 // ─── CSS ──────────────────────────────────────────────────────────────────────
@@ -383,7 +387,7 @@ const CSS = `
 
   /* ── Part IV table ── */
   .piv-table td.section-row { background: #d9d9d9; font-weight: bold; }
-  .piv-table td.uacs-row { background: #ebebeb; font-style: italic; font-size: 9pt; }
+  .piv-table td.category-row { background: #ebebeb; font-style: italic; font-size: 9pt; }
   .piv-table td.total-cell { text-align: right; font-weight: bold; white-space: nowrap; }
   .piv-table td.num-cell { text-align: right; white-space: nowrap; }
   .piv-table td.grand-total { background: #bfbfbf; font-weight: bold; }
@@ -1304,11 +1308,11 @@ function renderYearTable(year: YearBudget, yearNum: number, yearLabel: number, i
     const sectionTotal = coTotal + mooeTotal;
 
     function lineRows(lines: LineItem[]): string {
-      const groups = groupByUacs(lines);
+      const groups = groupByCategory(lines);
       return groups.map(g => `
         <tr>
-          <td class="uacs-row" colspan="5">${esc(g.code)} — ${esc(g.label)}</td>
-          <td class="uacs-row total-cell">${php(g.subtotal)}</td>
+          <td class="category-row" colspan="5">${esc(g.label)}</td>
+          <td class="category-row total-cell">${php(g.subtotal)}</td>
         </tr>
         ${g.items.map(l => `<tr>
           <td style="padding-left:8mm;">${esc(l.item)}</td>
@@ -1392,8 +1396,8 @@ function renderYearTable(year: YearBudget, yearNum: number, yearLabel: number, i
         <tr><td class="section-row" colspan="5"><strong>CONTINUING COSTS</strong></td><td class="section-row total-cell">${php(ccTotal)}</td></tr>
         ${year.continuingCosts.mooe.length > 0 ? `
           <tr><td class="section-row" colspan="5" style="padding-left:4mm;">MAINTENANCE AND OTHER OPERATING EXPENSES</td><td class="section-row total-cell">${php(ccTotal)}</td></tr>
-          ${groupByUacs(year.continuingCosts.mooe).map(g => `
-            <tr><td class="uacs-row" colspan="5">${esc(g.code)} — ${esc(g.label)}</td><td class="uacs-row total-cell">${php(g.subtotal)}</td></tr>
+          ${groupByCategory(year.continuingCosts.mooe).map(g => `
+            <tr><td class="category-row" colspan="5">${esc(g.label)}</td><td class="category-row total-cell">${php(g.subtotal)}</td></tr>
             ${g.items.map(l => `<tr>
               <td style="padding-left:8mm;">${esc(l.item)}</td>
               <td>${esc(l.office)}</td>
@@ -1465,21 +1469,22 @@ function renderPart4(issp: IsspData): string {
     ];
   }
 
-  // B.4 By UACS
-  function byUacs(lines: LineItem[]) {
-    const m = new Map<string, { label: string; total: number }>();
+  // B.4 By expense category (DICT handout categories; uncategorized money keeps
+  // its own "Uncategorized" row so this table's grand total always matches B.1–B.3).
+  function byCategory(lines: LineItem[]) {
+    const m = new Map<string, number>();
     for (const l of lines) {
-      const k = l.uacsCode || "—";
-      const cur = m.get(k) ?? { label: l.uacsLabel || k, total: 0 };
-      m.set(k, { ...cur, total: cur.total + total(l) });
+      const k = l.categoryId || "";
+      m.set(k, (m.get(k) ?? 0) + total(l));
     }
     return m;
   }
-  const ua1 = byUacs(allY1), ua2 = byUacs(allY2), ua3 = byUacs(allY3);
+  const ua1 = byCategory(allY1), ua2 = byCategory(allY2), ua3 = byCategory(allY3);
   const pdfPlanYears = Array.from({ length: 3 }, (_, i) => String(issp.startYear + i));
   const inDuration = (proj: IctProject, label: number | string) =>
     durationCoversYear(proj.duration ?? "", String(label), pdfPlanYears);
-  const allUacs = Array.from(new Set([...ua1.keys(), ...ua2.keys(), ...ua3.keys()]));
+  const allUacs = Array.from(new Set([...ua1.keys(), ...ua2.keys(), ...ua3.keys()]))
+    .sort((a, b) => (a ? categoryOrder(a) : Infinity) - (b ? categoryOrder(b) : Infinity));
 
   return `
     ${years.map(({ key, label }, i) => `
@@ -1602,14 +1607,12 @@ function renderPart4(issp: IsspData): string {
       <div class="summary-section">
         <div class="summary-title">${tocMark("part4-b4")}B.4. Object of Expenditure</div>
         <table>
-          <thead><tr><th>UACS Object Code</th><th>${issp.startYear}</th><th>${issp.startYear + 1}</th><th>${issp.startYear + 2}</th><th>Total</th></tr></thead>
+          <thead><tr><th>Expense Category</th><th>${issp.startYear}</th><th>${issp.startYear + 1}</th><th>${issp.startYear + 2}</th><th>Total</th></tr></thead>
           <tbody>
-            ${allUacs.map(code => {
-              const e1 = ua1.get(code), e2 = ua2.get(code), e3 = ua3.get(code);
-              const label = (e1 ?? e2 ?? e3)?.label ?? code;
-              const a = e1?.total??0, b = e2?.total??0, c = e3?.total??0;
+            ${allUacs.map(id => {
+              const a = ua1.get(id) ?? 0, b = ua2.get(id) ?? 0, c = ua3.get(id) ?? 0;
               return `<tr class="avoid-break">
-                <td>${esc(code)} — ${esc(label)}</td>
+                <td>${esc(id ? categoryName(id) : "Uncategorized")}</td>
                 <td class="num-cell">${php(a)}</td>
                 <td class="num-cell">${php(b)}</td>
                 <td class="num-cell">${php(c)}</td>

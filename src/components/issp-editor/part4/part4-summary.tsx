@@ -3,9 +3,9 @@
 import { Info } from "lucide-react";
 import { cn, php } from "@/lib/utils";
 import { SectionShell } from "@/components/editor/section-shell";
-import type { SummaryRow, UacsRow, Part4SummaryData } from "./part4-aggregations";
+import type { SummaryRow, CategoryRow, Part4SummaryData } from "./part4-aggregations";
 
-export type { SummaryRow, UacsRow, Part4SummaryData };
+export type { SummaryRow, CategoryRow, Part4SummaryData };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -72,13 +72,13 @@ function SummaryTable({
   );
 }
 
-// ─── UACS Table ────────────────────────────────────────────────────────────────
+// ─── Expense Category Table (B.4) ─────────────────────────────────────────────
 
-function UacsTable({
+function CategoryTable({
   rows,
   yearLabels,
 }: {
-  rows: UacsRow[];
+  rows: CategoryRow[];
   yearLabels: [string, string, string];
 }) {
   const grandTotal = rows.reduce((s, r) => s + r.total, 0);
@@ -90,14 +90,15 @@ function UacsTable({
     <div className="space-y-3">
       <div>
         <h2 className="text-base font-semibold">B.4 Object of Expenditure</h2>
-        <p className="text-xs text-muted-foreground">Costs mapped to UACS codes across all projects and years</p>
+        <p className="text-xs text-muted-foreground">
+          Costs mapped to the 30 official DICT expense categories, across all projects and years
+        </p>
       </div>
       <div className="overflow-x-auto rounded-lg border">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-muted/50 border-b">
-              <th className="text-left px-4 py-2.5 font-medium w-28">UACS Code</th>
-              <th className="text-left px-4 py-2.5 font-medium">Description</th>
+              <th className="text-left px-4 py-2.5 font-medium">Expense Category</th>
               <th className="text-right px-4 py-2.5 font-medium">{yearLabels[0]}</th>
               <th className="text-right px-4 py-2.5 font-medium">{yearLabels[1]}</th>
               <th className="text-right px-4 py-2.5 font-medium">{yearLabels[2]}</th>
@@ -107,15 +108,15 @@ function UacsTable({
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground text-xs">
-                  No line items with UACS codes found. Add items in the Year 1–3 breakdowns.
+                <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground text-xs">
+                  No line items with an expense category found. Add items in the Year 1–3
+                  breakdowns and pick their category.
                 </td>
               </tr>
             ) : (
               rows.map((row) => (
-                <tr key={row.uacsCode} className="border-b last:border-0 hover:bg-muted/20">
-                  <td className="px-4 py-2.5 font-mono text-xs">{row.uacsCode}</td>
-                  <td className="px-4 py-2.5">{row.uacsLabel || row.uacsCode}</td>
+                <tr key={row.categoryId || "uncategorized"} className="border-b last:border-0 hover:bg-muted/20">
+                  <td className={cn("px-4 py-2.5", !row.categoryId && "text-warning")}>{row.name}</td>
                   <td className="px-4 py-2.5 text-right tabular-nums">
                     {row.year1 > 0 ? php(row.year1) : <span className="text-muted-foreground">—</span>}
                   </td>
@@ -133,7 +134,7 @@ function UacsTable({
           {rows.length > 0 && (
             <tfoot>
               <tr className="bg-muted/30 font-semibold border-t">
-                <td className="px-4 py-2.5" colSpan={2}>Grand Total</td>
+                <td className="px-4 py-2.5">Grand Total</td>
                 <td className="px-4 py-2.5 text-right tabular-nums">{php(y1)}</td>
                 <td className="px-4 py-2.5 text-right tabular-nums">{php(y2)}</td>
                 <td className="px-4 py-2.5 text-right tabular-nums">{php(y3)}</td>
@@ -199,7 +200,7 @@ export function Part4Summary({
         yearLabels={data.yearLabels}
       />
 
-      <UacsTable rows={data.b4} yearLabels={data.yearLabels} />
+      <CategoryTable rows={data.b4} yearLabels={data.yearLabels} />
     </SectionShell>
   );
 }

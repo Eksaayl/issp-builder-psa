@@ -16,7 +16,7 @@ import type { Part4Data, LineItem, YearBudget } from "../src/lib/store/types";
 
 function line(id: string, item: string, opts?: Partial<LineItem>): LineItem {
   return {
-    id, item, office: "", uacsCode: "", uacsLabel: "",
+    id, item, office: "", categoryId: "",
     fundSource: "General Appropriations Act", qty: 1, unitCost: 100,
     ...opts,
   };

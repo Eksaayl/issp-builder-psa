@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
 import { Textarea } from "@/components/ui/textarea";
 import { useLocalSave } from "@/hooks/use-local-save";
-import { UacsCombobox } from "@/components/issp-editor/uacs-combobox";
+import { CategorySelect, CategoryMissing } from "./category-select";
+import { categoryName } from "@/lib/expense-categories";
 import {
   Sheet,
   SheetContent,
@@ -17,9 +18,8 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-import { Plus, Trash2, Pencil, ExternalLink } from "lucide-react";
+import { Plus, Trash2, Pencil } from "lucide-react";
 import { LineModeToggle, usePersistedLineMode, type LineMode } from "./line-mode";
-import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { SectionShell } from "@/components/editor/section-shell";
 import { php } from "@/lib/utils";
 
@@ -29,8 +29,7 @@ export interface LineItem {
   id: string;
   item: string;
   office: string;
-  uacsCode: string;
-  uacsLabel: string;
+  categoryId: string;
   fundSource: string;
   qty: number;
   unitCost: number;
@@ -70,8 +69,7 @@ const BLANK_LINE = (): LineItem => ({
   id: genId(),
   item: "",
   office: "",
-  uacsCode: "",
-  uacsLabel: "",
+  categoryId: "",
   fundSource: DEFAULT_FUND_SOURCE,
   qty: 1,
   unitCost: 0,
@@ -121,7 +119,6 @@ function LineItemDrawer({ open, item, isNew, context, onSave, onDelete, onClose 
   }
 
   const lineTotal = draft.qty * draft.unitCost;
-  const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
   const itemError = draft.item.trim() ? null : "Description is required.";
   const costError = draft.unitCost > 0 ? null : "Unit cost must be greater than ₱0.";
@@ -178,34 +175,16 @@ function LineItemDrawer({ open, item, isNew, context, onSave, onDelete, onClose 
           </div>
 
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium">UACS Code</label>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <a
-                        href={`${basePath}/uacs`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
-                      />
-                    }
-                  >
-                    Browse codes
-                    <ExternalLink className="h-3 w-3" />
-                  </TooltipTrigger>
-                  <TooltipContent side="left">Open UACS Explorer in a new tab</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-            <UacsCombobox
-              value={draft.uacsCode}
-              context={context}
-              onChange={(uacs, label) =>
-                setDraft((prev) => ({ ...prev, uacsCode: uacs, uacsLabel: label }))
-              }
+            <label className="text-sm font-medium">Expense Category</label>
+            <CategorySelect
+              value={draft.categoryId}
+              expenseClass={context === "co" ? "capitalOutlay" : "mooe"}
+              onChange={(categoryId) => set("categoryId", categoryId)}
             />
+            <p className="text-xs text-muted-foreground">
+              One of the 30 official DICT expense categories (ISSP handout). Items without a
+              category are excluded from B.4.
+            </p>
           </div>
 
           <div className="space-y-1.5">
@@ -363,13 +342,13 @@ function LineTable({
                       )}
                     </p>
                     <p className="text-xs text-muted-foreground truncate mt-0.5">
-                      {[
-                        line.uacsLabel || (line.uacsCode ? `UACS ${line.uacsCode}` : null),
-                        line.office || null,
-                        line.fundSource !== FUND_SOURCES[0] ? line.fundSource : null,
-                      ]
-                        .filter(Boolean)
-                        .join(" · ") || "No details yet"}
+                      {line.categoryId ? (
+                        categoryName(line.categoryId)
+                      ) : (
+                        <CategoryMissing />
+                      )}
+                      {line.office ? ` · ${line.office}` : ""}
+                      {line.fundSource !== FUND_SOURCES[0] ? ` · ${line.fundSource}` : ""}
                     </p>
                   </div>
                   <span className="text-sm font-semibold tabular-nums shrink-0">
@@ -410,7 +389,7 @@ function LineTable({
                 <tr className="bg-muted/40 border-b">
                   <th className="border-r px-3 py-2 text-left font-semibold">Item / Description</th>
                   <th className="border-r px-3 py-2 text-left font-semibold w-32">Office / Unit</th>
-                  <th className="border-r px-3 py-2 text-left font-semibold w-36">UACS</th>
+                  <th className="border-r px-3 py-2 text-left font-semibold w-44">Category</th>
                   <th className="border-r px-3 py-2 text-left font-semibold w-44">Fund Source</th>
                   <th className="border-r px-3 py-2 text-right font-semibold w-28">Unit Cost ₱</th>
                   <th className="border-r px-3 py-2 text-right font-semibold w-24">Physical Target</th>
@@ -455,10 +434,16 @@ function LineTable({
                         type="button"
                         onClick={() => openEdit(idx)}
                         className="w-full text-left rounded px-2 py-1.5 text-xs bg-card/70 hover:bg-card focus:bg-card focus:outline-none focus:ring-1 focus:ring-ring group flex items-center justify-between gap-1 min-h-[2rem]"
-                        title="Click to edit UACS code"
+                        title="Click to edit expense category"
                       >
-                        <span className={line.uacsLabel || line.uacsCode ? "text-foreground" : "text-muted-foreground/60 italic"}>
-                          {line.uacsLabel || line.uacsCode || "Set UACS…"}
+                        <span
+                          className={
+                            line.categoryId
+                              ? "text-foreground truncate"
+                              : "text-warning italic"
+                          }
+                        >
+                          {line.categoryId ? categoryName(line.categoryId) : "Set category…"}
                         </span>
                         <Pencil className="h-3 w-3 text-muted-foreground/40 shrink-0 group-hover:text-muted-foreground" />
                       </button>

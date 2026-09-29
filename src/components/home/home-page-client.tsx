@@ -45,7 +45,7 @@ const MITHI_CHECKLIST = [
   "eGov Programs Checklist (Part II-D) built in",
   "Network infrastructure & cybersecurity assessment sections",
   "Performance Framework with KPI tracking (Part III-F)",
-  "Budget breakdown aligned to UACS coding structure",
+  "Budget breakdown aligned to the official DICT expense categories",
 ] as const;
 
 // Part colors from sections.ts
@@ -724,7 +724,7 @@ export default function HomePageClient({ aboutHtml, privacyHtml }: { aboutHtml: 
                 Part IV gains <span className="text-foreground font-medium">Cycle View (All Years)</span>: every line item across the whole three-year cycle, grouped by project and expense class, with each year&apos;s quantity and unit cost side by side and the cycle total at the end of the row.
               </p>
               <p>
-                <span className="text-foreground font-medium">List</span> mode keeps rows lean — open an item&apos;s details to rename it, change its office, UACS code or fund source, or move it to another project or expense class. <span className="text-foreground font-medium">Table</span> mode shows every field at once.
+                <span className="text-foreground font-medium">List</span> mode keeps rows lean — open an item&apos;s details to rename it, change its office, expense category or fund source, or move it to another project or expense class. <span className="text-foreground font-medium">Table</span> mode shows every field at once.
               </p>
             </div>
 
@@ -736,6 +736,17 @@ export default function HomePageClient({ aboutHtml, privacyHtml }: { aboutHtml: 
               </p>
               <p>
                 When two offices share a list, rows are now matched one by one against the master, so master rows no longer appear twice after a merge, and only an office&apos;s real edits count as changes.
+              </p>
+            </div>
+
+            {/* DICT expense categories replace UACS codes */}
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold text-foreground uppercase tracking-wide">The 30 Official DICT Expense Categories</p>
+              <p>
+                Part IV line items are now classified with the 30 fixed expense categories from the official DICT ISSP handout — <span className="text-foreground font-medium">ICT Machinery and Equipment</span>, <span className="text-foreground font-medium">Cloud Computing Services</span>, <span className="text-foreground font-medium">Semi-Expendable ICT Equipment</span> and so on — instead of numeric UACS codes. The picker only offers the categories that match the line&apos;s expense class, and Summary B.4 (Object of Expenditure) lists one row per category, in the handout&apos;s order, in both the editor and the PDF.
+              </p>
+              <p>
+                Files saved with UACS codes are upgraded automatically: known codes map straight to their category, and any item that could not be matched is highlighted with a <span className="text-foreground font-medium">Set category</span> flag together with a one-time review notice — pick its category and the flag clears. Totals were never affected.
               </p>
             </div>
 

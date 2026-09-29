@@ -1,4 +1,4 @@
-import type { IsspDocument } from "@/lib/store/types";
+import type { IsspDocument, LineItem } from "@/lib/store/types";
 
 /**
  * Data a schema bump added to the document. When a returned scoped file was
@@ -47,7 +47,39 @@ const MIGRATION_BACKFILLS: readonly MigrationBackfill[] = [
       }
     },
   },
+  {
+    // v14: UACS object codes → expense categories. The upgrade maps a line's
+    // old uacsCode deterministically, but UACS was never required — a line
+    // with no code upgrades to categoryId "" while the master's copy has a
+    // category, which would manufacture a spurious "Expense category"
+    // conflict for every such row. Matched by line id, the returned line
+    // takes the master's category and contributes no opinion. Lines the
+    // office added keep their own (possibly empty) value; a category mapped
+    // from the office's own uacsCode is kept — that is the office's data.
+    introducedIn: 14,
+    apply: (file, master) => {
+      const masterCategory = new Map<string, string>();
+      for (const year of [master.part4.year1, master.part4.year2, master.part4.year3]) {
+        for (const l of yearLines(year)) if (l.categoryId) masterCategory.set(l.id, l.categoryId);
+      }
+      for (const year of [file.part4.year1, file.part4.year2, file.part4.year3]) {
+        for (const l of yearLines(year)) {
+          if (!l.categoryId) l.categoryId = masterCategory.get(l.id) ?? "";
+        }
+      }
+    },
+  },
 ];
+
+function yearLines(year: IsspDocument["part4"]["year1"]): LineItem[] {
+  return [
+    ...year.officeProductivity.capitalOutlay,
+    ...year.officeProductivity.mooe,
+    ...year.continuingCosts.mooe,
+    ...Object.values(year.internalProjects).flatMap((p) => [...p.capitalOutlay, ...p.mooe]),
+    ...Object.values(year.crossAgencyProjects).flatMap((p) => [...p.capitalOutlay, ...p.mooe]),
+  ];
+}
 
 /**
  * Give an upgraded returned file the master's value for every piece of data

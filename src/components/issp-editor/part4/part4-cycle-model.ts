@@ -1,5 +1,6 @@
 import { uuid } from "@/lib/uuid";
 import { DEFAULT_FUND_SOURCE } from "@/lib/fund-sources";
+import { categoryById } from "@/lib/expense-categories";
 import type { Part4Data } from "@/lib/store/types";
 import type { LineItem, YearBudget } from "./part4-year-form";
 
@@ -30,8 +31,7 @@ export interface CycleRow {
   expenseClass: ExpenseClass;
   item: string;
   office: string;
-  uacsCode: string;
-  uacsLabel: string;
+  categoryId: string;
   fundSource: string;
   cells: Record<YearKey, CycleYearCell | null>;
 }
@@ -128,8 +128,7 @@ export function groupLineItemsAcrossCycle(part4: Part4Data, groups: CycleGroupDe
               expenseClass,
               item: lineItem.item,
               office: lineItem.office,
-              uacsCode: lineItem.uacsCode,
-              uacsLabel: lineItem.uacsLabel,
+              categoryId: lineItem.categoryId,
               fundSource: lineItem.fundSource,
               cells: { year1: null, year2: null, year3: null, [year]: cell },
             });
@@ -157,11 +156,11 @@ function applyToYears(
   return { part4: next, touchedYears: years };
 }
 
-/** Row-level fields (name/office/UACS/fund source) — edits every populated year at once. */
+/** Row-level fields (name/office/category/fund source) — edits every populated year at once. */
 export function updateRowSharedFields(
   part4: Part4Data,
   row: CycleRow,
-  patch: Partial<Pick<LineItem, "item" | "office" | "uacsCode" | "uacsLabel" | "fundSource">>
+  patch: Partial<Pick<LineItem, "item" | "office" | "categoryId" | "fundSource">>
 ): { part4: Part4Data; touchedYears: YearKey[] } {
   const years = YEAR_KEYS.filter((y) => row.cells[y] !== null);
   return applyToYears(part4, row, years, (lines, year) => {
@@ -186,8 +185,8 @@ export function updateYearCell(
 export function addYearCell(part4: Part4Data, row: CycleRow, year: YearKey): { part4: Part4Data; touchedYears: YearKey[] } {
   if (row.cells[year] !== null) return { part4, touchedYears: [] };
   const newLine: LineItem = {
-    id: uuid(), item: row.item, office: row.office, uacsCode: row.uacsCode,
-    uacsLabel: row.uacsLabel, fundSource: row.fundSource, qty: 1, unitCost: 0,
+    id: uuid(), item: row.item, office: row.office, categoryId: row.categoryId,
+    fundSource: row.fundSource, qty: 1, unitCost: 0,
   };
   return applyToYears(part4, row, [year], (lines) => [...lines, newLine]);
 }
@@ -210,11 +209,14 @@ export function deleteRow(part4: Part4Data, row: CycleRow): { part4: Part4Data; 
 
 /**
  * Moves every populated year's LineItem from the row's current group+class
- * to a new one. Never drops a year's data, even if the target group's
- * activeYears is narrower than the row's populated years — a reassignment
- * that lands outside the target project's duration surfaces through the
- * same "outside project duration" legacy-data warning the per-year pages
- * already show, rather than silently discarding budget data.
+ * to a new one. A category belongs to exactly one expense class, so moving a
+ * row across the CO/MOOE divide clears its categoryId (the row shows the
+ * "Set category" flag until a category of the new class is picked). Never
+ * drops a year's data, even if the target group's activeYears is narrower
+ * than the row's populated years — a reassignment that lands outside the
+ * target project's duration surfaces through the same "outside project
+ * duration" legacy-data warning the per-year pages already show, rather than
+ * silently discarding budget data.
  */
 export function reassignRow(
   part4: Part4Data,
@@ -223,6 +225,8 @@ export function reassignRow(
   newExpenseClass: ExpenseClass
 ): { part4: Part4Data; touchedYears: YearKey[] } {
   const years = YEAR_KEYS.filter((y) => row.cells[y] !== null);
+  const keepsCategory =
+    !row.categoryId || categoryById(row.categoryId)?.expenseClass === newExpenseClass;
   let next = part4;
   for (const year of years) {
     const cell = row.cells[year];
@@ -233,7 +237,8 @@ export function reassignRow(
     if (!moved) continue;
     const withoutOld = setBucket(yearBudget, row.group, row.expenseClass, oldLines.filter((l) => l.id !== cell.id));
     const newLines = getBucket(withoutOld, newGroup, newExpenseClass);
-    const withNew = setBucket(withoutOld, newGroup, newExpenseClass, [...newLines, moved]);
+    const relocated = keepsCategory ? moved : { ...moved, categoryId: "" };
+    const withNew = setBucket(withoutOld, newGroup, newExpenseClass, [...newLines, relocated]);
     next = { ...next, [year]: withNew };
   }
   return { part4: next, touchedYears: years };
@@ -249,7 +254,7 @@ export function addNewRow(
   let next = part4;
   for (const year of group.activeYears) {
     const newLine: LineItem = {
-      id: uuid(), item: "", office: "", uacsCode: "", uacsLabel: "",
+      id: uuid(), item: "", office: "", categoryId: "",
       fundSource: DEFAULT_FUND_SOURCE, qty: 1, unitCost: 0,
     };
     const yearBudget = next[year];
@@ -259,7 +264,7 @@ export function addNewRow(
   }
   const row: CycleRow = {
     rowKey: `row-${YEAR_KEYS.map((y) => cells[y]?.id).find(Boolean) ?? uuid()}`, group, expenseClass,
-    item: "", office: "", uacsCode: "", uacsLabel: "", fundSource: DEFAULT_FUND_SOURCE,
+    item: "", office: "", categoryId: "", fundSource: DEFAULT_FUND_SOURCE,
     cells,
   };
   return { part4: next, touchedYears: [...group.activeYears], row };

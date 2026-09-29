@@ -1,5 +1,6 @@
 import type { YearBudget, LineItem, ProjectBudget } from "./part4-year-form";
 import { groupByFundSource } from "@/lib/fund-sources";
+import { categoryName, categoryOrder } from "@/lib/expense-categories";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -12,9 +13,9 @@ export interface SummaryRow {
   isTotal?: boolean;
 }
 
-export interface UacsRow {
-  uacsCode: string;
-  uacsLabel: string;
+export interface CategoryRow {
+  categoryId: string;
+  name: string;
   year1: number;
   year2: number;
   year3: number;
@@ -26,7 +27,7 @@ export interface Part4SummaryData {
   b1: SummaryRow[];
   b2: SummaryRow[];
   b3: SummaryRow[];
-  b4: UacsRow[];
+  b4: CategoryRow[];
   grandTotals: [number, number, number];
 }
 
@@ -195,20 +196,26 @@ export function buildB3(years: [YearBudget, YearBudget, YearBudget]): SummaryRow
   ];
 }
 
-export function buildB4(years: [YearBudget, YearBudget, YearBudget]): UacsRow[] {
-  const map: Record<string, { label: string; amounts: [number, number, number] }> = {};
+/**
+ * B.4 rows: one per expense category (the 30 DICT handout categories), in
+ * handout order. Uncategorized line items keep their own final
+ * "Uncategorized" row — same as the PDF — so this table's grand total always
+ * matches B.1–B.3; the editor flags those lines with "Set category".
+ */
+export function buildB4(years: [YearBudget, YearBudget, YearBudget]): CategoryRow[] {
+  const map: Record<string, { amounts: [number, number, number] }> = {};
   years.forEach((y, yi) => {
     for (const l of allLines(y)) {
-      if (!l.uacsCode) continue;
-      if (!map[l.uacsCode]) map[l.uacsCode] = { label: l.uacsLabel || l.uacsCode, amounts: [0, 0, 0] };
-      map[l.uacsCode].amounts[yi] += lineTotal(l);
-      if (!map[l.uacsCode].label && l.uacsLabel) map[l.uacsCode].label = l.uacsLabel;
+      const key = l.categoryId || "";
+      if (!map[key]) map[key] = { amounts: [0, 0, 0] };
+      map[key].amounts[yi] += lineTotal(l);
     }
   });
   return Object.entries(map)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([code, { label, amounts }]) => ({
-      uacsCode: code, uacsLabel: label,
+    .sort(([a], [b]) => (a ? categoryOrder(a) : Infinity) - (b ? categoryOrder(b) : Infinity) || a.localeCompare(b))
+    .map(([categoryId, { amounts }]) => ({
+      categoryId,
+      name: categoryId ? categoryName(categoryId) : "Uncategorized",
       year1: amounts[0], year2: amounts[1], year3: amounts[2],
       total: amounts[0] + amounts[1] + amounts[2],
     }));

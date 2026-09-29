@@ -9,14 +9,15 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { IsspDocument, Part1Data, Part2Data, Part3Data, Part4Data, SectionMeta, HumanCapital, CyberControls, EgpChecklist, YearBudget, HCRow, StakeholderService, IsClassification, PiaProcessAnswer, MigrationReview, Program } from "./types";
+import type { IsspDocument, Part1Data, Part2Data, Part3Data, Part4Data, SectionMeta, HumanCapital, CyberControls, EgpChecklist, YearBudget, LineItem, HCRow, StakeholderService, IsClassification, PiaProcessAnswer, MigrationReview, Program } from "./types";
 import { createEmptyDocument, makeDefaultPart1, makeDefaultPart2, makeDefaultPart3, makeDefaultPart4, type NewDocOptions } from "./defaults";
 import { idbClear, idbLoad, idbSave } from "./idb";
-import { CURRENT_SCHEMA_VERSION, getRequiredMigrationReviewSectionIds } from "@/lib/migration-review";
+import { CURRENT_SCHEMA_VERSION, getRequiredMigrationReviewSectionIdsForDoc } from "@/lib/migration-review";
 import { recordIsspUsage } from "@/lib/record-usage";
 import { applyReviewDecisions, type ParsedScopedFile, type ReviewDecisions } from "@/lib/scope/merge-review";
 import { backfillFromMaster } from "@/lib/scope/upgrade";
 import { canonicalFundSource } from "@/lib/fund-sources";
+import { categoryById, categoryForLegacyUacs, type ExpenseClass } from "@/lib/expense-categories";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -466,6 +467,42 @@ function withCanonicalFundSources(year: YearBudget): YearBudget {
   };
 }
 
+/**
+ * v14 (2026-09-29): every Part IV line item carries a `categoryId` from the 30
+ * fixed DICT handout categories (src/lib/expense-categories.ts) instead of a
+ * numeric UACS code. Legacy `uacsCode` values map through the curated table —
+ * unknown codes, and mapped categories whose expense class contradicts the
+ * line's bucket, are left "" (uncategorized) so the part4/categories review
+ * banner flags them for a human decision. Idempotent: lines that already have
+ * a categoryId pass through, stray legacy fields are stripped.
+ */
+function withExpenseCategories(year: YearBudget): YearBudget {
+  const lines = (ls: LineItem[], bucket: ExpenseClass): LineItem[] =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ls.map((raw: any) => {
+      const rest: Record<string, unknown> = { ...raw };
+      const uacsCode = typeof rest.uacsCode === "string" ? rest.uacsCode : "";
+      delete rest.uacsCode;
+      delete rest.uacsLabel;
+      if (typeof rest.categoryId === "string") return rest as unknown as LineItem;
+      const mapped = categoryForLegacyUacs(uacsCode) ?? "";
+      const categoryId = categoryById(mapped)?.expenseClass === bucket ? mapped : "";
+      return { ...rest, categoryId } as unknown as LineItem;
+    });
+  const budgets = (rec: YearBudget["internalProjects"]) =>
+    Object.fromEntries(Object.entries(rec).map(([id, b]) => [id, { ...b, capitalOutlay: lines(b.capitalOutlay, "capitalOutlay"), mooe: lines(b.mooe, "mooe") }]));
+  return {
+    ...year,
+    officeProductivity: {
+      capitalOutlay: lines(year.officeProductivity.capitalOutlay, "capitalOutlay"),
+      mooe: lines(year.officeProductivity.mooe, "mooe"),
+    },
+    internalProjects: budgets(year.internalProjects),
+    crossAgencyProjects: budgets(year.crossAgencyProjects),
+    continuingCosts: { ...year.continuingCosts, mooe: lines(year.continuingCosts.mooe, "mooe") },
+  };
+}
+
 export function migrateLegacyDoc(doc: IsspDocument): IsspDocument {
   const sourceSchemaVersion = doc.schemaVersion ?? 1;
   // v1 → v2: planStatus, submissionTarget, sectionMeta
@@ -767,6 +804,14 @@ export function migrateLegacyDoc(doc: IsspDocument): IsspDocument {
     base = { ...base, schemaVersion: 13 };
   }
 
+  // v13 → v14: UACS object codes → the 30 fixed DICT handout expense categories.
+  // The withExpenseCategories normalization below performs the conversion (and
+  // drops uacsCode/uacsLabel); unmapped lines are flagged via the conditional
+  // part4/categories migration-review section.
+  if ((base.schemaVersion ?? 1) < 14) {
+    base = { ...base, schemaVersion: 14 };
+  }
+
   // Idempotent normalizations — keep stored data in sync with what forms write on mount,
   // so that editing a field and reverting it produces a hash equal to the snapshot.
   let normalized: IsspDocument = {
@@ -840,16 +885,16 @@ export function migrateLegacyDoc(doc: IsspDocument): IsspDocument {
     },
     part4: {
       ...base.part4,
-      year1: withCanonicalFundSources(base.part4.year1),
-      year2: withCanonicalFundSources(base.part4.year2),
-      year3: withCanonicalFundSources(base.part4.year3),
+      year1: withExpenseCategories(withCanonicalFundSources(base.part4.year1)),
+      year2: withExpenseCategories(withCanonicalFundSources(base.part4.year2)),
+      year3: withExpenseCategories(withCanonicalFundSources(base.part4.year3)),
     },
   };
 
   const existingReview = normalized.migrationReview;
   const reviewIds = existingReview
     ? existingReview.pendingSectionIds
-    : getRequiredMigrationReviewSectionIds(sourceSchemaVersion);
+    : getRequiredMigrationReviewSectionIdsForDoc(sourceSchemaVersion, normalized);
   const pendingSectionIds = [...new Set(reviewIds)];
   if (pendingSectionIds.length > 0) {
     const sectionMeta = { ...(normalized.sectionMeta ?? {}) };

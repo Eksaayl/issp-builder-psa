@@ -23,7 +23,7 @@ function kpiSet(title: string, category: "internal" | "crossAgency"): ProjectKpi
   return { projectTitle: title, projectCategory: category, rows: [kpi("k1")] };
 }
 function line(id: string, item: string): LineItem {
-  return { id, item, office: "", uacsCode: "", uacsLabel: "",
+  return { id, item, office: "", categoryId: "",
     fundSource: "General Appropriations Act (GAA)", qty: 1, unitCost: 100 };
 }
 

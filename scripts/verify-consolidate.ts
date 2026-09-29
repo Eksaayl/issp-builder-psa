@@ -387,7 +387,7 @@ const E1 = ["part3/e1.internalProjects"];
 // A project filter anywhere in the batch decomposes the Part IV year budget;
 // officeProductivity / continuingCosts are then judged against the master too.
 {
-  const line = (id: string, item: string) => ({ id, item, office: "", uacsCode: "", uacsLabel: "", fundSource: "General Appropriations Act", qty: 1, unitCost: 1000 });
+  const line = (id: string, item: string) => ({ id, item, office: "", categoryId: "", fundSource: "General Appropriations Act", qty: 1, unitCost: 1000 });
   const Y1 = ["part4/year1.year1"];
   const master = makeMaster();
   master.part4.year1.officeProductivity.capitalOutlay = [line("op-1", "Printers")];

@@ -13,7 +13,7 @@ import { buildB2 } from "../src/components/issp-editor/part4/part4-aggregations"
 import type { IctProject, IsspDocument, LineItem } from "../src/lib/store/types";
 
 function line(id: string, fundSource: string, unitCost = 1000): LineItem {
-  return { id, item: id, office: "", uacsCode: "", uacsLabel: "", fundSource, qty: 1, unitCost };
+  return { id, item: id, office: "", categoryId: "", fundSource, qty: 1, unitCost };
 }
 function project(id: string, fundingSource: string): IctProject {
   return {

@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
 import { ConfirmDeleteButton } from "@/components/ui/confirm-delete-button";
-import { UacsCombobox } from "@/components/issp-editor/uacs-combobox";
+import { CategorySelect, CategoryMissing } from "./category-select";
+import { categoryName } from "@/lib/expense-categories";
 import { SectionShell } from "@/components/editor/section-shell";
 import {
   Sheet,
@@ -59,15 +60,13 @@ function rowTotal(row: CycleRowData) {
 function groupKeyOf(g: CycleGroupDescriptor) {
   return `${g.kind}::${g.projectId ?? ""}`;
 }
-function rowSubtitle(row: Pick<CycleRowData, "uacsLabel" | "uacsCode" | "office" | "fundSource">) {
+function rowSubtitle(row: Pick<CycleRowData, "categoryId" | "office" | "fundSource">) {
   return (
-    [
-      row.uacsLabel || (row.uacsCode ? `UACS ${row.uacsCode}` : null),
-      row.office || null,
-      row.fundSource !== FUND_SOURCES[0] ? row.fundSource : null,
-    ]
-      .filter(Boolean)
-      .join(" · ") || "No details yet"
+    <>
+      {row.categoryId ? categoryName(row.categoryId) : <CategoryMissing />}
+      {row.office ? ` · ${row.office}` : ""}
+      {row.fundSource !== FUND_SOURCES[0] ? ` · ${row.fundSource}` : ""}
+    </>
   );
 }
 
@@ -132,7 +131,7 @@ export function Part4CycleView({
 
   const q = query.trim().toLowerCase();
   const visibleRows = q
-    ? allRows.filter((r) => [r.item, r.office, r.uacsCode, r.uacsLabel, r.group.label].some((f) => f.toLowerCase().includes(q)))
+    ? allRows.filter((r) => [r.item, r.office, categoryName(r.categoryId), r.group.label].some((f) => f.toLowerCase().includes(q)))
     : allRows;
 
   const grandTotal = allRows.reduce((s, r) => s + rowTotal(r), 0);
@@ -196,7 +195,7 @@ export function Part4CycleView({
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by item, office, UACS code, or project…"
+            placeholder="Search by item, office, category, or project…"
             className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           />
         </div>
@@ -399,7 +398,7 @@ function CycleRowDrawer({
   row: CycleRowData | null;
   groups: CycleGroupDescriptor[];
   onClose: () => void;
-  onEditShared: (row: CycleRowData, patch: Partial<Pick<LineItem, "item" | "office" | "uacsCode" | "uacsLabel" | "fundSource">>) => void;
+  onEditShared: (row: CycleRowData, patch: Partial<Pick<LineItem, "item" | "office" | "categoryId" | "fundSource">>) => void;
   onReassign: (row: CycleRowData, group: CycleGroupDescriptor, expenseClass: ExpenseClass) => void;
   onDelete: (row: CycleRowData) => void;
 }) {
@@ -485,11 +484,11 @@ function CycleRowDrawer({
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">UACS Code</label>
-                <UacsCombobox
-                  value={row.uacsCode}
-                  context={row.expenseClass === "capitalOutlay" ? "co" : "mooe"}
-                  onChange={(uacs, label) => onEditShared(row, { uacsCode: uacs, uacsLabel: label })}
+                <label className="text-sm font-medium">Expense Category</label>
+                <CategorySelect
+                  value={row.categoryId}
+                  expenseClass={row.expenseClass}
+                  onChange={(categoryId) => onEditShared(row, { categoryId })}
                 />
               </div>
 
@@ -547,7 +546,7 @@ function CycleSubTable({
   currentGroup: CycleGroupDescriptor;
   currentExpenseClass: ExpenseClass;
   onAdd: () => void;
-  onEditShared: (row: CycleRowData, patch: Partial<Pick<LineItem, "item" | "office" | "uacsCode" | "uacsLabel" | "fundSource">>) => void;
+  onEditShared: (row: CycleRowData, patch: Partial<Pick<LineItem, "item" | "office" | "categoryId" | "fundSource">>) => void;
   onEditYear: (row: CycleRowData, year: YearKey, patch: Partial<Pick<LineItem, "qty" | "unitCost">>) => void;
   onAddYear: (row: CycleRowData, year: YearKey) => void;
   onClearYear: (row: CycleRowData, year: YearKey) => void;
@@ -643,7 +642,7 @@ function CycleSubTable({
                 <th className="border-r px-3 py-2 text-left font-semibold w-28">Class</th>
                 <th className="border-r px-3 py-2 text-left font-semibold">Item / Description</th>
                 <th className="border-r px-3 py-2 text-left font-semibold w-28">Office</th>
-                <th className="border-r px-3 py-2 text-left font-semibold w-32">UACS</th>
+                <th className="border-r px-3 py-2 text-left font-semibold w-48">Expense Category</th>
                 <th className="border-r px-3 py-2 text-left font-semibold w-36">Fund Source</th>
                 {planYears.map((label) => (
                   <th key={label} className="border-r px-3 py-2 text-right font-semibold w-48">{label}</th>
@@ -696,11 +695,11 @@ function CycleSubTable({
                     />
                   </td>
                   <td className="border-r px-2 py-1">
-                    <UacsCombobox
-                      value={row.uacsCode}
-                      context={currentExpenseClass === "capitalOutlay" ? "co" : "mooe"}
-                      onChange={(uacs, label) => onEditShared(row, { uacsCode: uacs, uacsLabel: label })}
-                      className="text-xs"
+                    <CategorySelect
+                      value={row.categoryId}
+                      expenseClass={currentExpenseClass}
+                      onChange={(categoryId) => onEditShared(row, { categoryId })}
+                      className="rounded px-2 py-1.5 text-xs border-0 focus-visible:ring-1"
                     />
                   </td>
                   <td className="border-r px-2 py-1">

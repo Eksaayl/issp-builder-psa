@@ -26,7 +26,9 @@
 //   node scripts/smoke-part4-cycle.mjs
 import puppeteer from "puppeteer";
 
-const BASE = "http://localhost:3001";
+// SMOKE_BASE lets the smoke run against any dev server for this checkout
+// (default :3001 — the port this worktree's dedicated server used).
+const BASE = process.env.SMOKE_BASE ?? "http://localhost:3001";
 const DEMO = "/root/apps/issp/public/demo/ncwtr-issp-2026-2028.issp";
 
 const browser = await puppeteer.launch({
