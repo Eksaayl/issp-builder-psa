@@ -363,7 +363,9 @@ export async function POST(req: Request) {
           {
             contentHtml: (diagrams) => renderContentHtml(issp, { withTocMarkers: true, diagrams, sectionNotes }),
             finalizeContentHtml: (_tocPages, diagrams) => renderContentHtml(issp, { diagrams, sectionNotes }),
-            measureDiagramsHtml: style === "aptos14" ? renderContentHtml(issp, { diagrams: { mode: "measure" }, sectionNotes }) : undefined,
+            // Page-filling diagrams run for EVERY style: a measure pass sizes
+            // each diagram to the rest of its own page (see render-issp-html).
+            measureDiagramsHtml: renderContentHtml(issp, { diagrams: { mode: "measure" }, sectionNotes }),
             frontHtml: (tocPages, withDefinitionMarker) => renderFrontMatterHtml(issp, tocPages, withDefinitionMarker),
             annex1Html: renderAnnex1Html(doc.title, doc.annexedOffices ?? []),
             tocEntries: getTocEntries(issp),

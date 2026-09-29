@@ -224,10 +224,10 @@ function tocMark(id: string): string {
   return `<span class="toc-marker">@@toc:${id}@@</span>`;
 }
 
-// ─── Page-filling diagrams (Aptos 14 style) ───────────────────────────────────
-// Each diagram gets its own page, with its title on top. "measure": the
-// diagram renders as a 1px placeholder after an invisible @@dg:img:id@@
-// marker; generate-pdf reads where the markers land and
+// ─── Page-filling diagrams ────────────────────────────────────────────────────
+// Every export style: each diagram gets its own page, with its title on top.
+// "measure": the diagram renders as a 1px placeholder after an invisible
+// @@dg:img:id@@ marker; generate-pdf reads where the markers land and
 // sizes each diagram to fill the rest of its page. "fill": the diagram renders
 // at that measured box (centered, aspect kept); a missing box falls back to
 // the default markup. Both modes force the same page breaks, so the measured
