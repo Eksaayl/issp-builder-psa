@@ -1,5 +1,14 @@
 "use client";
 
+/**
+ * ⚠️ PARKED (schema v14, 2026-09-29) — no longer mounted anywhere. Part IV
+ * line items now store a `categoryId` from the 30 fixed DICT handout expense
+ * categories (src/lib/expense-categories.ts, picker in
+ * part4/category-select.tsx) instead of numeric UACS codes. Kept here
+ * unimported in case numeric-code entry ever returns; nothing fetches
+ * /uacs_active.min.json while it is unmounted.
+ */
+
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";

@@ -48,7 +48,7 @@ const MITHI_CHECKLIST = [
   "eGov Programs Checklist (Part II-D) built in",
   "Network infrastructure & cybersecurity assessment sections",
   "Performance Framework with KPI tracking (Part III-F)",
-  "Budget breakdown aligned to UACS coding structure",
+  "Budget breakdown aligned to the official DICT expense categories",
 ] as const;
 
 // Part colors from sections.ts
@@ -133,7 +133,10 @@ function ContinueCard({
   const [clearing, setClearing] = useState(false);
 
   const sectionMeta = doc.sectionMeta ?? {};
-  const doneCount = ALL_SECTIONS.filter((s) => computeStatus(sectionMeta[s.id]) === "done").length;
+  // readOnly sections (Cycle View, Summary) can never be marked done, so they
+  // are excluded from both sides of the completion ratio.
+  const trackedSections = ALL_SECTIONS.filter((s) => !s.readOnly);
+  const doneCount = trackedSections.filter((s) => computeStatus(sectionMeta[s.id]) === "done").length;
 
   return (
     <div className="space-y-2 min-w-0">
@@ -151,7 +154,7 @@ function ContinueCard({
           </p>
         </div>
       </div>
-      <CompletionBar numerator={doneCount} denominator={ALL_SECTIONS.length} showLabel />
+      <CompletionBar numerator={doneCount} denominator={trackedSections.length} showLabel />
       {!confirmingClear ? (
         <div className="flex flex-wrap items-center gap-3">
           <Button size="sm" className="gap-1.5" onClick={onContinue}>
@@ -374,7 +377,7 @@ export default function HomePageClient() {
               className="animate-glow-orbit inline-flex items-center gap-2 rounded-full px-5 py-2 text-xs font-semibold text-foreground hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:text-sm"
             >
               <Sparkles className="h-4 w-4" />
-              What&apos;s new: New DICT template + per-project distribution
+              What&apos;s new: Merge review + Cycle View
             </button>
           </div>
         </div>
@@ -683,11 +686,71 @@ export default function HomePageClient() {
           <DialogHeader className="px-6 pt-5 pb-4 border-b flex-shrink-0">
             <DialogTitle className="font-display text-lg flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-primary" />
-              What&apos;s new: New DICT Template + Per-Project Distribution
+              What&apos;s new: Merge Review + Cycle View
             </DialogTitle>
           </DialogHeader>
           <div ref={whatsNewScrollRef} className="overflow-y-auto px-6 py-5 space-y-5 text-sm text-muted-foreground leading-relaxed">
             <div tabIndex={0} className="h-0 w-0 overflow-hidden outline-none" aria-hidden="true" />
+
+            {/* Merge review — headline */}
+            <div className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3.5 space-y-1.5">
+              <p className="text-xs font-semibold text-primary uppercase tracking-wide">See Every Change Before You Consolidate</p>
+              <p>
+                <span className="text-foreground font-medium">Consolidate</span> now opens a full-screen merge review that compares the master with the files your offices returned — before anything changes. Every change is labelled (New, Overwritten, Cleared, or an Added, Replaced or Removed row) with the office that made it and the master and incoming values side by side. Text shows the exact words that changed, diagrams show both images, and Part IV shows each line item&apos;s cost change and the new totals per project.
+              </p>
+              <p>
+                You stay in control: <span className="text-foreground font-medium">keep the master&apos;s value</span> on any overwrite, clear or removal, skip a likely duplicate row, and pick a version for each conflict — there is no default, so nothing wins by accident. The review also warns when a file seems to belong to another ISSP, and names any link (a concern&apos;s program, a project&apos;s system) that the merge would break.
+              </p>
+            </div>
+
+            {/* Cycle View — headline */}
+            <div className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3.5 space-y-1.5">
+              <p className="text-xs font-semibold text-primary uppercase tracking-wide">Part IV, All Three Years on One Page</p>
+              <p>
+                Part IV gains <span className="text-foreground font-medium">Cycle View (All Years)</span>: every line item across the whole three-year cycle, grouped by project and expense class, with each year&apos;s quantity and unit cost side by side and the cycle total at the end of the row.
+              </p>
+              <p>
+                <span className="text-foreground font-medium">List</span> mode keeps rows lean — open an item&apos;s details to rename it, change its office, expense category or fund source, or move it to another project or expense class. <span className="text-foreground font-medium">Table</span> mode shows every field at once.
+              </p>
+            </div>
+
+            {/* Merging older and shared files */}
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3.5 space-y-1.5">
+              <p className="text-xs font-semibold text-foreground uppercase tracking-wide">Returned Files From Older Versions Merge Safely</p>
+              <p>
+                A returned file made with an earlier version of the builder is upgraded before the review, and anything the older version could not hold — like the new Plantilla (Unfilled) counts — keeps the master&apos;s value instead of being reset to zero.
+              </p>
+              <p>
+                When two offices share a list, rows are now matched one by one against the master, so master rows no longer appear twice after a merge, and only an office&apos;s real edits count as changes.
+              </p>
+            </div>
+
+            {/* DICT expense categories replace UACS codes */}
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold text-foreground uppercase tracking-wide">The 30 Official DICT Expense Categories</p>
+              <p>
+                Part IV line items are now classified with the 30 fixed expense categories from the official DICT ISSP handout — <span className="text-foreground font-medium">ICT Machinery and Equipment</span>, <span className="text-foreground font-medium">Cloud Computing Services</span>, <span className="text-foreground font-medium">Semi-Expendable ICT Equipment</span> and so on — instead of numeric UACS codes. The picker only offers the categories that match the line&apos;s expense class, and Summary B.4 (Object of Expenditure) lists one row per category, in the handout&apos;s order, in both the editor and the PDF.
+              </p>
+              <p>
+                Files saved with UACS codes are upgraded automatically: known codes map straight to their category, and any item that could not be matched is highlighted with a <span className="text-foreground font-medium">Set category</span> flag together with a one-time review notice — pick its category and the flag clears. Totals were never affected.
+              </p>
+            </div>
+
+            {/* Fund source fix */}
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold text-foreground uppercase tracking-wide">One Row per Fund Source Again</p>
+              <p>
+                Plans started before September 17 stored &ldquo;General Appropriations Act (GAA)&rdquo;, &ldquo;Foreign-Assisted&rdquo; and &ldquo;Locally Funded&rdquo;, while newer line items used the updated wording — so the Part IV Summary and the PDF&apos;s B.2 Fund Source table could show GAA twice, and the fund-source dropdowns did not show the stored choice. Older files are now updated automatically when you open them, and B.2 always shows one row per fund source. Your totals were never affected.
+              </p>
+            </div>
+
+            {/* Previously — September 15–17, 2026 entry, collapsed */}
+            <details className="group rounded-lg border bg-muted/30">
+              <summary className="flex cursor-pointer select-none items-center justify-between px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground list-none [&::-webkit-details-marker]:hidden">
+                Previously — September 15–17, 2026
+                <ChevronDown className="w-3.5 h-3.5 transition-transform group-open:rotate-180" />
+              </summary>
+              <div className="px-4 pb-4 pt-2 space-y-5">
 
             {/* DICT Sept 15 template update — headline */}
             <div className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3.5 space-y-1.5">
@@ -752,6 +815,9 @@ export default function HomePageClient() {
                 The &ldquo;Unsaved changes&rdquo; indicator no longer misfires on every previously-filled section right after a page refresh — it was comparing against a blank slate instead of your last known save. Part IV&apos;s Summary of Investments also correctly drops agency-wide budget rows from project-only files instead of double-counting them.
               </p>
             </div>
+
+              </div>
+            </details>
 
             {/* Previously — September 3, 2026 entry, collapsed */}
             <details className="group rounded-lg border bg-muted/30">

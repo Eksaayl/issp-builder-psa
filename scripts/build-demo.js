@@ -46,7 +46,7 @@ const fs = require("fs");
 const path = require("path");
 
 // Keep in sync with CURRENT_SCHEMA_VERSION in src/lib/migration-review.ts.
-const SCHEMA_VERSION = 13;
+const SCHEMA_VERSION = 14;
 
 const issp = {
   "version": "1.0",
@@ -857,7 +857,7 @@ const issp = {
         "year2Deliverables": "UQMP v2.0 deployed nationally; all 17 ROMS instances decommissioned; CFCP fully operational with SMS notifications; monitored agency onboarding at 60%",
         "year3Deliverables": "",
         "implementingUnit": "ICT Division",
-        "fundingSource": "General Appropriations Act (GAA)"
+        "fundingSource": "General Appropriations Act"
       },
       {
         "id": "proj-bilis",
@@ -879,7 +879,7 @@ const issp = {
         "year2Deliverables": "Network monitoring dashboard operational; 99.5% uptime SLA compliance verified; redundant connection established for Central Office",
         "year3Deliverables": "Network refresh and capacity planning assessment; options for 10 Gbps Central Office upgrade evaluated",
         "implementingUnit": "ICT Division — Infrastructure and Networks Section",
-        "fundingSource": "General Appropriations Act (GAA)"
+        "fundingSource": "General Appropriations Act"
       },
       {
         "id": "proj-handa",
@@ -903,7 +903,7 @@ const issp = {
         "year2Deliverables": "iHRPS performance review; self-service HR portal rolled out to all regional offices; payroll reconciliation with DBM fully automated",
         "year3Deliverables": "iHRPS optimization and feature enhancement; knowledge management documentation completed; succession plan for system administration formalized",
         "implementingUnit": "Human Resources Division and ICT Division",
-        "fundingSource": "General Appropriations Act (GAA)"
+        "fundingSource": "General Appropriations Act"
       }
     ],
     "crossAgencyProjects": [],
@@ -1056,9 +1056,8 @@ const issp = {
             "id": "6hvky9v",
             "item": "Desktop computers (replacement — retiring XP units)",
             "office": "ICT Division",
-            "uacsCode": "5060405003",
-            "uacsLabel": "Information and Communication Technology Equipment",
-            "fundSource": "General Appropriations Act (GAA)",
+            "categoryId": "co-ict-machinery-equipment",
+            "fundSource": "General Appropriations Act",
             "qty": 25,
             "unitCost": 45000
           },
@@ -1066,9 +1065,8 @@ const issp = {
             "id": "po4xzzw",
             "item": "Network switches and cabling — Central Office LAN refresh",
             "office": "ICT Division",
-            "uacsCode": "5060405003",
-            "uacsLabel": "Information and Communication Technology Equipment",
-            "fundSource": "General Appropriations Act (GAA)",
+            "categoryId": "co-ict-machinery-equipment",
+            "fundSource": "General Appropriations Act",
             "qty": 1,
             "unitCost": 380000
           },
@@ -1076,9 +1074,8 @@ const issp = {
             "id": "2q0jzbn",
             "item": "Rack-mounted UPS for server room",
             "office": "ICT Division",
-            "uacsCode": "5060405003",
-            "uacsLabel": "Information and Communication Technology Equipment",
-            "fundSource": "General Appropriations Act (GAA)",
+            "categoryId": "co-ict-machinery-equipment",
+            "fundSource": "General Appropriations Act",
             "qty": 2,
             "unitCost": 95000
           },
@@ -1086,9 +1083,8 @@ const issp = {
             "id": "alqidqb",
             "item": "Enterprise antivirus and endpoint protection licenses (3-year)",
             "office": "ICT Division",
-            "uacsCode": "5060405015",
-            "uacsLabel": "ICT Software",
-            "fundSource": "General Appropriations Act (GAA)",
+            "categoryId": "co-ict-software",
+            "fundSource": "General Appropriations Act",
             "qty": 1,
             "unitCost": 420000
           }
@@ -1098,9 +1094,8 @@ const issp = {
             "id": "z5qqaqw",
             "item": "Internet subscription — Central Office (1 Gbps fiber)",
             "office": "ICT Division",
-            "uacsCode": "5020503000",
-            "uacsLabel": "Internet Subscription Expenses",
-            "fundSource": "General Appropriations Act (GAA)",
+            "categoryId": "mooe-internet-subscription",
+            "fundSource": "General Appropriations Act",
             "qty": 12,
             "unitCost": 28000
           },
@@ -1108,9 +1103,8 @@ const issp = {
             "id": "dyrn2o4",
             "item": "ICT office supplies (printer cartridges, cables, peripherals)",
             "office": "ICT Division",
-            "uacsCode": "5020301001",
-            "uacsLabel": "ICT Office Supplies Expenses",
-            "fundSource": "General Appropriations Act (GAA)",
+            "categoryId": "mooe-ict-supplies",
+            "fundSource": "General Appropriations Act",
             "qty": 1,
             "unitCost": 180000
           },
@@ -1118,9 +1112,8 @@ const issp = {
             "id": "k7lb5r0",
             "item": "ICT consultancy — UQMP requirements analysis and architecture design",
             "office": "ICT Division",
-            "uacsCode": "5021103001",
-            "uacsLabel": "ICT Consultancy Services",
-            "fundSource": "General Appropriations Act (GAA)",
+            "categoryId": "mooe-professional-services",
+            "fundSource": "General Appropriations Act",
             "qty": 1,
             "unitCost": 850000
           }
@@ -1134,9 +1127,8 @@ const issp = {
               "id": "3ga0nh4",
               "item": "UQMP and CFCP system development (outsourced — Year 1 milestone)",
               "office": "ICT Division",
-              "uacsCode": "5060405015",
-              "uacsLabel": "ICT Software",
-              "fundSource": "General Appropriations Act (GAA)",
+              "categoryId": "co-ict-software",
+              "fundSource": "General Appropriations Act",
               "qty": 1,
               "unitCost": 9500000
             }
@@ -1146,9 +1138,8 @@ const issp = {
               "id": "endx3fj",
               "item": "GovCloud PH hosting — UQMP/CFCP beta environment (12 months)",
               "office": "ICT Division",
-              "uacsCode": "5020503000",
-              "uacsLabel": "Internet Subscription Expenses",
-              "fundSource": "General Appropriations Act (GAA)",
+              "categoryId": "mooe-internet-subscription",
+              "fundSource": "General Appropriations Act",
               "qty": 12,
               "unitCost": 45000
             },
@@ -1156,9 +1147,8 @@ const issp = {
               "id": "daxxbig",
               "item": "Project management — SIKAP implementation team",
               "office": "ICT Division",
-              "uacsCode": "5021103001",
-              "uacsLabel": "ICT Consultancy Services",
-              "fundSource": "General Appropriations Act (GAA)",
+              "categoryId": "mooe-professional-services",
+              "fundSource": "General Appropriations Act",
               "qty": 1,
               "unitCost": 480000
             }
@@ -1171,9 +1161,8 @@ const issp = {
               "id": "l6t4qth",
               "item": "Government-grade routers with failover — 15 regional offices",
               "office": "ICT Division — Infrastructure Section",
-              "uacsCode": "5060405003",
-              "uacsLabel": "Information and Communication Technology Equipment",
-              "fundSource": "General Appropriations Act (GAA)",
+              "categoryId": "co-ict-machinery-equipment",
+              "fundSource": "General Appropriations Act",
               "qty": 15,
               "unitCost": 85000
             },
@@ -1181,9 +1170,8 @@ const issp = {
               "id": "aexyrmb",
               "item": "Fixed wireless broadband equipment — 3 geographically isolated regional offices",
               "office": "ICT Division — Infrastructure Section",
-              "uacsCode": "5060405003",
-              "uacsLabel": "Information and Communication Technology Equipment",
-              "fundSource": "General Appropriations Act (GAA)",
+              "categoryId": "co-ict-machinery-equipment",
+              "fundSource": "General Appropriations Act",
               "qty": 3,
               "unitCost": 120000
             }
@@ -1193,9 +1181,8 @@ const issp = {
               "id": "ole4air",
               "item": "Fiber ISP subscription — 12 regional office upgrades (100 Mbps, 12 months)",
               "office": "ICT Division",
-              "uacsCode": "5020503000",
-              "uacsLabel": "Internet Subscription Expenses",
-              "fundSource": "General Appropriations Act (GAA)",
+              "categoryId": "mooe-internet-subscription",
+              "fundSource": "General Appropriations Act",
               "qty": 144,
               "unitCost": 18500
             },
@@ -1203,9 +1190,8 @@ const issp = {
               "id": "qxqkkcg",
               "item": "Fixed wireless broadband subscription — 3 isolated regional offices (12 months)",
               "office": "ICT Division",
-              "uacsCode": "5020503000",
-              "uacsLabel": "Internet Subscription Expenses",
-              "fundSource": "General Appropriations Act (GAA)",
+              "categoryId": "mooe-internet-subscription",
+              "fundSource": "General Appropriations Act",
               "qty": 36,
               "unitCost": 12000
             }
@@ -1218,9 +1204,8 @@ const issp = {
               "id": "94ldz8t",
               "item": "iHRPS SaaS license — initial 1-year subscription (agency-wide)",
               "office": "Human Resources Division",
-              "uacsCode": "5060405015",
-              "uacsLabel": "ICT Software",
-              "fundSource": "General Appropriations Act (GAA)",
+              "categoryId": "co-ict-software",
+              "fundSource": "General Appropriations Act",
               "qty": 1,
               "unitCost": 1200000
             }
@@ -1230,9 +1215,8 @@ const issp = {
               "id": "h83f44b",
               "item": "Data migration consultancy — AHRIS to iHRPS (Excel workbook extraction and mapping)",
               "office": "Human Resources Division",
-              "uacsCode": "5021103001",
-              "uacsLabel": "ICT Consultancy Services",
-              "fundSource": "General Appropriations Act (GAA)",
+              "categoryId": "mooe-professional-services",
+              "fundSource": "General Appropriations Act",
               "qty": 1,
               "unitCost": 380000
             },
@@ -1240,9 +1224,8 @@ const issp = {
               "id": "vi2a9hk",
               "item": "ICT training — iHRPS user training for all 17 regional offices and Central Office HR staff",
               "office": "Human Resources Division",
-              "uacsCode": "5020201001",
-              "uacsLabel": "ICT Training Expenses",
-              "fundSource": "General Appropriations Act (GAA)",
+              "categoryId": "mooe-ict-training",
+              "fundSource": "General Appropriations Act",
               "qty": 1,
               "unitCost": 420000
             }
@@ -1256,9 +1239,8 @@ const issp = {
             "id": "zpirri8",
             "item": "Annual software maintenance — ROMS regional instances (pre-decommission)",
             "office": "ICT Division",
-            "uacsCode": "5020503000",
-            "uacsLabel": "Internet Subscription Expenses",
-            "fundSource": "General Appropriations Act (GAA)",
+            "categoryId": "mooe-internet-subscription",
+            "fundSource": "General Appropriations Act",
             "qty": 1,
             "unitCost": 240000
           }
@@ -1272,9 +1254,8 @@ const issp = {
             "id": "anv76ca",
             "item": "Laptops for field validation officers — 17 regional offices (1 each)",
             "office": "ICT Division",
-            "uacsCode": "5060405003",
-            "uacsLabel": "Information and Communication Technology Equipment",
-            "fundSource": "General Appropriations Act (GAA)",
+            "categoryId": "co-ict-machinery-equipment",
+            "fundSource": "General Appropriations Act",
             "qty": 17,
             "unitCost": 52000
           },
@@ -1282,9 +1263,8 @@ const issp = {
             "id": "ltmflpb",
             "item": "Central Office server decommission and disposal — Windows Server 2012 R2 units",
             "office": "ICT Division",
-            "uacsCode": "5060405003",
-            "uacsLabel": "Information and Communication Technology Equipment",
-            "fundSource": "General Appropriations Act (GAA)",
+            "categoryId": "co-ict-machinery-equipment",
+            "fundSource": "General Appropriations Act",
             "qty": 1,
             "unitCost": 85000
           }
@@ -1294,9 +1274,8 @@ const issp = {
             "id": "9k8wie5",
             "item": "Internet subscription — Central Office (1 Gbps fiber, continued)",
             "office": "ICT Division",
-            "uacsCode": "5020503000",
-            "uacsLabel": "Internet Subscription Expenses",
-            "fundSource": "General Appropriations Act (GAA)",
+            "categoryId": "mooe-internet-subscription",
+            "fundSource": "General Appropriations Act",
             "qty": 12,
             "unitCost": 28000
           },
@@ -1304,9 +1283,8 @@ const issp = {
             "id": "9ihejeu",
             "item": "ICT office supplies",
             "office": "ICT Division",
-            "uacsCode": "5020301001",
-            "uacsLabel": "ICT Office Supplies Expenses",
-            "fundSource": "General Appropriations Act (GAA)",
+            "categoryId": "mooe-ict-supplies",
+            "fundSource": "General Appropriations Act",
             "qty": 1,
             "unitCost": 150000
           }
@@ -1320,9 +1298,8 @@ const issp = {
               "id": "xmy42aa",
               "item": "UQMP v2.0 national deployment — development completion and rollout (Year 2 milestone)",
               "office": "ICT Division",
-              "uacsCode": "5060405015",
-              "uacsLabel": "ICT Software",
-              "fundSource": "General Appropriations Act (GAA)",
+              "categoryId": "co-ict-software",
+              "fundSource": "General Appropriations Act",
               "qty": 1,
               "unitCost": 7500000
             }
@@ -1332,9 +1309,8 @@ const issp = {
               "id": "45rinih",
               "item": "GovCloud PH hosting — UQMP/CFCP production environment (12 months)",
               "office": "ICT Division",
-              "uacsCode": "5020503000",
-              "uacsLabel": "Internet Subscription Expenses",
-              "fundSource": "General Appropriations Act (GAA)",
+              "categoryId": "mooe-internet-subscription",
+              "fundSource": "General Appropriations Act",
               "qty": 12,
               "unitCost": 68000
             },
@@ -1342,9 +1318,8 @@ const issp = {
               "id": "92mtsf7",
               "item": "Monitored agency onboarding support — API integration assistance (60% target)",
               "office": "ICT Division",
-              "uacsCode": "5021103001",
-              "uacsLabel": "ICT Consultancy Services",
-              "fundSource": "General Appropriations Act (GAA)",
+              "categoryId": "mooe-professional-services",
+              "fundSource": "General Appropriations Act",
               "qty": 1,
               "unitCost": 360000
             },
@@ -1352,9 +1327,8 @@ const issp = {
               "id": "c7fqy3x",
               "item": "CFCP SMS notification service (DICT gateway — estimated 500K SMS/year)",
               "office": "ICT Division",
-              "uacsCode": "5020502001",
-              "uacsLabel": "Mobile",
-              "fundSource": "General Appropriations Act (GAA)",
+              "categoryId": "mooe-mobile-expenses",
+              "fundSource": "General Appropriations Act",
               "qty": 1,
               "unitCost": 250000
             }
@@ -1368,9 +1342,8 @@ const issp = {
               "id": "ldqwh0h",
               "item": "Fiber ISP subscription — 12 regional offices (100 Mbps, Year 2 full year)",
               "office": "ICT Division",
-              "uacsCode": "5020503000",
-              "uacsLabel": "Internet Subscription Expenses",
-              "fundSource": "General Appropriations Act (GAA)",
+              "categoryId": "mooe-internet-subscription",
+              "fundSource": "General Appropriations Act",
               "qty": 144,
               "unitCost": 18500
             },
@@ -1378,9 +1351,8 @@ const issp = {
               "id": "oba5au5",
               "item": "Fixed wireless broadband — 3 isolated offices (Year 2 full year)",
               "office": "ICT Division",
-              "uacsCode": "5020503000",
-              "uacsLabel": "Internet Subscription Expenses",
-              "fundSource": "General Appropriations Act (GAA)",
+              "categoryId": "mooe-internet-subscription",
+              "fundSource": "General Appropriations Act",
               "qty": 36,
               "unitCost": 12000
             }
@@ -1401,9 +1373,8 @@ const issp = {
             "id": "ettlnjd",
             "item": "Cybersecurity vulnerability assessment — annual (Central Office and 5 pilot regional offices)",
             "office": "ICT Division",
-            "uacsCode": "5021103001",
-            "uacsLabel": "ICT Consultancy Services",
-            "fundSource": "General Appropriations Act (GAA)",
+            "categoryId": "mooe-professional-services",
+            "fundSource": "General Appropriations Act",
             "qty": 1,
             "unitCost": 350000
           },
@@ -1411,9 +1382,8 @@ const issp = {
               "id": "bwx8n7h",
               "item": "iHRPS SaaS license — Year 2 renewal",
               "office": "Human Resources Division",
-              "uacsCode": "5021103001",
-              "uacsLabel": "ICT Consultancy Services",
-              "fundSource": "General Appropriations Act (GAA)",
+              "categoryId": "mooe-professional-services",
+              "fundSource": "General Appropriations Act",
               "qty": 1,
               "unitCost": 1200000
             },
@@ -1421,9 +1391,8 @@ const issp = {
               "id": "zlaap2f",
               "item": "iHRPS self-service portal rollout — regional office training and support",
               "office": "Human Resources Division",
-              "uacsCode": "5020201001",
-              "uacsLabel": "ICT Training Expenses",
-              "fundSource": "General Appropriations Act (GAA)",
+              "categoryId": "mooe-ict-training",
+              "fundSource": "General Appropriations Act",
               "qty": 1,
               "unitCost": 180000
             }
@@ -1437,9 +1406,8 @@ const issp = {
             "id": "nj14rpu",
             "item": "UQMP analytics server upgrade — Central Office (dedicated on-prem analytics node)",
             "office": "ICT Division",
-            "uacsCode": "5060405003",
-            "uacsLabel": "Information and Communication Technology Equipment",
-            "fundSource": "General Appropriations Act (GAA)",
+            "categoryId": "co-ict-machinery-equipment",
+            "fundSource": "General Appropriations Act",
             "qty": 1,
             "unitCost": 480000
           }
@@ -1449,9 +1417,8 @@ const issp = {
             "id": "vgp2wpn",
             "item": "Internet subscription — Central Office (1 Gbps, continued)",
             "office": "ICT Division",
-            "uacsCode": "5020503000",
-            "uacsLabel": "Internet Subscription Expenses",
-            "fundSource": "General Appropriations Act (GAA)",
+            "categoryId": "mooe-internet-subscription",
+            "fundSource": "General Appropriations Act",
             "qty": 12,
             "unitCost": 28000
           },
@@ -1459,9 +1426,8 @@ const issp = {
             "id": "ugbyv5s",
             "item": "ICT office supplies",
             "office": "ICT Division",
-            "uacsCode": "5020301001",
-            "uacsLabel": "ICT Office Supplies Expenses",
-            "fundSource": "General Appropriations Act (GAA)",
+            "categoryId": "mooe-ict-supplies",
+            "fundSource": "General Appropriations Act",
             "qty": 1,
             "unitCost": 150000
           }
@@ -1483,9 +1449,8 @@ const issp = {
               "id": "fmemlfk",
               "item": "Fiber ISP subscription — all 12 upgraded offices (100 Mbps, Year 3)",
               "office": "ICT Division",
-              "uacsCode": "5020503000",
-              "uacsLabel": "Internet Subscription Expenses",
-              "fundSource": "General Appropriations Act (GAA)",
+              "categoryId": "mooe-internet-subscription",
+              "fundSource": "General Appropriations Act",
               "qty": 144,
               "unitCost": 18500
             },
@@ -1493,9 +1458,8 @@ const issp = {
               "id": "c58xfvo",
               "item": "Fixed wireless broadband — 3 isolated offices (Year 3)",
               "office": "ICT Division",
-              "uacsCode": "5020503000",
-              "uacsLabel": "Internet Subscription Expenses",
-              "fundSource": "General Appropriations Act (GAA)",
+              "categoryId": "mooe-internet-subscription",
+              "fundSource": "General Appropriations Act",
               "qty": 36,
               "unitCost": 12000
             }
@@ -1516,9 +1480,8 @@ const issp = {
             "id": "39gaa2q",
             "item": "Annual cybersecurity vulnerability assessment — all 17 regional offices",
             "office": "ICT Division",
-            "uacsCode": "5021103001",
-            "uacsLabel": "ICT Consultancy Services",
-            "fundSource": "General Appropriations Act (GAA)",
+            "categoryId": "mooe-professional-services",
+            "fundSource": "General Appropriations Act",
             "qty": 1,
             "unitCost": 680000
           },
@@ -1526,9 +1489,8 @@ const issp = {
             "id": "6w2efdg",
             "item": "CFCP SMS notification service — Year 3 (estimated 1.2M SMS)",
             "office": "ICT Division",
-            "uacsCode": "5020502001",
-            "uacsLabel": "Mobile",
-            "fundSource": "General Appropriations Act (GAA)",
+            "categoryId": "mooe-mobile-expenses",
+            "fundSource": "General Appropriations Act",
             "qty": 1,
             "unitCost": 480000
           },
@@ -1536,9 +1498,8 @@ const issp = {
               "id": "tcgxut2",
               "item": "iHRPS SaaS license — Year 3 renewal",
               "office": "Human Resources Division",
-              "uacsCode": "5021103001",
-              "uacsLabel": "ICT Consultancy Services",
-              "fundSource": "General Appropriations Act (GAA)",
+              "categoryId": "mooe-professional-services",
+              "fundSource": "General Appropriations Act",
               "qty": 1,
               "unitCost": 1200000
             },
@@ -1546,9 +1507,8 @@ const issp = {
               "id": "8kpdzl6",
               "item": "iHRPS system administration training — succession planning documentation",
               "office": "Human Resources Division",
-              "uacsCode": "5020201001",
-              "uacsLabel": "ICT Training Expenses",
-              "fundSource": "General Appropriations Act (GAA)",
+              "categoryId": "mooe-ict-training",
+              "fundSource": "General Appropriations Act",
               "qty": 1,
               "unitCost": 120000
             },
@@ -1556,9 +1516,8 @@ const issp = {
               "id": "mi32nlg",
               "item": "GovCloud PH hosting — UQMP/CFCP production (12 months, full load)",
               "office": "ICT Division",
-              "uacsCode": "5020503000",
-              "uacsLabel": "Internet Subscription Expenses",
-              "fundSource": "General Appropriations Act (GAA)",
+              "categoryId": "mooe-internet-subscription",
+              "fundSource": "General Appropriations Act",
               "qty": 12,
               "unitCost": 72000
             },
@@ -1566,9 +1525,8 @@ const issp = {
               "id": "daszwvp",
               "item": "UQMP system maintenance and enhancement (Year 3 — 100% agency onboarding drive)",
               "office": "ICT Division",
-              "uacsCode": "5021103001",
-              "uacsLabel": "ICT Consultancy Services",
-              "fundSource": "General Appropriations Act (GAA)",
+              "categoryId": "mooe-professional-services",
+              "fundSource": "General Appropriations Act",
               "qty": 1,
               "unitCost": 480000
             },
@@ -1576,9 +1534,8 @@ const issp = {
               "id": "qmr9huo",
               "item": "Ceremonial decommissioning of NQMS and XP workstations — event logistics",
               "office": "ICT Division",
-              "uacsCode": "5020201002",
-              "uacsLabel": "Training Expenses",
-              "fundSource": "General Appropriations Act (GAA)",
+              "categoryId": "mooe-ict-training",
+              "fundSource": "General Appropriations Act",
               "qty": 1,
               "unitCost": 85000
             }

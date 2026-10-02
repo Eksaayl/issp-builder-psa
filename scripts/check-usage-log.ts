@@ -29,6 +29,8 @@ assert.equal(parseUsageLogInput({
 }).success, false);
 
 assert.equal(isExcludedDemoAgency({ acronym: " ncwtr " }), true);
+assert.equal(isExcludedDemoAgency({ acronym: "smk" }), true);
+assert.equal(isExcludedDemoAgency({ acronym: " deploy-check " }), true);
 assert.equal(isExcludedDemoAgency({ acronym: "DOE" }), false);
 
 assert.equal(parseUsageLogInput({
@@ -44,32 +46,38 @@ assert.equal(parseUsageLogInput({
   agencyAcronym: "DOE",
 }).success, false);
 
-const tempDir = await mkdtemp(path.join(os.tmpdir(), "issp-usage-log-"));
-process.env.ISSP_USAGE_LOG_PATH = path.join(tempDir, "usage.jsonl");
+// Top-level await is not available under tsx's cjs output for this package, so
+// the async checks run in an IIFE.
+void (async () => {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), "issp-usage-log-"));
+  process.env.ISSP_USAGE_LOG_PATH = path.join(tempDir, "usage.jsonl");
 
-const before = Date.now();
-await Promise.all([
-  appendUsageLogEntry({ event: "created", agencyName: "Agency One", agencyAcronym: "A1" }),
-  appendUsageLogEntry({ event: "loaded", agencyName: "Agency Two", agencyAcronym: "A2" }),
-  appendUsageLogEntry({ event: "restored", agencyName: "Agency Three", agencyAcronym: "A3" }),
-  appendUsageLogEntry({
-    event: "loaded",
-    agencyName: "National Commission on Waiting Time Reduction",
-    agencyAcronym: "NCWTR",
-  }),
-]);
-const after = Date.now();
+  const before = Date.now();
+  await Promise.all([
+    appendUsageLogEntry({ event: "created", agencyName: "Agency One", agencyAcronym: "A1" }),
+    appendUsageLogEntry({ event: "loaded", agencyName: "Agency Two", agencyAcronym: "A2" }),
+    appendUsageLogEntry({ event: "restored", agencyName: "Agency Three", agencyAcronym: "A3" }),
+    appendUsageLogEntry({
+      event: "loaded",
+      agencyName: "National Commission on Waiting Time Reduction",
+      agencyAcronym: "NCWTR",
+    }),
+    appendUsageLogEntry({ event: "loaded", agencyName: "Smoke Agency", agencyAcronym: "SMK" }),
+    appendUsageLogEntry({ event: "loaded", agencyName: "Deployment Verification", agencyAcronym: "DEPLOY-CHECK" }),
+  ]);
+  const after = Date.now();
 
-const lines = (await readFile(process.env.ISSP_USAGE_LOG_PATH, "utf8"))
-  .trim()
-  .split("\n")
-  .map((line) => JSON.parse(line) as Record<string, unknown>);
+  const lines = (await readFile(process.env.ISSP_USAGE_LOG_PATH, "utf8"))
+    .trim()
+    .split("\n")
+    .map((line) => JSON.parse(line) as Record<string, unknown>);
 
-assert.equal(lines.length, 3);
-for (const line of lines) {
-  assert.deepEqual(Object.keys(line).sort(), ["agencyAcronym", "agencyName", "event", "timestamp"]);
-  const timestamp = Date.parse(String(line.timestamp));
-  assert.ok(timestamp >= before && timestamp <= after, "timestamp must be generated during the server write");
-}
+  assert.equal(lines.length, 3);
+  for (const line of lines) {
+    assert.deepEqual(Object.keys(line).sort(), ["agencyAcronym", "agencyName", "event", "timestamp"]);
+    const timestamp = Date.parse(String(line.timestamp));
+    assert.ok(timestamp >= before && timestamp <= after, "timestamp must be generated during the server write");
+  }
 
-console.log("Usage log checks passed.");
+  console.log("Usage log checks passed.");
+})();

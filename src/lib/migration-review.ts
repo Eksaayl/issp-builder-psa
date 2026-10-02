@@ -1,4 +1,6 @@
-export const CURRENT_SCHEMA_VERSION = 13;
+import type { IsspDocument } from "./store/types";
+
+export const CURRENT_SCHEMA_VERSION = 14;
 
 export const MIGRATION_REVIEW_SECTIONS = [
   {
@@ -36,6 +38,13 @@ export const MIGRATION_REVIEW_SECTIONS = [
     href: "/editor/part1/b",
     reason: "DICT quietly released an updated ISSP template on September 15 — Plantilla positions are now reported as Filled and Unfilled counts instead of one total. Old files default Unfilled to 0; please enter your agency's real vacancy count.",
   },
+  {
+    id: "part4/categories",
+    shortLabel: "IV",
+    label: "Part IV · Expense Categories",
+    href: "/editor/part4/cycle",
+    reason: "UACS codes were replaced by the 30 official DICT expense categories. Items whose old code had no matching category are highlighted in Part IV — open each one and pick its category.",
+  },
 ] as const;
 
 export type MigrationReviewSectionId = (typeof MIGRATION_REVIEW_SECTIONS)[number]["id"];
@@ -51,7 +60,37 @@ export function getRequiredMigrationReviewSectionIds(sourceSchemaVersion: number
       if (section.id === "part2/d") return sourceSchemaVersion < 7;
       if (section.id === "part1/c") return sourceSchemaVersion < 10;
       if (section.id === "part1/b") return sourceSchemaVersion < 13;
+      if (section.id === "part4/categories") return false; // doc-aware only — see below
       return sourceSchemaVersion < 9;
     })
     .map((section) => section.id);
+}
+
+/** True when any Part IV line item has no expense category set. */
+export function hasUncategorizedPart4Lines(doc: IsspDocument): boolean {
+  const buckets = (year: IsspDocument["part4"]["year1"]) => [
+    ...year.officeProductivity.capitalOutlay,
+    ...year.officeProductivity.mooe,
+    ...Object.values(year.internalProjects).flatMap((p) => [...p.capitalOutlay, ...p.mooe]),
+    ...Object.values(year.crossAgencyProjects).flatMap((p) => [...p.capitalOutlay, ...p.mooe]),
+    ...year.continuingCosts.mooe,
+  ];
+  const { year1, year2, year3 } = doc.part4;
+  return [year1, year2, year3].some((y) => buckets(y).some((l) => !l.categoryId));
+}
+
+/**
+ * Doc-aware variant: same as getRequiredMigrationReviewSectionIds, plus the
+ * Part IV category review — required only when a pre-v14 file still has
+ * uncategorized line items after migration (unknown or mismatched UACS codes).
+ */
+export function getRequiredMigrationReviewSectionIdsForDoc(
+  sourceSchemaVersion: number,
+  doc: IsspDocument
+): MigrationReviewSectionId[] {
+  const ids = getRequiredMigrationReviewSectionIds(sourceSchemaVersion);
+  if (sourceSchemaVersion < 14 && hasUncategorizedPart4Lines(doc)) {
+    return [...ids, "part4/categories"];
+  }
+  return ids;
 }

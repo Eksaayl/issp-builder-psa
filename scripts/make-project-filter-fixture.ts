@@ -28,13 +28,15 @@ function kpiRow(id: string): KpiRow {
     year1Target: "", year2Target: "", year3Target: "", dataCollectionMethod: "", responsibleUnit: "IMD" };
 }
 function line(id: string, item: string): LineItem {
-  return { id, item, office: "IMD", uacsCode: "", uacsLabel: "",
+  return { id, item, office: "IMD", categoryId: "",
     fundSource: "General Appropriations Act (GAA)", qty: 1, unitCost: 1000 };
 }
 
 const doc = createEmptyDocument({
   title: "Smoke Master ISSP", startYear: 2028, endYear: 2030, amendmentNumber: 0,
   scope: "AGENCY_WIDE", agencyHeadName: "Dir. Smoke",
+  // SMK must stay listed in usage-log-policy.ts EXCLUDED_DEMO_AGENCY_ACRONYMS,
+  // or every smoke run pollutes the usage log.
   agency: { name: "Smoke Agency", acronym: "SMK", type: "NGA", websiteUrl: "", logoBase64: null },
 });
 

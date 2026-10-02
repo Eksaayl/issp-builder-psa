@@ -9,12 +9,11 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { IsspDocument, Part1Data, Part2Data, Part3Data, Part4Data, SectionMeta, HumanCapital, CyberControls, EgpChecklist, YearBudget, HCRow, StakeholderService, IsClassification, PiaProcessAnswer, MigrationReview, Program } from "./types";
+import type { IsspDocument, Part1Data, Part2Data, Part3Data, Part4Data, SectionMeta, HumanCapital, CyberControls, EgpChecklist, YearBudget, LineItem, HCRow, StakeholderService, IsClassification, PiaProcessAnswer, MigrationReview, Program } from "./types";
 import { createEmptyDocument, makeDefaultPart1, makeDefaultPart2, makeDefaultPart3, makeDefaultPart4, type NewDocOptions } from "./defaults";
 import { idbClear, idbLoad, idbSave } from "./idb";
-import { CURRENT_SCHEMA_VERSION, getRequiredMigrationReviewSectionIds } from "@/lib/migration-review";
+import { CURRENT_SCHEMA_VERSION, getRequiredMigrationReviewSectionIdsForDoc } from "@/lib/migration-review";
 import { recordIsspUsage } from "@/lib/record-usage";
-import { applyResolutions, consolidate, type ScalarConflict } from "@/lib/scope/consolidate";
 import { fetchServerDocument, fetchServerDocumentHead, uploadServerDocument } from "@/lib/server-document";
 import {
   clearServerSyncMarker,
@@ -22,6 +21,10 @@ import {
   readServerSyncMarker,
   writeServerSyncMarker,
 } from "./server-sync-marker";
+import { applyReviewDecisions, type ParsedScopedFile, type ReviewDecisions } from "@/lib/scope/merge-review";
+import { backfillFromMaster } from "@/lib/scope/upgrade";
+import { canonicalFundSource } from "@/lib/fund-sources";
+import { categoryById, categoryForLegacyUacs, type ExpenseClass } from "@/lib/expense-categories";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -42,12 +45,11 @@ export interface LoadFromFileOptions { recordUsage?: boolean }
 
 /**
  * Outcome of a consolidate-merge apply. On success, the dialog surfaces
- * `reviewFlags` (sections needing human dedup — Task 11 banner) and
- * `scalarConflicts` that were resolved during this apply (informational — the
- * resolutions are already written into the merged doc).
+ * `reviewFlags` (sections that still need a human check after the
+ * secretariat's decisions).
  */
 export type ConsolidateActionResult =
-  | { success: true; reviewFlags: string[]; scalarConflicts: ScalarConflict[] }
+  | { success: true; reviewFlags: string[] }
   | { success: false; error: string };
 
 export interface IsspStoreValue {
@@ -89,16 +91,13 @@ export interface IsspStoreValue {
   loadFromFile: (file: File, options?: LoadFromFileOptions) => Promise<StoreActionResult>;
   /**
    * Merge one or more returned scoped `.issp` files into the current master.
-   * The dialog computes a pure preview via {@link parseScopedIsspFile} +
-   * `consolidate()`; this action re-parses, applies the secretariat's scalar-
-   * conflict `resolutions` (keyed `${sectionId}.${fieldKey}`), then writes the
+   * The merge review is built with the same functions: this action re-parses
+   * the files, applies the secretariat's `decisions` (Keep master / Skip row
+   * and conflict resolutions) via `applyReviewDecisions`, then writes the
    * merged doc. Non-scoped / malformed files are named in `error` — never
-   * silently dropped. Returns flags/conflicts so the dialog can toast + surface.
+   * silently dropped. Returns the remaining review flags for the toast.
    */
-  consolidateFiles: (
-    files: File[],
-    resolutions?: Record<string, unknown>
-  ) => Promise<ConsolidateActionResult>;
+  consolidateFiles: (files: File[], decisions: ReviewDecisions) => Promise<ConsolidateActionResult>;
   /**
    * Row timestamp of the server copy this session last read or wrote, or null
    * if the server has not been contacted. Sent back as the precondition on the
@@ -279,18 +278,45 @@ function normalizeImportShape(raw: unknown): { success: true; doc: IsspDocument 
 }
 
 /**
- * Parse and validate a single returned scoped `.issp` file — the shared gate
- * between the consolidate dialog's pure preview and the {@link consolidateFiles}
- * store action. Rejects non-`.issp-main`, files missing `editScope` (i.e., a
- * plain master dropped into Consolidate), and the same size/image gates as
- * {@link loadFromFile}. Does NOT migrate — scoped files are v11+ by construction
- * (Phase 1+ feature); the consolidate engine reads fields by shape, not version.
+ * The first malformed part of a scoped file's `editScope`, or null when its
+ * shape is sound. The merge reads these keys directly, so a hand-edited file
+ * with a broken scope must be rejected by name rather than crash the review.
+ */
+function editScopeProblem(scope: unknown): string | null {
+  if (!isRecord(scope)) return "editScope";
+  const office = scope.office;
+  if (!isRecord(office)) return "editScope.office";
+  if (typeof office.id !== "string" || office.id.trim() === "") return "editScope.office.id";
+  if (typeof office.displayLabel !== "string") return "editScope.office.displayLabel";
+  if (!Array.isArray(scope.editable) || !scope.editable.every((p) => typeof p === "string")) return "editScope.editable";
+  if (scope.projectIds !== undefined && (!Array.isArray(scope.projectIds) || !scope.projectIds.every((p) => typeof p === "string"))) {
+    return "editScope.projectIds";
+  }
+  return null;
+}
+
+/**
+ * Parse, validate, and prepare a single returned scoped `.issp` file for
+ * merging into `master` — the shared gate between the consolidate dialog's
+ * merge review and the {@link consolidateFiles} store action. Rejects
+ * non-`.issp-main`, files missing `editScope` (i.e., a plain master dropped
+ * into Consolidate), and the same size/image gates as {@link loadFromFile}.
+ *
+ * A file made with an older schema is upgraded with {@link migrateLegacyDoc}
+ * (the same path a normal load takes), then every piece of data its original
+ * schema could not hold takes the master's value (`backfillFromMaster`), so
+ * the upgrade's defaults never overwrite real master data on merge.
+ * `sourceSchemaVersion` is the file's version before the upgrade.
  *
  * Returns the file's name in the error string so a reject toast can name it.
  */
 export async function parseScopedIsspFile(
-  file: File
-): Promise<{ success: true; doc: IsspDocument } | { success: false; error: string }> {
+  file: File,
+  master: IsspDocument
+): Promise<
+  | { success: true; doc: IsspDocument; sourceSchemaVersion: number }
+  | { success: false; error: string }
+> {
   try {
     if (file.size > MAX_ISSP_FILE_SIZE_BYTES) {
       return { success: false, error: `"${file.name}" is too large to load safely.` };
@@ -307,9 +333,19 @@ export async function parseScopedIsspFile(
         error: `"${file.name}" is not a scoped office file. Use "Load different ISSP…" to open it as the master.`,
       };
     }
+    const scopeProblem = editScopeProblem(normalized.doc.editScope);
+    if (scopeProblem) {
+      return { success: false, error: `"${file.name}" has a damaged scope (${scopeProblem}). Ask the office to send the file again.` };
+    }
     const imageValidation = validateEmbeddedImages(normalized.doc);
     if (!imageValidation.success) return { success: false, error: `"${file.name}": ${imageValidation.error}` };
-    return { success: true, doc: normalized.doc };
+
+    const sourceSchemaVersion = normalized.doc.schemaVersion ?? 1;
+    // The merge never reads migrationReview; drop it so the prepared file
+    // carries no review state of its own.
+    const upgraded: IsspDocument = { ...migrateLegacyDoc(normalized.doc), migrationReview: undefined };
+    const doc = backfillFromMaster(upgraded, master, sourceSchemaVersion);
+    return { success: true, doc, sourceSchemaVersion };
   } catch {
     return { success: false, error: `"${file.name}" could not be read as a valid .issp file.` };
   }
@@ -426,6 +462,7 @@ function deriveMetaFromContent(doc: IsspDocument): Record<string, SectionMeta> {
   maybeSet("part4/year2", hasYearContent(p4.year2));
   maybeSet("part4/year3", hasYearContent(p4.year3));
   maybeSet("part4/summary", anyYear);
+  maybeSet("part4/cycle", anyYear);
 
   // Annex 1 is driven by the attached-office list (no field-level diff). Derive
   // in_progress so a freshly loaded master with offices shows the dot without
@@ -445,6 +482,65 @@ function normalizeProjectType<T extends { projectType?: any; linkedSystemIds?: s
   else if (t === "Infrastructure" || t === "Standalone") t = "STANDALONE";
   if (!t && (p.linkedSystemIds?.length ?? 0) > 0) t = "IS_DRIVEN";
   return { ...p, projectType: t, linkedSystemIds: p.linkedSystemIds ?? [] };
+}
+
+function withCanonicalFunding<T extends { fundingSource: string }>(p: T): T {
+  const fundingSource = canonicalFundSource(p.fundingSource ?? "");
+  return fundingSource === p.fundingSource ? p : { ...p, fundingSource };
+}
+
+/** Every Part IV line item's fund source as the current dropdown value. */
+function withCanonicalFundSources(year: YearBudget): YearBudget {
+  const lines = <L extends { fundSource: string }>(ls: L[]) =>
+    ls.map((l) => {
+      const fundSource = canonicalFundSource(l.fundSource ?? "");
+      return fundSource === l.fundSource ? l : { ...l, fundSource };
+    });
+  const budgets = (rec: YearBudget["internalProjects"]) =>
+    Object.fromEntries(Object.entries(rec).map(([id, b]) => [id, { ...b, capitalOutlay: lines(b.capitalOutlay), mooe: lines(b.mooe) }]));
+  return {
+    ...year,
+    officeProductivity: { capitalOutlay: lines(year.officeProductivity.capitalOutlay), mooe: lines(year.officeProductivity.mooe) },
+    internalProjects: budgets(year.internalProjects),
+    crossAgencyProjects: budgets(year.crossAgencyProjects),
+    continuingCosts: { ...year.continuingCosts, mooe: lines(year.continuingCosts.mooe) },
+  };
+}
+
+/**
+ * v14 (2026-09-29): every Part IV line item carries a `categoryId` from the 30
+ * fixed DICT handout categories (src/lib/expense-categories.ts) instead of a
+ * numeric UACS code. Legacy `uacsCode` values map through the curated table —
+ * unknown codes, and mapped categories whose expense class contradicts the
+ * line's bucket, are left "" (uncategorized) so the part4/categories review
+ * banner flags them for a human decision. Idempotent: lines that already have
+ * a categoryId pass through, stray legacy fields are stripped.
+ */
+function withExpenseCategories(year: YearBudget): YearBudget {
+  const lines = (ls: LineItem[], bucket: ExpenseClass): LineItem[] =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ls.map((raw: any) => {
+      const rest: Record<string, unknown> = { ...raw };
+      const uacsCode = typeof rest.uacsCode === "string" ? rest.uacsCode : "";
+      delete rest.uacsCode;
+      delete rest.uacsLabel;
+      if (typeof rest.categoryId === "string") return rest as unknown as LineItem;
+      const mapped = categoryForLegacyUacs(uacsCode) ?? "";
+      const categoryId = categoryById(mapped)?.expenseClass === bucket ? mapped : "";
+      return { ...rest, categoryId } as unknown as LineItem;
+    });
+  const budgets = (rec: YearBudget["internalProjects"]) =>
+    Object.fromEntries(Object.entries(rec).map(([id, b]) => [id, { ...b, capitalOutlay: lines(b.capitalOutlay, "capitalOutlay"), mooe: lines(b.mooe, "mooe") }]));
+  return {
+    ...year,
+    officeProductivity: {
+      capitalOutlay: lines(year.officeProductivity.capitalOutlay, "capitalOutlay"),
+      mooe: lines(year.officeProductivity.mooe, "mooe"),
+    },
+    internalProjects: budgets(year.internalProjects),
+    crossAgencyProjects: budgets(year.crossAgencyProjects),
+    continuingCosts: { ...year.continuingCosts, mooe: lines(year.continuingCosts.mooe, "mooe") },
+  };
 }
 
 export function migrateLegacyDoc(doc: IsspDocument): IsspDocument {
@@ -748,6 +844,14 @@ export function migrateLegacyDoc(doc: IsspDocument): IsspDocument {
     base = { ...base, schemaVersion: 13 };
   }
 
+  // v13 → v14: UACS object codes → the 30 fixed DICT handout expense categories.
+  // The withExpenseCategories normalization below performs the conversion (and
+  // drops uacsCode/uacsLabel); unmapped lines are flagged via the conditional
+  // part4/categories migration-review section.
+  if ((base.schemaVersion ?? 1) < 14) {
+    base = { ...base, schemaVersion: 14 };
+  }
+
   // Idempotent normalizations — keep stored data in sync with what forms write on mount,
   // so that editing a field and reverting it produces a hash equal to the snapshot.
   let normalized: IsspDocument = {
@@ -813,15 +917,24 @@ export function migrateLegacyDoc(doc: IsspDocument): IsspDocument {
       performanceFramework: Object.fromEntries(Object.entries(base.part3.performanceFramework).map(([k, e]: [string, any]) => [k, { ...e, rows: (e.rows ?? []).map((r: any) => ({ ...r, targetedResult: r.targetedResult ?? "" })) }])),
       // Normalize projectType: freeform pre-enum values → enum; derive IS_DRIVEN from
       // existing links so the gated "Linked Proposed Systems" picker isn't hidden on old docs
-      internalProjects: base.part3.internalProjects.map(normalizeProjectType),
-      crossAgencyProjects: base.part3.crossAgencyProjects.map(normalizeProjectType),
+      // Fund sources: pre-2026-09-17 spellings ("General Appropriations Act (GAA)",
+      // "Foreign-Assisted", "Locally Funded") → the current dropdown values
+      // (see fund-sources.ts). Unknown values are kept as they are.
+      internalProjects: base.part3.internalProjects.map(normalizeProjectType).map(withCanonicalFunding),
+      crossAgencyProjects: base.part3.crossAgencyProjects.map(normalizeProjectType).map(withCanonicalFunding),
+    },
+    part4: {
+      ...base.part4,
+      year1: withExpenseCategories(withCanonicalFundSources(base.part4.year1)),
+      year2: withExpenseCategories(withCanonicalFundSources(base.part4.year2)),
+      year3: withExpenseCategories(withCanonicalFundSources(base.part4.year3)),
     },
   };
 
   const existingReview = normalized.migrationReview;
   const reviewIds = existingReview
     ? existingReview.pendingSectionIds
-    : getRequiredMigrationReviewSectionIds(sourceSchemaVersion);
+    : getRequiredMigrationReviewSectionIdsForDoc(sourceSchemaVersion, normalized);
   const pendingSectionIds = [...new Set(reviewIds)];
   if (pendingSectionIds.length > 0) {
     const sectionMeta = { ...(normalized.sectionMeta ?? {}) };
@@ -851,11 +964,14 @@ export function migrateLegacyDoc(doc: IsspDocument): IsspDocument {
 
 /**
  * Strips implementation timestamps from the doc before comparing.
- * Keeps affirmative userMarkedDone state but drops lastEditedAt / updatedAt / exportedAt
- * and default-false metadata entries created by transient edits.
+ * Keeps affirmative userMarkedDone state but drops lastEditedAt / updatedAt /
+ * exportedAt and default-false metadata entries created by transient edits.
+ * migrationReview is stripped too: acknowledging a migration notice or
+ * clearing a review flag is bookkeeping, not file content — it must not mark
+ * the doc "unsaved to file" (which arms the browser's leave-site warning).
  */
 function docContentHash(doc: IsspDocument): string {
-  const { sectionMeta } = doc;
+  const { sectionMeta, migrationReview: _mr, ...rest } = doc;
   const metaStripped = sectionMeta
     ? Object.fromEntries(
         Object.entries(sectionMeta)
@@ -863,7 +979,7 @@ function docContentHash(doc: IsspDocument): string {
           .map(([k, v]) => [k, { userMarkedDone: v.userMarkedDone }])
       )
     : {};
-  return JSON.stringify({ ...doc, updatedAt: undefined, exportedAt: undefined, sectionMeta: metaStripped });
+  return JSON.stringify({ ...rest, updatedAt: undefined, exportedAt: undefined, sectionMeta: metaStripped });
 }
 
 // ─── Context ──────────────────────────────────────────────────────────────────
@@ -1259,10 +1375,7 @@ export function IsspStoreProvider({ children }: { children: ReactNode }) {
   }, [update]);
 
   const consolidateFiles = useCallback(
-    async (
-      files: File[],
-      resolutions: Record<string, unknown> = {}
-    ): Promise<ConsolidateActionResult> => {
+    async (files: File[], decisions: ReviewDecisions): Promise<ConsolidateActionResult> => {
       if (!doc) return { success: false, error: "No ISSP document is loaded." };
       // Masters only — a scoped file can't itself be a consolidate target.
       if (doc.editScope) {
@@ -1272,26 +1385,22 @@ export function IsspStoreProvider({ children }: { children: ReactNode }) {
         return { success: false, error: "Select at least one returned .issp file." };
       }
 
-      // Re-parse + validate each file via the same gate as the dialog preview.
+      // Re-parse + validate each file via the same gate as the merge review.
       // A rejected file is named in the error toast — never silently dropped.
-      const parsed: IsspDocument[] = [];
+      const parsed: ParsedScopedFile[] = [];
       const rejected: string[] = [];
       for (const f of files) {
-        const r = await parseScopedIsspFile(f);
-        if (r.success) parsed.push(r.doc);
+        const r = await parseScopedIsspFile(f, doc);
+        if (r.success) parsed.push({ doc: r.doc, sourceSchemaVersion: r.sourceSchemaVersion });
         else rejected.push(r.error);
       }
       if (rejected.length > 0) {
         return { success: false, error: `Could not consolidate: ${rejected.join("; ")}` };
       }
 
-      // Pure merge — the merge engine itself takes no resolutions param.
-      const result = consolidate(doc, parsed);
-      const merged = result.merged;
-
-      // Apply the secretariat's scalar-conflict resolutions (flat Part I–IV
-      // keys + nested Part IV sub-field keys) as a UI-layer overlay.
-      applyResolutions(merged, resolutions);
+      // The same pure function the merge review shows: decisions restored in
+      // the returned files, re-merged, conflict resolutions applied.
+      const { doc: merged, reviewFlags } = applyReviewDecisions(doc, parsed, decisions);
 
       setDoc(merged);
       // Consolidate is a one-shot, irreversible mutation (like loadFromFile) and
@@ -1299,11 +1408,7 @@ export function IsspStoreProvider({ children }: { children: ReactNode }) {
       // instead of the 1500 ms debounced scheduleSave — closing the tab inside
       // that window would otherwise lose the entire merge from IDB.
       await idbSave(merged);
-      return {
-        success: true,
-        reviewFlags: result.reviewFlags,
-        scalarConflicts: result.scalarConflicts,
-      };
+      return { success: true, reviewFlags };
     },
     [doc]
   );

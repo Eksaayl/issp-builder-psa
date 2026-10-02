@@ -363,8 +363,8 @@ export interface LineItem {
   id: string;
   item: string;
   office: string;
-  uacsCode: string;
-  uacsLabel: string;
+  /** One of the 30 DICT handout expense categories (src/lib/expense-categories.ts); "" = unset. */
+  categoryId: string;
   fundSource: string;
   qty: number;
   unitCost: number;
@@ -448,7 +448,7 @@ export interface IsspDocument {
   fileType: "issp-main";
   exportedAt: string;
   tool: "issp-platform";
-  /** Schema version for migration. 12 = current. */
+  /** Schema version for migration. Current = CURRENT_SCHEMA_VERSION (src/lib/migration-review.ts). */
   schemaVersion?: number;
   title: string;
   startYear: number;

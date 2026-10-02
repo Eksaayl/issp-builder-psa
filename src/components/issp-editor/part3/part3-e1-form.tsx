@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { FUND_SOURCE_OPTIONS } from "@/lib/fund-sources";
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -96,12 +97,7 @@ const HARMONIZATION_OPTIONS = [
   { value: "Scalability and Sustainability", hint: "Includes SPAR mechanism; KPIs align with PREXC" },
 ];
 
-const FUNDING_OPTIONS = [
-  "General Appropriations Act",
-  "Foreign-assisted projects",
-  "Locally funded",
-  "Other Income Generating Sources",
-];
+const FUNDING_OPTIONS = FUND_SOURCE_OPTIONS;
 
 function DurationPicker({
   value,
