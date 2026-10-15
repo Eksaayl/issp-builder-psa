@@ -17,6 +17,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { useLocalSave } from "@/hooks/use-local-save";
 import { Plus, ChevronDown, ChevronRight, Sparkles, Link2, Pencil, Info } from "lucide-react";
+import { ReorderButtons } from "@/components/ui/reorder-buttons";
 import { ConfirmDeleteButton } from "@/components/ui/confirm-delete-button";
 import { cn } from "@/lib/utils";
 import { SectionShell } from "@/components/editor/section-shell";
@@ -198,6 +199,10 @@ function SystemCard({
   onUpdate,
   onPatch,
   onRemove,
+  onMoveUp,
+  onMoveDown,
+  isFirst,
+  isLast,
 }: {
   sys: ProposedSystem;
   index: number;
@@ -208,6 +213,10 @@ function SystemCard({
   /** Apply several sibling top-level fields atomically. */
   onPatch: (patch: Partial<ProposedSystem>) => void;
   onRemove: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  isFirst: boolean;
+  isLast: boolean;
 }) {
   const isLinked = linkedProjectTitles.length > 0;
   // Existing systems open collapsed→read; new ones mount expanded in edit (principle 2).
@@ -229,11 +238,12 @@ function SystemCard({
   return (
     <div data-reveal-id={sys.id} className="rounded-xl border bg-card overflow-hidden shadow-sm">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 bg-muted/30 border-b">
+      <div className="flex flex-wrap sm:flex-nowrap items-center gap-x-3 gap-y-1 px-4 py-3 bg-muted/30 border-b">
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
           <Sparkles className="h-4 w-4" />
         </div>
-        <div className="flex-1 min-w-0">
+        {/* Phones: title takes the line; the card buttons wrap below it */}
+        <div className="flex-1 min-w-0 basis-[calc(100%-2.75rem)] sm:basis-auto">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-semibold text-muted-foreground">Proposed IS #{index + 1}</span>
             {sys.status && (
@@ -263,18 +273,21 @@ function SystemCard({
             {sys.name || <span className="text-muted-foreground italic">Unnamed System</span>}
           </p>
         </div>
-        <ConfirmDeleteButton
-          ariaLabel="Remove proposed system"
-          confirmText="Delete this system?"
-          onDelete={onRemove}
-        />
-        <button
-          type="button"
-          onClick={() => setExpanded((e) => !e)}
-          className="h-7 w-7 shrink-0 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-muted"
-        >
-          {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-        </button>
+        <div className="flex shrink-0 items-center ml-auto">
+          <ReorderButtons label={`proposed IS #${index + 1}`} isFirst={isFirst} isLast={isLast} onMove={(d) => (d === "up" ? onMoveUp() : onMoveDown())} />
+          <ConfirmDeleteButton
+            ariaLabel="Remove proposed system"
+            confirmText="Delete this system?"
+            onDelete={onRemove}
+          />
+          <button
+            type="button"
+            onClick={() => setExpanded((e) => !e)}
+            className="h-7 w-7 coarse:h-10 coarse:w-10 shrink-0 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-muted"
+          >
+            {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          </button>
+        </div>
       </div>
 
       {/* Read view (principle 2: read and edit are different modes) */}
@@ -642,6 +655,36 @@ export function Part3DForm({
     update(systems.filter((s) => s.id !== id));
   }
 
+  /** Swap a system with its neighbour. Array order is the order shown in the PDF. */
+  function moveSystem(id: string, direction: "up" | "down") {
+    const fromIndex = systems.findIndex((s) => s.id === id);
+    if (fromIndex === -1) {
+      return;
+    }
+
+    let toIndex: number;
+    if (direction === "up") {
+      toIndex = fromIndex - 1;
+    } else {
+      toIndex = fromIndex + 1;
+    }
+
+    const isBeforeFirst = toIndex < 0;
+    if (isBeforeFirst) {
+      return;
+    }
+    const isAfterLast = toIndex >= systems.length;
+    if (isAfterLast) {
+      return;
+    }
+
+    const next = [...systems];
+    const movedSystem = next[fromIndex];
+    next[fromIndex] = next[toIndex];
+    next[toIndex] = movedSystem;
+    update(next);
+  }
+
   function updateSystem(id: string, field: string, value: unknown) {
     update(systems.map((s) => (s.id === id ? { ...s, [field]: value } : s)));
   }
@@ -710,6 +753,10 @@ export function Part3DForm({
             onUpdate={(field, value) => updateSystem(sys.id, field, value)}
             onPatch={(patch) => updateSystemPatch(sys.id, patch)}
             onRemove={() => removeSystem(sys.id)}
+            onMoveUp={() => moveSystem(sys.id, "up")}
+            onMoveDown={() => moveSystem(sys.id, "down")}
+            isFirst={idx === 0}
+            isLast={idx === systems.length - 1}
           />
         ))}
       </div>

@@ -18,11 +18,23 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-import { Plus, Trash2, Pencil } from "lucide-react";
+import { Plus, Trash2, Pencil, CalendarSync, Copy } from "lucide-react";
 import { LineModeToggle, usePersistedLineMode, type LineMode } from "./line-mode";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 import { SectionShell } from "@/components/editor/section-shell";
 import { ConfirmDeleteButton } from "@/components/ui/confirm-delete-button";
 import { php } from "@/lib/utils";
+import { useIsspStore } from "@/lib/store";
+import { yearsBetween, durationCoversYear } from "@/lib/duration";
+import { ReorderButtons } from "@/components/ui/reorder-buttons";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -49,15 +61,43 @@ export interface YearBudget {
   continuingCosts: { mooe: LineItem[] };
 }
 
+type YearKey = "year1" | "year2" | "year3";
+
+const YEAR_KEYS: YearKey[] = ["year1", "year2", "year3"];
+
+/**
+ * Where a line lives inside a YearBudget. A line moved to another year lands
+ * in the same slot there (same category, same project, same CO/MOOE table).
+ */
+type LineLocation =
+  | { category: "officeProductivity"; costType: "capitalOutlay" | "mooe" }
+  | {
+      category: "internalProjects" | "crossAgencyProjects";
+      projectId: string;
+      projectTitle: string;
+      costType: "capitalOutlay" | "mooe";
+    }
+  | { category: "continuingCosts" };
+
+/** A year a line can be moved to. `disabledReason` is null when the move is allowed. */
+interface MoveTarget {
+  yearKey: YearKey;
+  year: number;
+  disabledReason: string | null;
+}
+
 interface Part4YearFormProps {
   year: number;
-  yearKey: "year1" | "year2" | "year3";
+  yearKey: YearKey;
   initialData: YearBudget;
   internalProjects: { id: string; title: string }[];
   crossAgencyProjects: { id: string; title: string }[];
   /** Hide the two agency-wide budget categories — project-filtered scoped
    *  files only (the slice also empties their data). Default false. */
   hideNonProjectCategories?: boolean;
+  /** Every Part III-E project id (any duration). A budget for an id not in
+   *  this list belongs to a deleted project. */
+  liveProjectIds: string[];
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -82,6 +122,47 @@ function totalLine(l: LineItem) {
 
 function sumLines(lines: LineItem[]) {
   return lines.reduce((s, l) => s + totalLine(l), 0);
+}
+
+function getLines(budget: YearBudget, location: LineLocation): LineItem[] {
+  if (location.category === "officeProductivity") {
+    return budget.officeProductivity[location.costType];
+  }
+  if (location.category === "continuingCosts") {
+    return budget.continuingCosts.mooe;
+  }
+  const projectBudget = budget[location.category][location.projectId];
+  if (!projectBudget) {
+    return [];
+  }
+  return projectBudget[location.costType];
+}
+
+function withLines(budget: YearBudget, location: LineLocation, lines: LineItem[]): YearBudget {
+  if (location.category === "officeProductivity") {
+    return {
+      ...budget,
+      officeProductivity: { ...budget.officeProductivity, [location.costType]: lines },
+    };
+  }
+  if (location.category === "continuingCosts") {
+    return { ...budget, continuingCosts: { mooe: lines } };
+  }
+  // The destination year may not have a bucket for this project yet
+  const existingProjectBudget = budget[location.category][location.projectId];
+  let projectBudget: ProjectBudget;
+  if (existingProjectBudget) {
+    projectBudget = existingProjectBudget;
+  } else {
+    projectBudget = { projectTitle: location.projectTitle, capitalOutlay: [], mooe: [] };
+  }
+  return {
+    ...budget,
+    [location.category]: {
+      ...budget[location.category],
+      [location.projectId]: { ...projectBudget, [location.costType]: lines },
+    },
+  };
 }
 
 const FUND_SOURCES = FUND_SOURCE_OPTIONS;
@@ -379,6 +460,50 @@ function LineItemDrawer({ open, item, isNew, context, onSave, onDelete, onClose 
   );
 }
 
+// ─── Move Line Menu ───────────────────────────────────────────────────────────
+
+function MoveLineMenu({
+  targets,
+  onMove,
+}: {
+  targets: MoveTarget[];
+  onMove: (targetKey: YearKey) => void;
+}) {
+  return (
+    // Stops clicks (including ones bubbling out of the portalled menu) from
+    // reaching the list row, which opens the edit drawer.
+    <span className="shrink-0 inline-flex" onClick={(e) => e.stopPropagation()}>
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger
+          aria-label="Move line item to another year"
+          title="Move to another year"
+          className="h-7 w-7 coarse:h-10 coarse:w-10 shrink-0 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-all"
+        >
+          <CalendarSync className="h-3.5 w-3.5 coarse:h-4 coarse:w-4" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-64">
+          <DropdownMenuGroup>
+            <DropdownMenuLabel>Move to another year</DropdownMenuLabel>
+            {targets.map((target) => (
+              <DropdownMenuItem
+                key={target.yearKey}
+                disabled={target.disabledReason !== null}
+                onClick={() => onMove(target.yearKey)}
+                className="flex-col items-start gap-0"
+              >
+                <span>Move to {target.year}</span>
+                {target.disabledReason !== null && (
+                  <span className="text-xs text-muted-foreground">{target.disabledReason}</span>
+                )}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </span>
+  );
+}
+
 // ─── Line Items Table ──────────────────────────────────────────────────────────
 
 interface DrawerState {
@@ -396,12 +521,16 @@ function LineTable({
   lines,
   mode,
   onUpdate,
+  moveTargets,
+  onMove,
 }: {
   title: string;
   context: "co" | "mooe";
   lines: LineItem[];
   mode: LineMode;
   onUpdate: (lines: LineItem[]) => void;
+  moveTargets: MoveTarget[];
+  onMove: (idx: number, targetKey: YearKey) => void;
 }) {
   const [drawer, setDrawer] = useState<DrawerState>({ open: false, idx: -1, item: null });
 
@@ -430,6 +559,42 @@ function LineTable({
 
   function deleteLine(idx: number) {
     onUpdate(lines.filter((_, i) => i !== idx));
+  }
+
+  /** Swap a line with its neighbour. Array order is the row order in the PDF. */
+  function reorderLine(idx: number, direction: "up" | "down") {
+    let toIndex: number;
+    if (direction === "up") {
+      toIndex = idx - 1;
+    } else {
+      toIndex = idx + 1;
+    }
+
+    const isBeforeFirst = toIndex < 0;
+    if (isBeforeFirst) {
+      return;
+    }
+    const isAfterLast = toIndex >= lines.length;
+    if (isAfterLast) {
+      return;
+    }
+
+    const next = [...lines];
+    const movedLine = next[idx];
+    next[idx] = next[toIndex];
+    next[toIndex] = movedLine;
+    onUpdate(next);
+  }
+
+  /** Insert a copy (with its own id) directly below the original line. */
+  function duplicateLine(idx: number) {
+    const original = lines[idx];
+    if (!original) {
+      return;
+    }
+    const copy: LineItem = { ...original, id: genId() };
+    const next = [...lines.slice(0, idx + 1), copy, ...lines.slice(idx + 1)];
+    onUpdate(next);
   }
 
   const total = sumLines(lines);
@@ -461,10 +626,11 @@ function LineTable({
               {lines.map((line, idx) => (
                 <div
                   key={line.id}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 group transition-colors cursor-pointer"
+                  className="flex flex-wrap sm:flex-nowrap items-center gap-x-3 gap-y-1 px-4 py-3 hover:bg-muted/30 group transition-colors cursor-pointer"
                   onClick={() => openEdit(idx)}
                 >
-                  <div className="flex-1 min-w-0">
+                  {/* Phones: the name gets the whole first line; amount and actions wrap below */}
+                  <div className="basis-full sm:basis-auto flex-1 min-w-0">
                     <p className="text-sm font-medium line-clamp-2 break-words">
                       {line.item || (
                         <span className="text-muted-foreground/60 italic">Unnamed item</span>
@@ -480,13 +646,24 @@ function LineTable({
                       {line.fundSource !== FUND_SOURCES[0] ? ` · ${line.fundSource}` : ""}
                     </p>
                   </div>
-                  <span className="text-sm font-semibold tabular-nums shrink-0">
+                  <span className="text-sm font-semibold tabular-nums shrink-0 mr-auto sm:mr-0">
                     {php(totalLine(line))}
                   </span>
+                  <ReorderButtons label={`line ${idx + 1}`} isFirst={idx === 0} isLast={idx === lines.length - 1} onMove={(d) => reorderLine(idx, d)} />
+                  <button
+                    type="button"
+                    aria-label="Duplicate line item"
+                    title="Duplicate"
+                    className="h-7 w-7 coarse:h-10 coarse:w-10 shrink-0 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-all"
+                    onClick={(e) => { e.stopPropagation(); duplicateLine(idx); }}
+                  >
+                    <Copy className="h-3.5 w-3.5 coarse:h-4 coarse:w-4" />
+                  </button>
+                  <MoveLineMenu targets={moveTargets} onMove={(targetKey) => onMove(idx, targetKey)} />
                   <button
                     type="button"
                     aria-label="Edit line item"
-                    className="h-7 w-7 shrink-0 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent opacity-0 group-hover:opacity-100 transition-all"
+                    className="h-7 w-7 shrink-0 flex coarse:hidden items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent opacity-0 group-hover:opacity-100 transition-all"
                     onClick={(e) => { e.stopPropagation(); openEdit(idx); }}
                   >
                     <Pencil className="h-3.5 w-3.5" />
@@ -513,7 +690,7 @@ function LineTable({
         {/* ── Table mode ─────────────────────────────────────────────────── */}
         {mode === "table" && (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse min-w-[720px]">
+            <table className="w-full text-sm border-collapse min-w-[840px]">
               <thead>
                 <tr className="bg-muted/40 border-b">
                   <th className="border-r px-3 py-2 text-left font-semibold">Item / Description</th>
@@ -523,7 +700,7 @@ function LineTable({
                   <th className="border-r px-3 py-2 text-right font-semibold w-28">Unit Cost ₱</th>
                   <th className="border-r px-3 py-2 text-right font-semibold w-24">Physical Target</th>
                   <th className="border-r px-3 py-2 text-right font-semibold w-28">Total ₱</th>
-                  <th className="px-2 py-2 w-8" />
+                  <th className="px-2 py-2 w-40" />
                 </tr>
               </thead>
               <tbody>
@@ -608,16 +785,30 @@ function LineTable({
                     <td className="border-r px-3 py-2 text-right tabular-nums text-sm font-medium">
                       {php(totalLine(line))}
                     </td>
-                    <td className="px-1 py-1 text-center">
+                    <td className="px-1 py-1">
+                      <div className="flex items-center justify-center">
+                      <ReorderButtons label={`line ${idx + 1}`} isFirst={idx === 0} isLast={idx === lines.length - 1} onMove={(d) => reorderLine(idx, d)} />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Duplicate line"
+                        title="Duplicate"
+                        className="h-7 w-7 coarse:h-10 coarse:w-10 text-muted-foreground hover:text-foreground"
+                        onClick={() => duplicateLine(idx)}
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                      <MoveLineMenu targets={moveTargets} onMove={(targetKey) => onMove(idx, targetKey)} />
                       <Button
                         variant="ghost"
                         size="icon"
                         aria-label="Delete line"
-                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                        className="h-7 w-7 coarse:h-10 coarse:w-10 text-muted-foreground hover:text-destructive"
                         onClick={() => deleteLine(idx)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -700,6 +891,7 @@ export function Part4YearForm({
   internalProjects,
   crossAgencyProjects,
   hideNonProjectCategories = false,
+  liveProjectIds,
 }: Part4YearFormProps) {
   const [budget, setBudget] = useState<YearBudget>(() => {
     const base = EMPTY_BUDGET();
@@ -731,6 +923,107 @@ export function Part4YearForm({
     [debouncedSave, yearKey]
   );
 
+  // ── Moving a line to another plan year ──────────────────────────────────────
+  const { doc, updatePart4, updateSectionMeta } = useIsspStore();
+
+  function yearNumberFor(key: YearKey): number {
+    if (!doc) {
+      return year;
+    }
+    // Same mapping as the /editor/part4/yearN pages
+    if (key === "year1") {
+      return doc.startYear;
+    }
+    if (key === "year2") {
+      return doc.startYear + 1;
+    }
+    return doc.endYear;
+  }
+
+  function moveTargetsFor(location: LineLocation): MoveTarget[] {
+    if (!doc) {
+      return [];
+    }
+    const planYears = yearsBetween(doc.startYear, doc.endYear);
+    const targets: MoveTarget[] = [];
+
+    for (const targetKey of YEAR_KEYS) {
+      if (targetKey === yearKey) {
+        continue;
+      }
+      const targetYear = yearNumberFor(targetKey);
+
+      // Project lines can only go to years the project's Part III-E duration covers
+      let disabledReason: string | null = null;
+      const isProjectLine =
+        location.category === "internalProjects" || location.category === "crossAgencyProjects";
+      if (isProjectLine) {
+        let projects;
+        if (location.category === "internalProjects") {
+          projects = doc.part3.internalProjects;
+        } else {
+          projects = doc.part3.crossAgencyProjects;
+        }
+        const project = projects.find((p) => p.id === location.projectId);
+        if (!project) {
+          disabledReason = "Project no longer exists in Part III-E";
+        } else {
+          const duration = project.duration ?? "";
+          const coversTargetYear = durationCoversYear(duration, String(targetYear), planYears);
+          if (!coversTargetYear) {
+            const durationLabel = duration || "not set";
+            disabledReason = `Outside the project's duration (${durationLabel})`;
+          }
+        }
+      }
+
+      targets.push({ yearKey: targetKey, year: targetYear, disabledReason });
+    }
+    return targets;
+  }
+
+  function moveLine(location: LineLocation, lineIndex: number, targetKey: YearKey) {
+    if (!doc) {
+      toast.error("Could not move the line item: no plan is loaded.");
+      return;
+    }
+
+    const sourceLines = getLines(budget, location);
+    const line = sourceLines[lineIndex];
+    if (!line) {
+      toast.error("Could not move the line item: it was not found in this year.");
+      return;
+    }
+
+    const remainingLines = sourceLines.filter((_, i) => i !== lineIndex);
+    const nextSourceBudget = withLines(budget, location, remainingLines);
+
+    let targetBudget = doc.part4[targetKey];
+    if (!targetBudget) {
+      targetBudget = EMPTY_BUDGET();
+    }
+    const targetLines = getLines(targetBudget, location);
+    const nextTargetBudget = withLines(targetBudget, location, [...targetLines, line]);
+
+    // One store update for both years, so the line is never in both or neither
+    setBudget(nextSourceBudget);
+    updatePart4({ [yearKey]: nextSourceBudget, [targetKey]: nextTargetBudget });
+
+    const editedAt = new Date().toISOString();
+    updateSectionMeta(sectionId, { lastEditedAt: editedAt });
+    updateSectionMeta(`part4/${targetKey}`, { lastEditedAt: editedAt });
+
+    const itemName = line.item.trim() || "Unnamed item";
+    toast.success(`Moved “${itemName}” to ${yearNumberFor(targetKey)}`);
+  }
+
+  function moveProps(location: LineLocation) {
+    return {
+      moveTargets: moveTargetsFor(location),
+      onMove: (lineIndex: number, targetKey: YearKey) => moveLine(location, lineIndex, targetKey),
+    };
+  }
+
   // Totals follow the sections this page renders (duration-filtered), not
   // every bucket in state — legacy off-duration buckets must not count.
   const bucketTotal = (pid: string) => {
@@ -744,16 +1037,33 @@ export function Part4YearForm({
     crossAgencyProjects.reduce((s, p) => s + bucketTotal(p.id), 0) +
     sumLines(budget.continuingCosts.mooe);
 
-  // Legacy data guard: lines whose project's Part III-E duration does not
-  // cover this year. The duration picker now blocks creating these; loaded
-  // files may still carry them — name them instead of silently dropping.
-  const orphanedBuckets = (Object.entries(initialData?.internalProjects ?? {}) as [string, ProjectBudget][])
-    .concat(Object.entries(initialData?.crossAgencyProjects ?? {}) as [string, ProjectBudget][])
+  // Legacy data guard: budget lines this page does not list, so no total
+  // counts them (countedPart4). Two causes — the project's Part III-E duration
+  // does not cover this year (the duration picker now blocks creating these),
+  // or the project was deleted (project delete now removes its budget). Loaded
+  // files may still carry either — name them instead of silently dropping.
+  const unlistedBuckets = (Object.entries(budget.internalProjects) as [string, ProjectBudget][])
+    .concat(Object.entries(budget.crossAgencyProjects) as [string, ProjectBudget][])
     .filter(([pid, pb]) =>
       (pb.capitalOutlay?.length ?? 0) + (pb.mooe?.length ?? 0) > 0 &&
       !internalProjects.some((p) => p.id === pid) &&
       !crossAgencyProjects.some((p) => p.id === pid),
     );
+  const deletedBuckets = unlistedBuckets.filter(([pid]) => !liveProjectIds.includes(pid));
+  const offDurationBuckets = unlistedBuckets.filter(([pid]) => liveProjectIds.includes(pid));
+  const describeBuckets = (buckets: [string, ProjectBudget][]) =>
+    buckets
+      .map(([pid, pb]) => {
+        const lines = [...(pb.capitalOutlay ?? []), ...(pb.mooe ?? [])];
+        return `${pb.projectTitle || pid} (${lines.length} line${lines.length === 1 ? "" : "s"}, ${php(sumLines(lines))})`;
+      })
+      .join(", ");
+
+  function removeDeletedProjectLines() {
+    const drop = new Set(deletedBuckets.map(([pid]) => pid));
+    const keep = (m: Record<string, ProjectBudget>) => Object.fromEntries(Object.entries(m).filter(([pid]) => !drop.has(pid)));
+    save({ ...budget, internalProjects: keep(budget.internalProjects), crossAgencyProjects: keep(budget.crossAgencyProjects) });
+  }
 
   const sectionTitle = `Resource Requirements — ${year}`;
   const sectionDesc = `Enter all ICT expenditures for ${year}. Totals are computed automatically.`;
@@ -770,12 +1080,28 @@ export function Part4YearForm({
           <option key={office} value={office} />
         ))}
       </datalist>
-      {orphanedBuckets.length > 0 && (
+      {offDurationBuckets.length > 0 && (
         <div className="rounded-lg border border-warning-border bg-warning-bg px-4 py-3 text-xs text-warning" role="alert">
           <span className="font-medium">Outside project duration:</span>{" "}
-          {orphanedBuckets.map(([pid, pb]) => `${pb.projectTitle || pid} (${(pb.capitalOutlay?.length ?? 0) + (pb.mooe?.length ?? 0)} lines)`).join(", ")}.
-          These lines are hidden from {year} because the project&rsquo;s Part III-E duration does not cover it, and they are not counted in the year total.
+          {describeBuckets(offDurationBuckets)}.
+          These lines are hidden from {year} because the project&rsquo;s Part III-E duration does not cover it. They are
+          not counted in any total (year, Summary B.1–B.4, Total Project Cost) and are not printed.
           Lengthen the duration in Part III-E or move the lines to another category.
+        </div>
+      )}
+      {deletedBuckets.length > 0 && (
+        <div className="flex items-start gap-3 rounded-lg border border-warning-border bg-warning-bg px-4 py-3 text-xs text-warning" role="alert">
+          <p className="flex-1 min-w-0">
+            <span className="font-medium">Deleted project:</span>{" "}
+            {describeBuckets(deletedBuckets)}.
+            These lines belong to a project that is no longer in Part III-E. They are not counted in any total and
+            are not printed. To remove them from the file, tap the bin twice.
+          </p>
+          <ConfirmDeleteButton
+            onDelete={removeDeletedProjectLines}
+            ariaLabel="Remove the deleted project's lines"
+            confirmText="Remove lines?"
+          />
         </div>
       )}
 
@@ -816,6 +1142,7 @@ export function Part4YearForm({
             context="co"
             lines={budget.officeProductivity.capitalOutlay}
             mode={lineMode}
+            {...moveProps({ category: "officeProductivity", costType: "capitalOutlay" })}
             onUpdate={(lines) =>
               save({
                 ...budget,
@@ -828,6 +1155,7 @@ export function Part4YearForm({
             context="mooe"
             lines={budget.officeProductivity.mooe}
             mode={lineMode}
+            {...moveProps({ category: "officeProductivity", costType: "mooe" })}
             onUpdate={(lines) =>
               save({
                 ...budget,
@@ -868,6 +1196,7 @@ export function Part4YearForm({
                 context="co"
                 lines={pb.capitalOutlay}
                 mode={lineMode}
+                {...moveProps({ category: "internalProjects", projectId: proj.id, projectTitle: proj.title, costType: "capitalOutlay" })}
                 onUpdate={(lines) =>
                   save({
                     ...budget,
@@ -883,6 +1212,7 @@ export function Part4YearForm({
                 context="mooe"
                 lines={pb.mooe}
                 mode={lineMode}
+                {...moveProps({ category: "internalProjects", projectId: proj.id, projectTitle: proj.title, costType: "mooe" })}
                 onUpdate={(lines) =>
                   save({
                     ...budget,
@@ -918,6 +1248,7 @@ export function Part4YearForm({
                 context="co"
                 lines={pb.capitalOutlay}
                 mode={lineMode}
+                {...moveProps({ category: "crossAgencyProjects", projectId: proj.id, projectTitle: proj.title, costType: "capitalOutlay" })}
                 onUpdate={(lines) =>
                   save({
                     ...budget,
@@ -933,6 +1264,7 @@ export function Part4YearForm({
                 context="mooe"
                 lines={pb.mooe}
                 mode={lineMode}
+                {...moveProps({ category: "crossAgencyProjects", projectId: proj.id, projectTitle: proj.title, costType: "mooe" })}
                 onUpdate={(lines) =>
                   save({
                     ...budget,
@@ -960,6 +1292,7 @@ export function Part4YearForm({
             context="mooe"
             lines={budget.continuingCosts.mooe}
             mode={lineMode}
+            {...moveProps({ category: "continuingCosts" })}
             onUpdate={(lines) => save({ ...budget, continuingCosts: { mooe: lines } })}
           />
         </SectionCard>

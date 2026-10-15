@@ -18,15 +18,19 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useLocalSave } from "@/hooks/use-local-save";
-import { Plus, ChevronDown, ChevronRight, FolderKanban, Link2, Info, Pencil } from "lucide-react";
+import { Plus, ChevronDown, ChevronRight, FolderKanban, Link2, Info, Pencil, Trash2 } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
-import { computeProjectCosts } from "@/components/issp-editor/part4/part4-aggregations";
+import { computeProjectCosts, countedPart4 } from "@/components/issp-editor/part4/part4-aggregations";
 import type { Part4Data } from "@/lib/store/types";
 import { AddItemDialog, useAddItemDraft } from "@/components/issp-editor/add-item-dialog";
 import { revealNewItem } from "@/lib/reveal";
-import { ConfirmDeleteButton } from "@/components/ui/confirm-delete-button";
+import { useIsspStore } from "@/lib/store";
+import { projectCasualties, withoutProjectData } from "@/lib/project-delete";
+import { DeleteProjectDialog } from "./delete-project-dialog";
+import { linkedSystemIdsOf } from "@/lib/visible-values";
 import { cn, php } from "@/lib/utils";
 import type { ProposedSystem } from "./part3-d-form";
+import { ReorderButtons } from "@/components/ui/reorder-buttons";
 import { SectionShell } from "@/components/editor/section-shell";
 import {
   yearsBetween,
@@ -230,6 +234,10 @@ function ProjectCard({
   initiallyEditing = false,
   onUpdate,
   onRemove,
+  onMoveUp,
+  onMoveDown,
+  isFirst,
+  isLast,
 }: {
   project: IctProject;
   index: number;
@@ -246,13 +254,18 @@ function ProjectCard({
   initiallyEditing?: boolean;
   onUpdate: (field: string, value: unknown) => void;
   onRemove: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  isFirst: boolean;
+  isLast: boolean;
 }) {
   const [expanded, setExpanded] = useState(initiallyEditing);
   const [editing, setEditing] = useState(initiallyEditing);
   const [pendingLink, setPendingLink] = useState<string | null>(null);
 
+  // Standalone projects keep stored links but show none (visible-values.ts)
   const linkedSystems = proposedSystems.filter((s) =>
-    project.linkedSystemIds.includes(s.id)
+    linkedSystemIdsOf(project).includes(s.id)
   );
 
   function ownersElsewhere(sysId: string) {
@@ -317,12 +330,13 @@ function ProjectCard({
   return (
     <div data-reveal-id={project.id} className="rounded-xl border bg-card overflow-hidden">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 bg-muted/30 border-b">
+      <div className="flex flex-wrap sm:flex-nowrap items-center gap-x-3 gap-y-1 px-4 py-3 bg-muted/30 border-b">
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
           <FolderKanban className="h-4 w-4" />
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
+        {/* Phones: title takes the line; the card buttons wrap below it */}
+        <div className="flex-1 min-w-0 basis-[calc(100%-2.75rem)] sm:basis-auto">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span className="text-xs font-semibold text-muted-foreground">
               {isCrossAgency ? "Cross-Agency ICT Project" : "Internal ICT Project"} #{index + 1}
             </span>
@@ -342,18 +356,28 @@ function ProjectCard({
             {project.title || <span className="text-muted-foreground italic">Untitled Project</span>}
           </p>
         </div>
-        <ConfirmDeleteButton
-          ariaLabel="Remove project"
-          confirmText="Delete project and its KPIs and budget?"
-          onDelete={onRemove}
-        />
-        <button
-          type="button"
-          onClick={() => setExpanded((e) => !e)}
-          className="h-7 w-7 shrink-0 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-muted"
-        >
-          {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-        </button>
+        <div className="flex shrink-0 items-center ml-auto">
+          <ReorderButtons label={`project #${index + 1}`} isFirst={isFirst} isLast={isLast} onMove={(d) => (d === "up" ? onMoveUp() : onMoveDown())} />
+          {/* Opens the hard confirmation listing the KPIs and budget that go with it */}
+          <button
+            type="button"
+            aria-label="Delete project"
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove();
+            }}
+            className="h-7 w-7 coarse:h-10 coarse:w-10 shrink-0 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setExpanded((e) => !e)}
+            className="h-7 w-7 coarse:h-10 coarse:w-10 shrink-0 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-muted"
+          >
+            {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          </button>
+        </div>
       </div>
 
       {/* Read view (principle 2: read and edit are different modes) */}
@@ -744,7 +768,7 @@ function ProjectList({
 
   const linkOwners: Record<string, { id: string; title: string }[]> = {};
   for (const proj of [...projects, ...otherProjects]) {
-    for (const sysId of proj.linkedSystemIds ?? []) {
+    for (const sysId of linkedSystemIdsOf(proj)) {
       (linkOwners[sysId] ??= []).push({ id: proj.id, title: proj.title });
     }
   }
@@ -777,8 +801,58 @@ function ProjectList({
     revealNewItem(project.id);
   }
 
+  // Deleting a project also deletes its III-F KPI set and Part IV budget, behind
+  // a dialog that lists them (lib/project-delete.ts).
+  const { doc, updatePart3, updatePart4, updateSectionMeta } = useIsspStore();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const deleting = projects.find((p) => p.id === deletingId) ?? null;
+  const casualties = deleting && doc
+    ? projectCasualties(doc, bucketKey, deleting.id)
+    : { kpiRows: [], budgetLines: [], budgetTotal: 0 };
+
   function removeProject(id: string) {
     update(projects.filter((p) => p.id !== id));
+    if (!doc) return;
+    const { kpiRows, budgetLines } = projectCasualties(doc, bucketKey, id);
+    if (kpiRows.length === 0 && budgetLines.length === 0) return;
+    const { performanceFramework, part4: nextPart4 } = withoutProjectData(doc, bucketKey, id);
+    updatePart3({ performanceFramework });
+    updatePart4(nextPart4);
+    const ts = new Date().toISOString();
+    if (kpiRows.length > 0) updateSectionMeta("part3/f", { lastEditedAt: ts });
+    for (const y of ["year1", "year2", "year3"] as const) {
+      if (doc.part4[y]?.[bucketKey]?.[id]) updateSectionMeta(`part4/${y}`, { lastEditedAt: ts });
+    }
+  }
+
+  /** Swap a project with its neighbour. Array order is the project numbering in the PDF. */
+  function moveProject(id: string, direction: "up" | "down") {
+    const fromIndex = projects.findIndex((p) => p.id === id);
+    if (fromIndex === -1) {
+      return;
+    }
+
+    let toIndex: number;
+    if (direction === "up") {
+      toIndex = fromIndex - 1;
+    } else {
+      toIndex = fromIndex + 1;
+    }
+
+    const isBeforeFirst = toIndex < 0;
+    if (isBeforeFirst) {
+      return;
+    }
+    const isAfterLast = toIndex >= projects.length;
+    if (isAfterLast) {
+      return;
+    }
+
+    const next = [...projects];
+    const movedProject = next[fromIndex];
+    next[fromIndex] = next[toIndex];
+    next[toIndex] = movedProject;
+    update(next);
   }
 
   function updateProject(id: string, field: string, value: unknown) {
@@ -834,10 +908,22 @@ function ProjectList({
             blockedYears={linesByYear[project.id] ?? []}
             initiallyEditing={freshIds.has(project.id)}
             onUpdate={(field, value) => updateProject(project.id, field, value)}
-            onRemove={() => removeProject(project.id)}
+            onRemove={() => setDeletingId(project.id)}
+            onMoveUp={() => moveProject(project.id, "up")}
+            onMoveDown={() => moveProject(project.id, "down")}
+            isFirst={idx === 0}
+            isLast={idx === projects.length - 1}
           />
         ))}
       </div>
+
+      <DeleteProjectDialog
+        open={deleting !== null}
+        onOpenChange={(open) => !open && setDeletingId(null)}
+        projectTitle={deleting?.title ?? ""}
+        casualties={casualties}
+        onConfirm={() => deleting && removeProject(deleting.id)}
+      />
 
       <AddItemDialog
         open={addDialog.open}
@@ -887,7 +973,11 @@ export function Part3E1Form({
   );
   const planYears = yearsBetween(startYear, endYear);
   const planDuration = formatDuration(String(startYear), String(endYear));
-  const projectCosts = computeProjectCosts(part4, "internalProjects");
+  // Counted budget only: no deleted-project or off-duration lines (same as Part IV and the PDF)
+  const projectCosts = computeProjectCosts(
+    countedPart4({ part3: { internalProjects: initialProjects, crossAgencyProjects: otherProjects }, part4, startYear, endYear }),
+    "internalProjects"
+  );
 
   return (
     <SectionShell
@@ -934,7 +1024,11 @@ export function Part3E2Form({
   );
   const planYears = yearsBetween(startYear, endYear);
   const planDuration = formatDuration(String(startYear), String(endYear));
-  const projectCosts = computeProjectCosts(part4, "crossAgencyProjects");
+  // Counted budget only: no deleted-project or off-duration lines (same as Part IV and the PDF)
+  const projectCosts = computeProjectCosts(
+    countedPart4({ part3: { internalProjects: otherProjects, crossAgencyProjects: initialProjects }, part4, startYear, endYear }),
+    "crossAgencyProjects"
+  );
 
   return (
     <SectionShell

@@ -1,0 +1,6 @@
+# braces CVE-2026-93687 — DoS via stack overflow from deeply nested brace patterns.
+# No fixed release exists (3.0.3 is latest as of 2026-10-08).
+# Dev-tooling chain only: shadcn -> fast-glob -> micromatch -> braces. Never bundled at runtime.
+# Revisit when braces > 3.0.3 ships, then remove these entries.
+CVE-2026-93687
+GHSA-vfj7-8cjw-p6xm
