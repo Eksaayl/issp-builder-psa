@@ -17,6 +17,15 @@ export const THEME_STORAGE_KEY = "issp-theme";
 // menu keeps that choice on their next visit instead of being bounced again.
 export const THEME_MIGRATED_KEY = "issp-theme-egov-migrated";
 
+// One-time reset to the BetterGovPH theme for the 2026 Philippine Civil Tech
+// Week. RESET_KEY is set the first time the pre-hydration script (layout.tsx)
+// runs, so it only ever fires once per browser. PREV_KEY holds the theme the
+// person had before the reset for as long as the notice (theme-notice.tsx) is
+// still waiting for them to dismiss it or revert; it is removed afterwards.
+export const BETTERGOV_THEME = "bettergov";
+export const BETTERGOV_RESET_KEY = "issp-theme-bettergov-reset";
+export const BETTERGOV_PREV_KEY = "issp-theme-before-bettergov";
+
 export const THEMES = [
   {
     id: "system-light",
@@ -101,6 +110,13 @@ export const THEMES = [
     background: "#171B2B",
     secondary: "#1C2440",
     border: "#2A3046",
+  },
+  {
+    id: "bettergov",
+    name: "BetterGovPH",
+    background: "#FFFFFF",
+    secondary: "#062365",
+    border: "#D4D8E0",
   },
 ] as const;
 

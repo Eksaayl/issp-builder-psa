@@ -730,6 +730,104 @@
   --sidebar-ring: var(--ring);
 }
 
+/* BetterGovPH — BetterGov.ph's Kapwa design system (github.com/bettergovph/kapwa, CC0),
+   mapped from src/styles/kapwa.css semantic tokens, with the page/ink/rule
+   values read off budget.bettergov.ph (--paper #fff, --paper-2 #F4F7FC,
+   --ink #11151C, --accent #0B4FD9, --rule #D4D8E0). Light is a mix: a light
+   page with a deep-navy sidebar (Kapwa Dark's brand-950 hue), square-ish
+   0.25rem corners, Figtree headings over Inter body. Light only. */
+.theme-bettergov {
+  --background: #FFFFFF;
+  --foreground: #11151C;
+  --card: #FFFFFF;
+  --card-foreground: #11151C;
+  --popover: #FFFFFF;
+  --popover-foreground: #11151C;
+  --primary: #0B4FD9;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F4F7FC;
+  --secondary-foreground: #0A44BD;
+  --muted: #F4F7FC;
+  --muted-foreground: #5B6373;
+  --accent: #E8EFFF;
+  --accent-foreground: #0A44BD;
+  --destructive: #CE1226;
+  --border: #D4D8E0;
+  --input: #B8C0C6;
+  --ring: rgba(11, 79, 217, 0.4);
+  --chart-1: #0B4FD9;
+  --chart-2: #FCD116;
+  --chart-3: #E9192F;
+  --chart-4: #35B0FF;
+  --chart-5: #6F7C88;
+  --radius: 0.25rem;
+  --sidebar-active: #0B4FD9;
+  --part: var(--foreground);
+  --budget-1: #0B4FD9;
+  --budget-2: #6F32CF;
+  --budget-3: #A26406;
+  --budget-4: #CE1226;
+  --success:            #0B7F42;
+  --success-bg:         #EFFEF5;
+  --success-border:     #B6FCD5;
+  --success-foreground: #ffffff;
+  --warning:            #C45A0A;
+  --warning-bg:         #FFF9ED;
+  --warning-border:     #FFE3A9;
+  --info:               #006AC7;
+  --info-bg:            #F0F8FF;
+  --info-border:        #B9DEFE;
+  --danger-bg:          #FFF1F2;
+  --danger-border:      #FFC6CC;
+  --font-body: var(--font-kapwa);
+  --font-display: var(--font-kapwa-display);
+  --sidebar: #062365;
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: #0A3A9E;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: rgba(255, 255, 255, 0.16);
+  --sidebar-ring: rgba(118, 205, 255, 0.45);
+}
+
+/* Navy sidebar on the light page: the editor sidebar is built from the global
+   tokens (bg-secondary, text-foreground, bg-card, border-border), so
+   re-declaring them inside <aside> re-themes it without touching the
+   component. Portaled dialogs/popovers sit outside <aside> and stay light. */
+.theme-bettergov aside {
+  --secondary: #062365;
+  --secondary-foreground: #76CDFF;
+  --foreground: #FFFFFF;
+  --card: #0A3180;
+  --card-foreground: #FFFFFF;
+  --muted: #0A3180;
+  --muted-foreground: #AEDFFF;
+  --accent: #0A3A9E;
+  --accent-foreground: #FFFFFF;
+  --border: rgba(255, 255, 255, 0.22);
+  --input: rgba(255, 255, 255, 0.3);
+  --ring: rgba(118, 205, 255, 0.5);
+  --sidebar-active: #0B4FD9;
+  --part: #AEDFFF;
+}
+
+/* Kapwa mono accents — budget.bettergov.ph sets its small section labels and
+   metadata in JetBrains Mono (--font-head). Here that is the app's uppercase
+   eyebrow labels plus code/kbd and existing .font-mono spots, scoped to the
+   BetterGovPH theme only. Body, headings and form content stay Inter/Figtree. The
+   selector (two classes) outranks the Tailwind tracking-* utilities. */
+.theme-bettergov .uppercase {
+  font-family: var(--font-kapwa-mono), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  letter-spacing: 0.06em;
+}
+
+.theme-bettergov .font-mono,
+.theme-bettergov code,
+.theme-bettergov kbd {
+  font-family: var(--font-kapwa-mono), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
 /* eGov component fidelity — shape/spacing overrides sourced from
    references/egov-design-system/css/egov-components.css (button padding
    12px/24px, card padding 24px, pill tabs). Scoped to data-slot hooks so the

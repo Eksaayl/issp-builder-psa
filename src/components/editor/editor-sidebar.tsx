@@ -355,7 +355,7 @@ export function EditorSidebar({
   const showDesktopSaveReminder = showSaveReminder && !isMobileViewport;
   const showThemeNudge = !!doc && theme === "system-light" && !themeNudgeDismissed && !showSaveReminder;
   const showThemeMigrationNudge =
-    !!doc && wasMigratedToEgov && !themeMigrationNudgeDismissed && !showSaveReminder && !showThemeNudge;
+    !!doc && wasMigratedToEgov && theme === "egov-light" && !themeMigrationNudgeDismissed && !showSaveReminder && !showThemeNudge;
 
   // Sections with content that differs from the last saved file
   const changedSections: { section: SectionDef; part: PartDef | null; changedFields: SectionField[] }[] = [];

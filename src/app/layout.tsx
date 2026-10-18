@@ -1,11 +1,20 @@
 import type { Metadata } from "next";
-import { Fraunces, IBM_Plex_Sans, IBM_Plex_Mono, Lexend } from "next/font/google";
+import { Fraunces, IBM_Plex_Sans, IBM_Plex_Mono, Inter, Figtree, JetBrains_Mono, Lexend } from "next/font/google";
 import { Toaster } from "sonner";
 import { IsspStoreProvider } from "@/lib/store";
 import { ThemeProvider } from "@/lib/theme";
 // From the plain module, not the client one: a value imported from a
 // "use client" file arrives here as a client reference, not the array.
-import { DEFAULT_THEME, THEMES, THEME_MIGRATED_KEY, THEME_STORAGE_KEY } from "@/lib/themes";
+import {
+  BETTERGOV_PREV_KEY,
+  BETTERGOV_RESET_KEY,
+  BETTERGOV_THEME,
+  DEFAULT_THEME,
+  THEMES,
+  THEME_MIGRATED_KEY,
+  THEME_STORAGE_KEY,
+} from "@/lib/themes";
+import { ThemeNotice } from "@/components/theme-notice";
 import { StructuredData } from "@/components/seo/structured-data";
 import {
   CREATOR_NAME,
@@ -38,6 +47,26 @@ const lexend = Lexend({
   weight: ["300", "400", "500", "600", "700"],
 });
 
+// Kapwa theme only (see globals.css .theme-bettergov):
+// BetterGov.ph's Kapwa design system typeface (--font-kapwa-sans).
+const inter = Inter({
+  variable: "--font-kapwa",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+
+const figtree = Figtree({
+  variable: "--font-kapwa-display",
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-kapwa-mono",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+});
+
 const ibmPlexMono = IBM_Plex_Mono({
   variable: "--font-mono",
   subsets: ["latin"],
@@ -57,6 +86,14 @@ const themeScript = `
       localStorage.setItem('${THEME_MIGRATED_KEY}', '1');
     }
     var theme = themes.indexOf(stored) === -1 ? '${DEFAULT_THEME}' : stored;
+    if (!localStorage.getItem('${BETTERGOV_RESET_KEY}')) {
+      localStorage.setItem('${BETTERGOV_RESET_KEY}', '1');
+      if (theme !== '${BETTERGOV_THEME}') {
+        localStorage.setItem('${BETTERGOV_PREV_KEY}', theme);
+        localStorage.setItem('${THEME_STORAGE_KEY}', '${BETTERGOV_THEME}');
+        theme = '${BETTERGOV_THEME}';
+      }
+    }
     var root = document.documentElement;
     for (var i = 0; i < themes.length; i++) root.classList.remove('theme-' + themes[i]);
     root.classList.add('theme-' + theme);
@@ -121,7 +158,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${fraunces.variable} ${ibmPlexSans.variable} ${ibmPlexMono.variable} ${lexend.variable} theme-${DEFAULT_THEME} h-full antialiased`}
+      className={`${fraunces.variable} ${ibmPlexSans.variable} ${ibmPlexMono.variable} ${lexend.variable} ${inter.variable} ${figtree.variable} ${jetbrainsMono.variable} theme-${DEFAULT_THEME} h-full antialiased`}
     >
       <head>
         <StructuredData />
@@ -133,6 +170,7 @@ export default function RootLayout({
         <ThemeProvider>
           <IsspStoreProvider>
             {children}
+            <ThemeNotice />
             <Toaster richColors closeButton position="top-right" />
           </IsspStoreProvider>
         </ThemeProvider>
