@@ -279,3 +279,15 @@ During theme QA, several enabled controls looked disabled because shared and inl
 
 1. Decide whether non-editor pages should expose theme controls or simply inherit the saved theme.
 2. Continue visual QA for older/dormant dashboard screens if they become active again.
+
+---
+
+## BetterGovPH theme (Kapwa design system) — added 2026-10-18
+
+`bettergov` (light only, shown as "BetterGovPH") maps the semantic tokens of [bettergovph/kapwa](https://github.com/bettergovph/kapwa) (`src/styles/kapwa.css`, CC0) onto the app's variables, with page/ink/rule values read off budget.bettergov.ph:
+
+- **A light page with a deep-navy sidebar** (`#062365`, Kapwa Dark's `brand-950` hue). Values: `--paper #fff`, `--paper-2 #F4F7FC`, `--ink #11151C`, `--accent #0B4FD9`, `--rule #D4D8E0`; 0.25rem corners; Figtree headings (`--font-kapwa-display`) over Inter body (`--font-kapwa`). The sidebar is re-themed by re-declaring the global tokens inside `.theme-bettergov aside`, so the component is untouched.
+- **Mono accents:** JetBrains Mono (`--font-kapwa-mono`) on the uppercase eyebrow labels (`.uppercase`, 0.06em tracking), `code`/`kbd` and `.font-mono`, as budget.bettergov.ph does for its section labels. Body/headings/forms stay Inter/Figtree.
+- Token-only: no `data-slot` shape overrides (unlike eGov). Files: `src/lib/themes.ts`, `src/app/layout.tsx` (fonts), `src/app/globals.css`.
+- A Kapwa Dark variant was tried and dropped. Not the default; choose it from the sidebar theme menu.
+- **One-time reset for Civil Tech Week (2026):** the pre-hydration script in `layout.tsx` moves every browser to `bettergov` once (`issp-theme-bettergov-reset` = "1"), saving the previous theme in `issp-theme-before-bettergov`. `src/components/theme-notice.tsx` shows a small bottom-right notice with a link to bettergov.ph, "Looks good!" (keep) and "Back to <previous theme>" (revert); both clear the saved previous theme, so it never returns. Browsers already on `bettergov` get no notice. The older "New default theme" sidebar tooltip is now shown only while eGov Light is active. To retire the campaign later, remove the reset block from the script, the `<ThemeNotice />` mount, and the three constants in `src/lib/themes.ts`.
