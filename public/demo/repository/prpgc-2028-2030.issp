@@ -1,0 +1,1470 @@
+{
+  "version": "1.0",
+  "fileType": "issp-main",
+  "exportedAt": "2026-10-15T08:05:00.000Z",
+  "tool": "issp-platform",
+  "schemaVersion": 14,
+  "title": "Philippine Renewable Power Guarantee Corporation Information Systems Strategic Plan 2028–2030",
+  "startYear": 2028,
+  "endYear": 2030,
+  "amendmentNumber": 0,
+  "scope": "AGENCY_CENTRAL_ONLY",
+  "agencyHeadName": "President and CEO Gregorio A. Sunico Jr.",
+  "agency": {
+    "name": "Philippine Renewable Power Guarantee Corporation",
+    "acronym": "PRPGC",
+    "type": "GOCC",
+    "websiteUrl": "https://www.prpgc.gov.ph",
+    "logoBase64": null
+  },
+  "planStatus": "draft",
+  "submissionTarget": {
+    "agency": "DICT",
+    "deadline": null
+  },
+  "sectionMeta": {
+    "definitions": {
+      "userMarkedDone": true,
+      "lastEditedAt": null
+    },
+    "part1/a": {
+      "userMarkedDone": true,
+      "lastEditedAt": null
+    },
+    "part1/b": {
+      "userMarkedDone": true,
+      "lastEditedAt": null
+    },
+    "part1/c": {
+      "userMarkedDone": true,
+      "lastEditedAt": null
+    },
+    "part2/a": {
+      "userMarkedDone": true,
+      "lastEditedAt": null
+    },
+    "part2/b": {
+      "userMarkedDone": true,
+      "lastEditedAt": null
+    },
+    "part2/c": {
+      "userMarkedDone": true,
+      "lastEditedAt": null
+    },
+    "part2/d": {
+      "userMarkedDone": true,
+      "lastEditedAt": null
+    },
+    "part3/a": {
+      "userMarkedDone": true,
+      "lastEditedAt": null
+    },
+    "part3/b": {
+      "userMarkedDone": true,
+      "lastEditedAt": null
+    },
+    "part3/c": {
+      "userMarkedDone": true,
+      "lastEditedAt": null
+    },
+    "part3/d": {
+      "userMarkedDone": true,
+      "lastEditedAt": null
+    },
+    "part3/e1": {
+      "userMarkedDone": true,
+      "lastEditedAt": null
+    },
+    "part3/e2": {
+      "userMarkedDone": false,
+      "lastEditedAt": "2026-10-14 09:00:00"
+    },
+    "part3/f": {
+      "userMarkedDone": false,
+      "lastEditedAt": "2026-10-14 09:00:00"
+    },
+    "part4/year1": {
+      "userMarkedDone": false,
+      "lastEditedAt": "2026-10-14 09:00:00"
+    },
+    "part4/year2": {
+      "userMarkedDone": false,
+      "lastEditedAt": "2026-10-14 09:00:00"
+    },
+    "part4/year3": {
+      "userMarkedDone": false,
+      "lastEditedAt": "2026-10-14 09:00:00"
+    },
+    "part4/summary": {
+      "userMarkedDone": false,
+      "lastEditedAt": "2026-10-14 09:00:00"
+    }
+  },
+  "part1": {
+    "legalBasis": "Republic Act No. 11997 (Renewable Energy Finance Act of 2024), creating the Philippine Renewable Power Guarantee Corporation to provide guarantees and credit enhancement that crowd in private financing for renewable energy projects.",
+    "mandateFunction": "The PRPGC issues payment and completion guarantees for qualified renewable energy projects, manages a portfolio of guaranteed exposures, prices guarantee fees actuarially, and reports on portfolio quality to its shareholder departments and the market.",
+    "visionStatement": "Renewable energy projects financed faster because a credible public guarantee stands behind them.",
+    "missionStatement": "To provide rigorous, transparent and financially sustainable guarantee products that accelerate the renewable energy buildout.",
+    "orgOutcomes": [
+      {
+        "id": "oo-1",
+        "name": "Faster guarantee issuance for qualified RE projects",
+        "programs": [
+          {
+            "id": "oo-1-pg-1",
+            "name": "Guarantee Digitization Program"
+          }
+        ]
+      },
+      {
+        "id": "oo-2",
+        "name": "World-class portfolio risk analytics",
+        "programs": [
+          {
+            "id": "oo-2-pg-1",
+            "name": "Portfolio Analytics Program"
+          }
+        ]
+      },
+      {
+        "id": "oo-3",
+        "name": "Sustainable and secure operations",
+        "programs": [
+          {
+            "id": "oo-3-pg-1",
+            "name": "Operating Resilience Program"
+          }
+        ]
+      }
+    ],
+    "cioName": "VP Cecilia M. Lambino",
+    "cioPosition": "Vice President · ICT and Data Division",
+    "cioUnit": "ICT and Data Division",
+    "cioEmail": "cio@prpgc.gov.ph",
+    "cioContact": "+63 2 8731 9249",
+    "focalSameAsCio": false,
+    "focalName": "Mr. Leandro P. Hizon",
+    "focalPosition": "Department Manager, Corporate Planning",
+    "focalUnit": "ICT and Data Division",
+    "focalEmail": "focal@prpgc.gov.ph",
+    "focalContact": "+63 2 8581 7776",
+    "humanCapital": {
+      "plantilla": {
+        "it": {
+          "male": 10,
+          "female": 13
+        },
+        "nonIt": {
+          "male": 68,
+          "female": 112
+        }
+      },
+      "plantillaUnfilled": {
+        "it": 3,
+        "nonIt": 15
+      },
+      "contractual": {
+        "it": {
+          "male": 5,
+          "female": 4
+        },
+        "nonIt": {
+          "male": 12,
+          "female": 20
+        }
+      },
+      "outsourced": {
+        "it": {
+          "male": 7,
+          "female": 2
+        },
+        "nonIt": {
+          "male": 3,
+          "female": 2
+        }
+      }
+    },
+    "stakeholders": [
+      {
+        "id": "st-1",
+        "name": "Renewable energy project sponsors",
+        "services": [
+          {
+            "id": "st-1-sv-1",
+            "name": "Guarantee application and issuance",
+            "complexity": "Highly Technical",
+            "direction": "INCOMING"
+          }
+        ]
+      },
+      {
+        "id": "st-2",
+        "name": "Lending institutions",
+        "services": [
+          {
+            "id": "st-2-sv-1",
+            "name": "Guarantee confirmation and claims processing",
+            "complexity": "Highly Technical",
+            "direction": "INCOMING"
+          }
+        ]
+      },
+      {
+        "id": "st-3",
+        "name": "Shareholder departments and oversight bodies",
+        "services": [
+          {
+            "id": "st-3-sv-1",
+            "name": "Portfolio quality and exposure reporting",
+            "complexity": "Complex",
+            "direction": "OUTGOING"
+          }
+        ]
+      }
+    ]
+  },
+  "part2": {
+    "strategicConcerns": [
+      {
+        "id": "c-1",
+        "outcomeIds": [
+          "oo-1"
+        ],
+        "programIds": [
+          "oo-1-pg-1"
+        ],
+        "criticalSystem": "GATE (Guarantee Administration & Tracking Environment)",
+        "concern": "Guarantee issuance runs through GATE's 22 manual workflow steps and three wet signatures; the median time from complete application to issued guarantee is 94 days, and sponsors often close financing before the guarantee does.",
+        "desiredStrategy": "Rebuild guarantee workflows end-to-end (Project WATTS) with straight-through processing for standard products and digital signatures."
+      },
+      {
+        "id": "c-2",
+        "outcomeIds": [
+          "oo-2"
+        ],
+        "programIds": [
+          "oo-2-pg-2"
+        ],
+        "criticalSystem": "Risk models (desktop statistical software)",
+        "concern": "Exposure and pricing models run on desktop software on individual workstations; a model change cannot be reproduced six months later, and the portfolio cube takes twenty minutes to recalculate.",
+        "desiredStrategy": "Stand up the Renewables Portfolio Data Platform: versioned models, governed data, and portfolio analytics that recalculate in seconds."
+      }
+    ],
+    "networkDiagrams": [],
+    "networkDescription": "The Corporation operates from one head office. The GATE guarantee system runs on-premise under an outsourced maintenance contract whose knowledge base is effectively two named engineers; risk models run in desktop statistical software, and the exposure portfolio is tracked in a spreadsheet cube maintained by the risk department that takes twenty minutes to recalculate.",
+    "cybersecurityControls": {
+      "physical": {
+        "perimeterProtection": true,
+        "accessControl": true,
+        "surveillance": true,
+        "detection": true
+      },
+      "perimeter": {
+        "ngfw": true,
+        "idsIps": true,
+        "waf": false,
+        "dmz": false
+      },
+      "network": {
+        "dataEncryption": true,
+        "networkSegmentation": true
+      },
+      "endpoint": {
+        "antivirus": true,
+        "appControl": false,
+        "byod": false,
+        "xdr": false
+      },
+      "data": {
+        "dataClassification": false,
+        "dlp": false,
+        "backupRecovery": true
+      },
+      "application": {
+        "securityScanning": false
+      },
+      "other": {
+        "vulnAssessment": false,
+        "patchMgmt": true,
+        "strongPasswords": true,
+        "mfa": false,
+        "accessReviews": false,
+        "securityLogs": true,
+        "logAnalysis": false,
+        "incidentResponse": false,
+        "siem": false,
+        "penTesting": false,
+        "secureSdlc": false
+      }
+    },
+    "informationSystems": [
+      {
+        "id": "is-gate",
+        "name": "GATE · Guarantee Administration & Tracking Environment",
+        "classification": "OPERATIONS",
+        "frontline": false,
+        "frontlineAccessType": "",
+        "url": "",
+        "description": "On-premise guarantee workflow and registry under outsourced maintenance; 22 manual steps, three wet signatures, 94-day median issuance.",
+        "developmentStrategy": "OUTSOURCED",
+        "developmentPlatform": ".NET Framework / SQL Server",
+        "databaseName": "gate_prod",
+        "dataStorage": "ON_PREMISE",
+        "internalUsers": "Guarantee Operations (~180 staff)",
+        "externalUsers": "",
+        "owner": "Guarantee Operations Division",
+        "interoperability": {
+          "integrated": true,
+          "internalSystems": "See system description",
+          "externalSystems": "",
+          "generatesData": false,
+          "processesExternalData": false,
+          "sharedPlatform": false
+        },
+        "pia": {
+          "processesPersonalInfo": "yes",
+          "piaCompleted": false
+        }
+      },
+      {
+        "id": "is-cube",
+        "name": "Exposure portfolio cube (spreadsheet)",
+        "classification": "SUPPORT_TO_OPERATIONS",
+        "frontline": false,
+        "frontlineAccessType": "",
+        "url": "",
+        "description": "Risk department spreadsheet of all guaranteed exposures; twenty-minute recalculation; no version history.",
+        "developmentStrategy": "IN_HOUSE",
+        "developmentPlatform": "Microsoft Excel / desktop statistical software",
+        "databaseName": "N/A",
+        "dataStorage": "ON_PREMISE",
+        "internalUsers": "Risk Management Division (~35 staff)",
+        "externalUsers": "",
+        "owner": "Risk Management Division",
+        "interoperability": {
+          "integrated": false,
+          "internalSystems": "",
+          "externalSystems": "",
+          "generatesData": false,
+          "processesExternalData": false,
+          "sharedPlatform": false
+        },
+        "pia": {
+          "processesPersonalInfo": "no",
+          "piaCompleted": false
+        }
+      }
+    ],
+    "egpChecklist": {
+      "eGovPay": {
+        "status": "no",
+        "ifNo": {
+          "manual": true,
+          "proposedDevelopment": true
+        }
+      },
+      "pnpki": {
+        "status": "",
+        "adoptionPercentage": 41
+      },
+      "hcmis": {
+        "status": "no",
+        "ifNo": {
+          "usingEquivalent": true,
+          "proposedDevelopment": true
+        },
+        "equivalentName": "None (HR records maintained manually)"
+      },
+      "ifmis": {
+        "status": "no"
+      },
+      "onlinePortal": {
+        "status": "yes",
+        "url": "https://www.prpgc.gov.ph",
+        "mechanisms": {
+          "website": true,
+          "email": true,
+          "landline": true,
+          "socialMedia": false,
+          "mobile": false
+        },
+        "connectedToPortal": "no"
+      },
+      "procurement": {
+        "status": "yes",
+        "url": "https://philgeps.gov.ph"
+      },
+      "recordsMgmt": {
+        "status": "yes"
+      },
+      "pscp": {
+        "status": "no"
+      }
+    }
+  },
+  "part3": {
+    "proposedNetworkDataUrl": null,
+    "proposedNetworkDesc": "The target architecture consolidates Philippine Renewable Power Guarantee Corporation's infrastructure under a unified security and connectivity baseline: redundant links for critical offices, centrally managed cloud-hosted core platforms, and network segmentation between administrative, operations and public-facing zones.",
+    "proposedCybersecControls": {
+      "physical": {
+        "perimeterProtection": true,
+        "accessControl": true,
+        "surveillance": true,
+        "detection": true
+      },
+      "perimeter": {
+        "ngfw": true,
+        "idsIps": true,
+        "waf": true,
+        "dmz": true
+      },
+      "network": {
+        "dataEncryption": true,
+        "networkSegmentation": true
+      },
+      "endpoint": {
+        "antivirus": true,
+        "appControl": true,
+        "byod": false,
+        "xdr": false
+      },
+      "data": {
+        "dataClassification": true,
+        "dlp": false,
+        "backupRecovery": true
+      },
+      "application": {
+        "securityScanning": true
+      },
+      "other": {
+        "vulnAssessment": true,
+        "patchMgmt": true,
+        "strongPasswords": true,
+        "mfa": true,
+        "accessReviews": true,
+        "securityLogs": true,
+        "logAnalysis": true,
+        "incidentResponse": true,
+        "siem": true,
+        "penTesting": true,
+        "secureSdlc": true
+      }
+    },
+    "enterpriseArchDataUrl": null,
+    "proposedHumanCapital": [
+      {
+        "id": "hc-1",
+        "position": "Chief Information Officer",
+        "employmentStatus": "PLANTILLA",
+        "quantity": 1
+      },
+      {
+        "id": "hc-2",
+        "position": "Systems Development Officer",
+        "employmentStatus": "PLANTILLA",
+        "quantity": 2
+      },
+      {
+        "id": "hc-3",
+        "position": "Network and Cybersecurity Officer",
+        "employmentStatus": "PLANTILLA",
+        "quantity": 3
+      },
+      {
+        "id": "hc-4",
+        "position": "ICT Project Support Staff",
+        "employmentStatus": "CONTRACTUAL",
+        "quantity": 3
+      }
+    ],
+    "proposedSystems": [
+      {
+        "id": "ps-watts",
+        "name": "WATTS · Workflows for Account Tracking & Surety",
+        "classification": "OPERATIONS",
+        "frontline": true,
+        "frontlineAccessType": "ONLINE",
+        "url": "",
+        "description": "End-to-end guarantee platform: application intake, straight-through processing for standard products, digital signatures, and claims servicing.",
+        "developmentStrategy": "OUTSOURCED",
+        "developmentPlatform": "Java / PostgreSQL / BPMN engine",
+        "databaseName": "watts_prod",
+        "dataStorage": "CLOUD",
+        "internalUsers": "Guarantee Operations (~200 staff)",
+        "externalUsers": "Sponsors and lenders (~640)",
+        "owner": "ICT and Data Division",
+        "interoperability": {
+          "integrated": false,
+          "internalSystems": "",
+          "externalSystems": "",
+          "generatesData": false,
+          "processesExternalData": false,
+          "sharedPlatform": false
+        },
+        "pia": {
+          "processesPersonalInfo": "yes",
+          "piaRequired": true
+        },
+        "status": "FOR_DEVELOPMENT",
+        "enhancementDetails": ""
+      },
+      {
+        "id": "ps-portfolio",
+        "name": "Renewables Portfolio Data Platform",
+        "classification": "SUPPORT_TO_OPERATIONS",
+        "frontline": false,
+        "frontlineAccessType": "",
+        "url": "",
+        "description": "Governed exposure data platform with versioned risk models and portfolio analytics replacing the twenty-minute spreadsheet cube.",
+        "developmentStrategy": "HYBRID",
+        "developmentPlatform": "Python / dbt / columnar warehouse",
+        "databaseName": "portfolio_wh",
+        "dataStorage": "CLOUD",
+        "internalUsers": "Risk and finance teams (~60 staff)",
+        "externalUsers": "",
+        "owner": "Risk Management Division",
+        "interoperability": {
+          "integrated": false,
+          "internalSystems": "",
+          "externalSystems": "",
+          "generatesData": false,
+          "processesExternalData": false,
+          "sharedPlatform": false
+        },
+        "pia": {
+          "processesPersonalInfo": "no",
+          "piaRequired": false
+        },
+        "status": "FOR_DEVELOPMENT",
+        "enhancementDetails": ""
+      },
+      {
+        "id": "ps-records-prpgc",
+        "name": "Corporate Records and Document Management System",
+        "classification": "GENERAL_ADMIN",
+        "frontline": false,
+        "frontlineAccessType": "",
+        "url": "",
+        "description": "Corporate records, guarantee documents and audit trails with retention scheduling, replacing the records archive that doubles as the supply stockroom.",
+        "developmentStrategy": "OUTSOURCED",
+        "developmentPlatform": "Alfresco / PostgreSQL",
+        "databaseName": "records",
+        "dataStorage": "CLOUD",
+        "internalUsers": "All divisions (~260 staff)",
+        "externalUsers": "",
+        "owner": "Corporate Planning Division",
+        "interoperability": {
+          "integrated": false,
+          "internalSystems": "",
+          "externalSystems": "",
+          "generatesData": false,
+          "processesExternalData": false,
+          "sharedPlatform": false
+        },
+        "pia": {
+          "processesPersonalInfo": "no",
+          "piaRequired": false
+        },
+        "status": "FOR_DEVELOPMENT",
+        "enhancementDetails": ""
+      }
+    ],
+    "internalProjects": [
+      {
+        "id": "p-watts",
+        "title": "Project WATTS · Workflows for Account Tracking & Surety",
+        "description": "Rebuilds guarantee workflows end-to-end: digital application intake, straight-through processing for standard products, digital signatures and claims servicing, cutting issuance from 94 days to 20.",
+        "objectives": "1. WATTS live for standard guarantee products by 2029\n2. Median issuance time: 20 days\n3. Digital signature accepted for all guarantee documents\n4. GATE decommissioned by 2029",
+        "projectType": "IS_DRIVEN",
+        "linkedSystemIds": [
+          "ps-watts"
+        ],
+        "strategicAlignment": [
+          "E-Government Master Plan",
+          "National Cybersecurity Plan"
+        ],
+        "harmonizationFramework": [
+          "National Prioritization",
+          "Resource Optimization"
+        ],
+        "implementingUnit": "ICT and Data Division",
+        "fundingSource": "General Appropriations Act",
+        "year1Deliverables": "Intake and straight-through processing live for two standard products; digital signatures live",
+        "year2Deliverables": "Full product suite migrated; claims servicing live; GATE decommissioned",
+        "year3Deliverables": "",
+        "duration": "2028–2029"
+      },
+      {
+        "id": "p-portfolio",
+        "title": "Renewables Portfolio Data Platform",
+        "description": "Builds the governed exposure data platform with versioned risk models and portfolio analytics, replacing the twenty-minute spreadsheet cube.",
+        "objectives": "1. Platform live with full exposure history by 2028\n2. Versioned, reviewable model runs\n3. Portfolio recalculation in seconds",
+        "projectType": "IS_DRIVEN",
+        "linkedSystemIds": [
+          "ps-portfolio"
+        ],
+        "strategicAlignment": [
+          "Public Investment Program"
+        ],
+        "harmonizationFramework": [
+          "Resource Optimization",
+          "Scalability and Sustainability"
+        ],
+        "implementingUnit": "Risk Management Division",
+        "fundingSource": "General Appropriations Act",
+        "year1Deliverables": "Exposure history migrated; first versioned model runs",
+        "year2Deliverables": "Portfolio analytics live; cube retired",
+        "year3Deliverables": "Stress-testing environment operational",
+        "duration": "2028–2030"
+      },
+      {
+        "id": "p-ampere",
+        "title": "Project AMPERE · Actuarial Modeling Platform for Energy Risk Estimation",
+        "description": "A Corporation-owned AI compute cluster for guarantee pricing and portfolio stress models: sponsor financial data and proprietary model runs stay on-premise under the Corporation's fiduciary commitments, with governed MLOps on the Portfolio Data Platform. The largest single AI-compute ask in this corpus.",
+        "objectives": "1. Cluster and MLOps environment commissioned by 2028\n2. All pricing and stress models re-platformed from desktop software by 2029\n3. Portfolio-wide stress runs in minutes, fully reproducible",
+        "projectType": "STANDALONE",
+        "linkedSystemIds": [
+          "ps-portfolio"
+        ],
+        "strategicAlignment": [
+          "Public Investment Program",
+          "National Cybersecurity Plan"
+        ],
+        "harmonizationFramework": [
+          "Scalability and Sustainability",
+          "Resource Optimization"
+        ],
+        "implementingUnit": "ICT and Data Division",
+        "fundingSource": "Other Income Generating Sources",
+        "year1Deliverables": "Cluster commissioned; MLOps environment live; first pricing models re-platformed",
+        "year2Deliverables": "All stress models re-platformed; desktop statistical software retired; any model run replayable from the registry",
+        "year3Deliverables": "",
+        "duration": "2028–2029"
+      }
+    ],
+    "crossAgencyProjects": [],
+    "performanceFramework": {
+      "p-watts": {
+        "projectTitle": "Project WATTS · Workflows for Account Tracking & Surety",
+        "projectCategory": "internal",
+        "rows": [
+          {
+            "id": "p-watts-kpi-1",
+            "hierarchy": "Intermediate Outcome",
+            "targetedResult": "Median guarantee issuance time (complete application to issuance)",
+            "indicator": "Median guarantee issuance time (complete application to issuance)",
+            "baseline": "94 days",
+            "year1Target": "45 days",
+            "year2Target": "20 days",
+            "year3Target": "20 days",
+            "dataCollectionMethod": "Quarterly project accomplishment reports",
+            "responsibleUnit": "ICT and Data Division"
+          },
+          {
+            "id": "p-watts-kpi-2",
+            "hierarchy": "Output",
+            "targetedResult": "Guarantee products on straight-through processing",
+            "indicator": "Guarantee products on straight-through processing",
+            "baseline": "0",
+            "year1Target": "2",
+            "year2Target": "6",
+            "year3Target": "6",
+            "dataCollectionMethod": "Quarterly project accomplishment reports",
+            "responsibleUnit": "ICT and Data Division"
+          }
+        ]
+      },
+      "p-portfolio": {
+        "projectTitle": "Renewables Portfolio Data Platform",
+        "projectCategory": "internal",
+        "rows": [
+          {
+            "id": "p-portfolio-kpi-1",
+            "hierarchy": "Output",
+            "targetedResult": "% completion of Portfolio Data Platform deliverables",
+            "indicator": "% completion of Portfolio Data Platform deliverables",
+            "baseline": "0%",
+            "year1Target": "40%",
+            "year2Target": "80%",
+            "year3Target": "100%",
+            "dataCollectionMethod": "Quarterly project accomplishment reports",
+            "responsibleUnit": "Risk Management Division"
+          },
+          {
+            "id": "p-portfolio-kpi-2",
+            "hierarchy": "Immediate Outcome",
+            "targetedResult": "Offices/units actively served by Portfolio Data Platform (vs. manual process at baseline)",
+            "indicator": "Offices/units actively served by Portfolio Data Platform (vs. manual process at baseline)",
+            "baseline": "0",
+            "year1Target": "Pilot units",
+            "year2Target": "Majority of units",
+            "year3Target": "Full coverage",
+            "dataCollectionMethod": "Quarterly project accomplishment reports",
+            "responsibleUnit": "Risk Management Division"
+          }
+        ]
+      },
+      "p-ampere": {
+        "projectTitle": "Project AMPERE · Actuarial Modeling Platform for Energy Risk Estimation",
+        "projectCategory": "internal",
+        "rows": [
+          {
+            "id": "p-ampere-kpi-1",
+            "hierarchy": "Intermediate Outcome",
+            "targetedResult": "Portfolio-wide stress test turnaround",
+            "indicator": "Portfolio-wide stress test turnaround",
+            "baseline": "20 minutes (cube)",
+            "year1Target": "minutes",
+            "year2Target": "seconds",
+            "year3Target": "seconds",
+            "dataCollectionMethod": "Quarterly project accomplishment reports",
+            "responsibleUnit": "ICT and Data Division"
+          },
+          {
+            "id": "p-ampere-kpi-2",
+            "hierarchy": "Immediate Outcome",
+            "targetedResult": "Model runs reproducible 6 months later",
+            "indicator": "Model runs reproducible 6 months later",
+            "baseline": "0%",
+            "year1Target": "60%",
+            "year2Target": "100%",
+            "year3Target": "100%",
+            "dataCollectionMethod": "Quarterly project accomplishment reports",
+            "responsibleUnit": "ICT and Data Division"
+          },
+          {
+            "id": "p-ampere-kpi-3",
+            "hierarchy": "Output",
+            "targetedResult": "Pricing and stress models on the governed platform",
+            "indicator": "Pricing and stress models on the governed platform",
+            "baseline": "0 of 11",
+            "year1Target": "5",
+            "year2Target": "11",
+            "year3Target": "11",
+            "dataCollectionMethod": "Quarterly project accomplishment reports",
+            "responsibleUnit": "ICT and Data Division"
+          }
+        ]
+      }
+    }
+  },
+  "part4": {
+    "year1": {
+      "officeProductivity": {
+        "capitalOutlay": [
+          {
+            "id": "y1-co-453",
+            "item": "Desktop computer sets (productivity replacement cycle)",
+            "office": "ICT and Data Division",
+            "categoryId": "co-ict-machinery-equipment",
+            "fundSource": "General Appropriations Act",
+            "qty": 47,
+            "unitCost": 50000
+          },
+          {
+            "id": "y1-co-454",
+            "item": "Laptop computers (mobile staff and field officers)",
+            "office": "ICT and Data Division",
+            "categoryId": "co-ict-machinery-equipment",
+            "fundSource": "General Appropriations Act",
+            "qty": 26,
+            "unitCost": 59000
+          },
+          {
+            "id": "y1-co-455",
+            "item": "Network switches and structured cabling refresh",
+            "office": "ICT and Data Division",
+            "categoryId": "co-ict-machinery-equipment",
+            "fundSource": "General Appropriations Act",
+            "qty": 1,
+            "unitCost": 361500
+          },
+          {
+            "id": "y1-co-456",
+            "item": "Rack-mounted UPS · equipment room",
+            "office": "ICT and Data Division",
+            "categoryId": "co-ict-machinery-equipment",
+            "fundSource": "General Appropriations Act",
+            "qty": 2,
+            "unitCost": 94000
+          },
+          {
+            "id": "y1-co-457",
+            "item": "Enterprise antivirus / endpoint protection licenses",
+            "office": "ICT and Data Division",
+            "categoryId": "co-ict-software",
+            "fundSource": "General Appropriations Act",
+            "qty": 1,
+            "unitCost": 411000
+          }
+        ],
+        "mooe": [
+          {
+            "id": "y1-mooe-450",
+            "item": "Internet subscription · 3 offices, pooled (Year 1)",
+            "office": "ICT and Data Division",
+            "categoryId": "mooe-internet-subscription",
+            "fundSource": "General Appropriations Act",
+            "qty": 36,
+            "unitCost": 26000
+          },
+          {
+            "id": "y1-mooe-451",
+            "item": "ICT supplies (consumables, cartridges, peripherals)",
+            "office": "ICT and Data Division",
+            "categoryId": "mooe-ict-supplies",
+            "fundSource": "General Appropriations Act",
+            "qty": 1,
+            "unitCost": 248500
+          },
+          {
+            "id": "y1-mooe-452",
+            "item": "ICT training · staff capability building",
+            "office": "ICT and Data Division",
+            "categoryId": "mooe-ict-training",
+            "fundSource": "General Appropriations Act",
+            "qty": 1,
+            "unitCost": 155000
+          }
+        ]
+      },
+      "internalProjects": {
+        "p-watts": {
+          "projectTitle": "Project WATTS · Workflows for Account Tracking & Surety",
+          "capitalOutlay": [
+            {
+              "id": "y1-co-474",
+              "item": "Project WATTS · system development and acquisition (Year 1 milestone)",
+              "office": "ICT and Data Division",
+              "categoryId": "co-ict-software",
+              "fundSource": "General Appropriations Act",
+              "qty": 1,
+              "unitCost": 253344000
+            }
+          ],
+          "mooe": [
+            {
+              "id": "y1-mooe-475",
+              "item": "Project management office · Project WATTS",
+              "office": "ICT and Data Division",
+              "categoryId": "mooe-professional-services",
+              "fundSource": "General Appropriations Act",
+              "qty": 1,
+              "unitCost": 21715000
+            },
+            {
+              "id": "y1-mooe-476",
+              "item": "Hosting, support and licences · Project WATTS (Year 1)",
+              "office": "ICT and Data Division",
+              "categoryId": "mooe-web-hosting",
+              "fundSource": "General Appropriations Act",
+              "qty": 1,
+              "unitCost": 14477000
+            },
+            {
+              "id": "y1-mooe-477",
+              "item": "ICT training and change management · Project WATTS",
+              "office": "ICT and Data Division",
+              "categoryId": "mooe-ict-training",
+              "fundSource": "General Appropriations Act",
+              "qty": 1,
+              "unitCost": 12064000
+            }
+          ]
+        },
+        "p-portfolio": {
+          "projectTitle": "Renewables Portfolio Data Platform",
+          "capitalOutlay": [
+            {
+              "id": "y1-co-482",
+              "item": "Portfolio Data Platform · system development and acquisition (Year 1 milestone)",
+              "office": "Risk Management Division",
+              "categoryId": "co-ict-software",
+              "fundSource": "General Appropriations Act",
+              "qty": 1,
+              "unitCost": 74088000
+            }
+          ],
+          "mooe": [
+            {
+              "id": "y1-mooe-483",
+              "item": "Project management office · Portfolio Data Platform",
+              "office": "Risk Management Division",
+              "categoryId": "mooe-professional-services",
+              "fundSource": "General Appropriations Act",
+              "qty": 1,
+              "unitCost": 6350500
+            },
+            {
+              "id": "y1-mooe-484",
+              "item": "Hosting, support and licences · Portfolio Data Platform (Year 1)",
+              "office": "Risk Management Division",
+              "categoryId": "mooe-web-hosting",
+              "fundSource": "General Appropriations Act",
+              "qty": 1,
+              "unitCost": 4233500
+            },
+            {
+              "id": "y1-mooe-485",
+              "item": "ICT training and change management · Portfolio Data Platform",
+              "office": "Risk Management Division",
+              "categoryId": "mooe-ict-training",
+              "fundSource": "General Appropriations Act",
+              "qty": 1,
+              "unitCost": 3528000
+            }
+          ]
+        },
+        "p-ampere": {
+          "projectTitle": "Project AMPERE · Actuarial Modeling Platform for Energy Risk Estimation",
+          "capitalOutlay": [
+            {
+              "id": "y1-co-494",
+              "item": "AI training cluster nodes (16 accelerator nodes, liquid-cooled)",
+              "office": "ICT and Data Division",
+              "categoryId": "co-ict-machinery-equipment",
+              "fundSource": "Other Income Generating Sources",
+              "qty": 16,
+              "unitCost": 3640000
+            },
+            {
+              "id": "y1-co-495",
+              "item": "Inference servers for portfolio stress runs",
+              "office": "ICT and Data Division",
+              "categoryId": "co-ict-machinery-equipment",
+              "fundSource": "Other Income Generating Sources",
+              "qty": 2,
+              "unitCost": 8056000
+            },
+            {
+              "id": "y1-co-496",
+              "item": "High-performance storage array (exposure history and model registry)",
+              "office": "ICT and Data Division",
+              "categoryId": "co-ict-machinery-equipment",
+              "fundSource": "Other Income Generating Sources",
+              "qty": 1,
+              "unitCost": 11400000
+            },
+            {
+              "id": "y1-co-497",
+              "item": "AI training cluster nodes · succeeding tranche",
+              "office": "ICT and Data Division",
+              "categoryId": "co-ict-machinery-equipment",
+              "fundSource": "Other Income Generating Sources",
+              "qty": 5,
+              "unitCost": 3262500
+            },
+            {
+              "id": "y1-co-498",
+              "item": "Inference servers for portfolio stress runs · succeeding tranche",
+              "office": "ICT and Data Division",
+              "categoryId": "co-ict-machinery-equipment",
+              "fundSource": "Other Income Generating Sources",
+              "qty": 1,
+              "unitCost": 6804000
+            },
+            {
+              "id": "y1-co-499",
+              "item": "Project AMPERE · engineering, installation and commissioning (Year 1)",
+              "office": "ICT and Data Division",
+              "categoryId": "co-infrastructure-communications-network",
+              "fundSource": "Other Income Generating Sources",
+              "qty": 1,
+              "unitCost": 4978500
+            }
+          ],
+          "mooe": [
+            {
+              "id": "y1-mooe-500",
+              "item": "Project management office · Project AMPERE",
+              "office": "ICT and Data Division",
+              "categoryId": "mooe-professional-services",
+              "fundSource": "Other Income Generating Sources",
+              "qty": 1,
+              "unitCost": 249000
+            },
+            {
+              "id": "y1-mooe-501",
+              "item": "Hosting, support and licences · Project AMPERE (Year 1)",
+              "office": "ICT and Data Division",
+              "categoryId": "mooe-cloud-computing",
+              "fundSource": "Other Income Generating Sources",
+              "qty": 1,
+              "unitCost": 166000
+            },
+            {
+              "id": "y1-mooe-502",
+              "item": "ICT training and change management · Project AMPERE",
+              "office": "ICT and Data Division",
+              "categoryId": "mooe-ict-training",
+              "fundSource": "Other Income Generating Sources",
+              "qty": 1,
+              "unitCost": 138500
+            }
+          ]
+        }
+      },
+      "crossAgencyProjects": {},
+      "continuingCosts": {
+        "mooe": [
+          {
+            "id": "y1-mooe-507",
+            "item": "GATE system maintenance (until decommission)",
+            "office": "ICT and Data Division",
+            "categoryId": "mooe-other-general-ict-services",
+            "fundSource": "Other Income Generating Sources",
+            "qty": 1,
+            "unitCost": 6500000
+          },
+          {
+            "id": "y1-mooe-510",
+            "item": "Market data and rating feeds",
+            "office": "ICT and Data Division",
+            "categoryId": "mooe-ict-software-subscription",
+            "fundSource": "Other Income Generating Sources",
+            "qty": 1,
+            "unitCost": 8400000
+          },
+          {
+            "id": "y1-mooe-513",
+            "item": "Cloud compute for risk models",
+            "office": "ICT and Data Division",
+            "categoryId": "mooe-cloud-computing",
+            "fundSource": "General Appropriations Act",
+            "qty": 1,
+            "unitCost": 2800000
+          },
+          {
+            "id": "y1-mooe-516",
+            "item": "Data center colocation services",
+            "office": "ICT and Data Division",
+            "categoryId": "mooe-data-center-services",
+            "fundSource": "General Appropriations Act",
+            "qty": 1,
+            "unitCost": 3600000
+          }
+        ]
+      }
+    },
+    "year2": {
+      "officeProductivity": {
+        "capitalOutlay": [
+          {
+            "id": "y2-co-461",
+            "item": "Desktop computer sets (productivity replacement cycle)",
+            "office": "ICT and Data Division",
+            "categoryId": "co-ict-machinery-equipment",
+            "fundSource": "General Appropriations Act",
+            "qty": 47,
+            "unitCost": 56000
+          },
+          {
+            "id": "y2-co-462",
+            "item": "Laptop computers (mobile staff and field officers)",
+            "office": "ICT and Data Division",
+            "categoryId": "co-ict-machinery-equipment",
+            "fundSource": "General Appropriations Act",
+            "qty": 26,
+            "unitCost": 53500
+          },
+          {
+            "id": "y2-co-463",
+            "item": "Network switches and structured cabling refresh",
+            "office": "ICT and Data Division",
+            "categoryId": "co-ict-machinery-equipment",
+            "fundSource": "General Appropriations Act",
+            "qty": 1,
+            "unitCost": 370000
+          },
+          {
+            "id": "y2-co-464",
+            "item": "Rack-mounted UPS · equipment room",
+            "office": "ICT and Data Division",
+            "categoryId": "co-ict-machinery-equipment",
+            "fundSource": "General Appropriations Act",
+            "qty": 2,
+            "unitCost": 84500
+          },
+          {
+            "id": "y2-co-465",
+            "item": "Enterprise antivirus / endpoint protection licenses",
+            "office": "ICT and Data Division",
+            "categoryId": "co-ict-software",
+            "fundSource": "General Appropriations Act",
+            "qty": 1,
+            "unitCost": 420000
+          }
+        ],
+        "mooe": [
+          {
+            "id": "y2-mooe-458",
+            "item": "Internet subscription · 3 offices, pooled (Year 2)",
+            "office": "ICT and Data Division",
+            "categoryId": "mooe-internet-subscription",
+            "fundSource": "General Appropriations Act",
+            "qty": 36,
+            "unitCost": 27000
+          },
+          {
+            "id": "y2-mooe-459",
+            "item": "ICT supplies (consumables, cartridges, peripherals)",
+            "office": "ICT and Data Division",
+            "categoryId": "mooe-ict-supplies",
+            "fundSource": "General Appropriations Act",
+            "qty": 1,
+            "unitCost": 262000
+          },
+          {
+            "id": "y2-mooe-460",
+            "item": "ICT training · staff capability building",
+            "office": "ICT and Data Division",
+            "categoryId": "mooe-ict-training",
+            "fundSource": "General Appropriations Act",
+            "qty": 1,
+            "unitCost": 356000
+          }
+        ]
+      },
+      "internalProjects": {
+        "p-watts": {
+          "projectTitle": "Project WATTS · Workflows for Account Tracking & Surety",
+          "capitalOutlay": [
+            {
+              "id": "y2-co-478",
+              "item": "Project WATTS · system development and acquisition (Year 2 milestone)",
+              "office": "ICT and Data Division",
+              "categoryId": "co-ict-software",
+              "fundSource": "General Appropriations Act",
+              "qty": 1,
+              "unitCost": 183456000
+            }
+          ],
+          "mooe": [
+            {
+              "id": "y2-mooe-479",
+              "item": "Project management office · Project WATTS",
+              "office": "ICT and Data Division",
+              "categoryId": "mooe-professional-services",
+              "fundSource": "General Appropriations Act",
+              "qty": 1,
+              "unitCost": 15725000
+            },
+            {
+              "id": "y2-mooe-480",
+              "item": "Hosting, support and licences · Project WATTS (Year 2)",
+              "office": "ICT and Data Division",
+              "categoryId": "mooe-cloud-computing",
+              "fundSource": "General Appropriations Act",
+              "qty": 1,
+              "unitCost": 10483000
+            },
+            {
+              "id": "y2-mooe-481",
+              "item": "ICT training and change management · Project WATTS",
+              "office": "ICT and Data Division",
+              "categoryId": "mooe-ict-training",
+              "fundSource": "General Appropriations Act",
+              "qty": 1,
+              "unitCost": 8736000
+            }
+          ]
+        },
+        "p-portfolio": {
+          "projectTitle": "Renewables Portfolio Data Platform",
+          "capitalOutlay": [
+            {
+              "id": "y2-co-486",
+              "item": "Portfolio Data Platform · system development and acquisition (Year 2 milestone)",
+              "office": "Risk Management Division",
+              "categoryId": "co-ict-software",
+              "fundSource": "General Appropriations Act",
+              "qty": 1,
+              "unitCost": 59976000
+            }
+          ],
+          "mooe": [
+            {
+              "id": "y2-mooe-487",
+              "item": "Project management office · Portfolio Data Platform",
+              "office": "Risk Management Division",
+              "categoryId": "mooe-professional-services",
+              "fundSource": "General Appropriations Act",
+              "qty": 1,
+              "unitCost": 5141000
+            },
+            {
+              "id": "y2-mooe-488",
+              "item": "Hosting, support and licences · Portfolio Data Platform (Year 2)",
+              "office": "Risk Management Division",
+              "categoryId": "mooe-cloud-computing",
+              "fundSource": "General Appropriations Act",
+              "qty": 1,
+              "unitCost": 3427000
+            },
+            {
+              "id": "y2-mooe-489",
+              "item": "ICT training and change management · Portfolio Data Platform",
+              "office": "Risk Management Division",
+              "categoryId": "mooe-ict-training",
+              "fundSource": "General Appropriations Act",
+              "qty": 1,
+              "unitCost": 2856000
+            }
+          ]
+        },
+        "p-ampere": {
+          "projectTitle": "Project AMPERE · Actuarial Modeling Platform for Energy Risk Estimation",
+          "capitalOutlay": [
+            {
+              "id": "y2-co-503",
+              "item": "Project AMPERE · engineering, installation and commissioning (Year 2)",
+              "office": "ICT and Data Division",
+              "categoryId": "co-infrastructure-communications-network",
+              "fundSource": "Other Income Generating Sources",
+              "qty": 1,
+              "unitCost": 95040000
+            }
+          ],
+          "mooe": [
+            {
+              "id": "y2-mooe-504",
+              "item": "Project management office · Project AMPERE",
+              "office": "ICT and Data Division",
+              "categoryId": "mooe-professional-services",
+              "fundSource": "Other Income Generating Sources",
+              "qty": 1,
+              "unitCost": 4752000
+            },
+            {
+              "id": "y2-mooe-505",
+              "item": "Hosting, support and licences · Project AMPERE (Year 2)",
+              "office": "ICT and Data Division",
+              "categoryId": "mooe-web-hosting",
+              "fundSource": "Other Income Generating Sources",
+              "qty": 1,
+              "unitCost": 3168000
+            },
+            {
+              "id": "y2-mooe-506",
+              "item": "ICT training and change management · Project AMPERE",
+              "office": "ICT and Data Division",
+              "categoryId": "mooe-ict-training",
+              "fundSource": "Other Income Generating Sources",
+              "qty": 1,
+              "unitCost": 2640000
+            }
+          ]
+        }
+      },
+      "crossAgencyProjects": {},
+      "continuingCosts": {
+        "mooe": [
+          {
+            "id": "y2-mooe-508",
+            "item": "GATE system maintenance (until decommission)",
+            "office": "ICT and Data Division",
+            "categoryId": "mooe-other-general-ict-services",
+            "fundSource": "Other Income Generating Sources",
+            "qty": 1,
+            "unitCost": 6760000
+          },
+          {
+            "id": "y2-mooe-511",
+            "item": "Market data and rating feeds",
+            "office": "ICT and Data Division",
+            "categoryId": "mooe-ict-software-subscription",
+            "fundSource": "Other Income Generating Sources",
+            "qty": 1,
+            "unitCost": 8736000
+          },
+          {
+            "id": "y2-mooe-514",
+            "item": "Cloud compute for risk models",
+            "office": "ICT and Data Division",
+            "categoryId": "mooe-cloud-computing",
+            "fundSource": "General Appropriations Act",
+            "qty": 1,
+            "unitCost": 2912000
+          },
+          {
+            "id": "y2-mooe-517",
+            "item": "Data center colocation services",
+            "office": "ICT and Data Division",
+            "categoryId": "mooe-data-center-services",
+            "fundSource": "General Appropriations Act",
+            "qty": 1,
+            "unitCost": 3744000
+          }
+        ]
+      }
+    },
+    "year3": {
+      "officeProductivity": {
+        "capitalOutlay": [
+          {
+            "id": "y3-co-469",
+            "item": "Desktop computer sets (productivity replacement cycle)",
+            "office": "ICT and Data Division",
+            "categoryId": "co-ict-machinery-equipment",
+            "fundSource": "General Appropriations Act",
+            "qty": 47,
+            "unitCost": 51000
+          },
+          {
+            "id": "y3-co-470",
+            "item": "Laptop computers (mobile staff and field officers)",
+            "office": "ICT and Data Division",
+            "categoryId": "co-ict-machinery-equipment",
+            "fundSource": "General Appropriations Act",
+            "qty": 26,
+            "unitCost": 53500
+          },
+          {
+            "id": "y3-co-471",
+            "item": "Network switches and structured cabling refresh",
+            "office": "ICT and Data Division",
+            "categoryId": "co-ict-machinery-equipment",
+            "fundSource": "General Appropriations Act",
+            "qty": 1,
+            "unitCost": 358500
+          },
+          {
+            "id": "y3-co-472",
+            "item": "Rack-mounted UPS · equipment room",
+            "office": "ICT and Data Division",
+            "categoryId": "co-ict-machinery-equipment",
+            "fundSource": "General Appropriations Act",
+            "qty": 2,
+            "unitCost": 106000
+          },
+          {
+            "id": "y3-co-473",
+            "item": "Enterprise antivirus / endpoint protection licenses",
+            "office": "ICT and Data Division",
+            "categoryId": "co-ict-software",
+            "fundSource": "General Appropriations Act",
+            "qty": 1,
+            "unitCost": 386500
+          }
+        ],
+        "mooe": [
+          {
+            "id": "y3-mooe-466",
+            "item": "Internet subscription · 3 offices, pooled (Year 3)",
+            "office": "ICT and Data Division",
+            "categoryId": "mooe-internet-subscription",
+            "fundSource": "General Appropriations Act",
+            "qty": 36,
+            "unitCost": 19500
+          },
+          {
+            "id": "y3-mooe-467",
+            "item": "ICT supplies (consumables, cartridges, peripherals)",
+            "office": "ICT and Data Division",
+            "categoryId": "mooe-ict-supplies",
+            "fundSource": "General Appropriations Act",
+            "qty": 1,
+            "unitCost": 305000
+          },
+          {
+            "id": "y3-mooe-468",
+            "item": "ICT training · staff capability building",
+            "office": "ICT and Data Division",
+            "categoryId": "mooe-ict-training",
+            "fundSource": "General Appropriations Act",
+            "qty": 1,
+            "unitCost": 152500
+          }
+        ]
+      },
+      "internalProjects": {
+        "p-portfolio": {
+          "projectTitle": "Renewables Portfolio Data Platform",
+          "capitalOutlay": [
+            {
+              "id": "y3-co-490",
+              "item": "Portfolio Data Platform · system development and acquisition (Year 3 milestone)",
+              "office": "Risk Management Division",
+              "categoryId": "co-ict-software",
+              "fundSource": "General Appropriations Act",
+              "qty": 1,
+              "unitCost": 42336000
+            }
+          ],
+          "mooe": [
+            {
+              "id": "y3-mooe-491",
+              "item": "Project management office · Portfolio Data Platform",
+              "office": "Risk Management Division",
+              "categoryId": "mooe-professional-services",
+              "fundSource": "General Appropriations Act",
+              "qty": 1,
+              "unitCost": 3629000
+            },
+            {
+              "id": "y3-mooe-492",
+              "item": "Hosting, support and licences · Portfolio Data Platform (Year 3)",
+              "office": "Risk Management Division",
+              "categoryId": "mooe-web-hosting",
+              "fundSource": "General Appropriations Act",
+              "qty": 1,
+              "unitCost": 2419000
+            },
+            {
+              "id": "y3-mooe-493",
+              "item": "ICT training and change management · Portfolio Data Platform",
+              "office": "Risk Management Division",
+              "categoryId": "mooe-ict-training",
+              "fundSource": "General Appropriations Act",
+              "qty": 1,
+              "unitCost": 2016000
+            }
+          ]
+        }
+      },
+      "crossAgencyProjects": {},
+      "continuingCosts": {
+        "mooe": [
+          {
+            "id": "y3-mooe-509",
+            "item": "GATE system maintenance (until decommission)",
+            "office": "ICT and Data Division",
+            "categoryId": "mooe-other-general-ict-services",
+            "fundSource": "Other Income Generating Sources",
+            "qty": 1,
+            "unitCost": 7020000
+          },
+          {
+            "id": "y3-mooe-512",
+            "item": "Market data and rating feeds",
+            "office": "ICT and Data Division",
+            "categoryId": "mooe-ict-software-subscription",
+            "fundSource": "Other Income Generating Sources",
+            "qty": 1,
+            "unitCost": 9072000
+          },
+          {
+            "id": "y3-mooe-515",
+            "item": "Cloud compute for risk models",
+            "office": "ICT and Data Division",
+            "categoryId": "mooe-cloud-computing",
+            "fundSource": "General Appropriations Act",
+            "qty": 1,
+            "unitCost": 3024000
+          },
+          {
+            "id": "y3-mooe-518",
+            "item": "Data center colocation services",
+            "office": "ICT and Data Division",
+            "categoryId": "mooe-data-center-services",
+            "fundSource": "General Appropriations Act",
+            "qty": 1,
+            "unitCost": 3888000
+          }
+        ]
+      }
+    }
+  },
+  "createdAt": "2026-08-18T04:35:00.000Z",
+  "updatedAt": "2026-10-15T08:05:00.000Z"
+}

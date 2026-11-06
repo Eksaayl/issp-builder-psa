@@ -16,6 +16,25 @@
 /* Touch-device affordance — bump tap targets only on coarse pointers (keeps desktop density) */
 @custom-variant coarse (@media (pointer: coarse));
 
+/* Phone tables: a right-edge fade on the horizontally scrolling tables, so the
+   clipped last column reads as scrollable rather than broken. Card token only. */
+@media (max-width: 767px) {
+  .scroll-x-fade {
+    position: relative;
+  }
+  .scroll-x-fade::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 20px;
+    background: linear-gradient(to right, transparent, var(--card));
+    pointer-events: none;
+    border-radius: inherit;
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -31,6 +50,8 @@
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
+  --color-band: var(--band);
+  --color-band-foreground: var(--band-foreground);
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
@@ -102,9 +123,9 @@
   --sidebar-active: #D4D2C9;
   --part: var(--foreground);
   --budget-1: #0B5EE6;
-  --budget-2: #753EF4;
-  --budget-3: #905D06;
-  --budget-4: #CF0C2D;
+  --budget-2: #D95F02;
+  --budget-3: #0E8A63;
+  --budget-4: #8E1F4B;
   --success:            #15803D;
   --success-bg:         #f0fdf4;
   --success-border:     #bbf7d0;
@@ -156,9 +177,9 @@
   --sidebar-active: #3A3630;
   --part: var(--foreground);
   --budget-1: #6099F8;
-  --budget-2: #A985F8;
-  --budget-3: #F59E0B;
-  --budget-4: #F76C84;
+  --budget-2: #FA8F45;
+  --budget-3: #4FCFA3;
+  --budget-4: #B85582;
   --success:            #4ade80;
   --success-bg:         #0f2118;
   --success-border:     #1e4030;
@@ -210,9 +231,9 @@
   --sidebar-active: #E5E5EA;
   --part: var(--foreground);
   --budget-1: #0B5EE6;
-  --budget-2: #753EF4;
-  --budget-3: #905D06;
-  --budget-4: #CF0C2D;
+  --budget-2: #D95F02;
+  --budget-3: #0E8A63;
+  --budget-4: #8E1F4B;
   --success:            #15803D;
   --success-bg:         #f0fdf4;
   --success-border:     #bbf7d0;
@@ -265,9 +286,9 @@
   --sidebar-active: #3A3A3C;
   --part: var(--foreground);
   --budget-1: #5693F7;
-  --budget-2: #A37EF8;
-  --budget-3: #FF9F0A;
-  --budget-4: #F6617B;
+  --budget-2: #FA8F45;
+  --budget-3: #4FCFA3;
+  --budget-4: #B85582;
   --success:            #30D158;
   --success-bg:         #0d2014;
   --success-border:     #1a3b24;
@@ -320,9 +341,9 @@
   --sidebar-active: #BFD7EC;
   --part: var(--foreground);
   --budget-1: #0B5EE6;
-  --budget-2: #753EF4;
-  --budget-3: #905D06;
-  --budget-4: #CF0C2D;
+  --budget-2: #D95F02;
+  --budget-3: #0E8A63;
+  --budget-4: #8E1F4B;
   --success:            #15803D;
   --success-bg:         #f0fdf4;
   --success-border:     #bbf7d0;
@@ -374,9 +395,9 @@
   --sidebar-active: #27405A;
   --part: var(--foreground);
   --budget-1: #6099F8;
-  --budget-2: #A985F8;
-  --budget-3: #F59E0B;
-  --budget-4: #F76C84;
+  --budget-2: #FA8F45;
+  --budget-3: #4FCFA3;
+  --budget-4: #B85582;
   --success:            #4ade80;
   --success-bg:         #0f2118;
   --success-border:     #1e4030;
@@ -428,9 +449,9 @@
   --sidebar-active: #C0D9C5;
   --part: var(--foreground);
   --budget-1: #0B5EE6;
-  --budget-2: #753EF4;
-  --budget-3: #905D06;
-  --budget-4: #CF0C2D;
+  --budget-2: #D95F02;
+  --budget-3: #0E8A63;
+  --budget-4: #8E1F4B;
   --success:            #15803D;
   --success-bg:         #f0fdf4;
   --success-border:     #bbf7d0;
@@ -482,9 +503,9 @@
   --sidebar-active: #2B4635;
   --part: var(--foreground);
   --budget-1: #6099F8;
-  --budget-2: #A985F8;
-  --budget-3: #F59E0B;
-  --budget-4: #F76C84;
+  --budget-2: #FA8F45;
+  --budget-3: #4FCFA3;
+  --budget-4: #B85582;
   --success:            #4ade80;
   --success-bg:         #0f2118;
   --success-border:     #1e4030;
@@ -536,9 +557,9 @@
   --sidebar-active: #E4C2D0;
   --part: var(--foreground);
   --budget-1: #0B5EE6;
-  --budget-2: #753EF4;
-  --budget-3: #905D06;
-  --budget-4: #CF0C2D;
+  --budget-2: #D95F02;
+  --budget-3: #0E8A63;
+  --budget-4: #8E1F4B;
   --success:            #15803D;
   --success-bg:         #f0fdf4;
   --success-border:     #bbf7d0;
@@ -590,9 +611,9 @@
   --sidebar-active: #4A2E3D;
   --part: var(--foreground);
   --budget-1: #6099F8;
-  --budget-2: #A985F8;
-  --budget-3: #F59E0B;
-  --budget-4: #F76C84;
+  --budget-2: #FA8F45;
+  --budget-3: #4FCFA3;
+  --budget-4: #B85582;
   --success:            #4ade80;
   --success-bg:         #0f2118;
   --success-border:     #1e4030;
@@ -649,9 +670,9 @@
   --sidebar-active: #DCE6FF;
   --part: var(--foreground);
   --budget-1: #0040E7;
-  --budget-2: #663BB7;
-  --budget-3: #8A6D00;
-  --budget-4: #CE1126;
+  --budget-2: #D95F02;
+  --budget-3: #0E8A63;
+  --budget-4: #8E1F4B;
   --success:            #16A34A;
   --success-bg:         #f0fdf4;
   --success-border:     #bbf7d0;
@@ -704,9 +725,9 @@
   --sidebar-active: #232D52;
   --part: var(--foreground);
   --budget-1: #4F7BF2;
-  --budget-2: #9B86D9;
-  --budget-3: #FCD116;
-  --budget-4: #FF7A8A;
+  --budget-2: #FA8F45;
+  --budget-3: #4FCFA3;
+  --budget-4: #B85582;
   --success:            #4ADE80;
   --success-bg:         #10251a;
   --success-border:     #1e4030;
@@ -765,9 +786,9 @@
   --sidebar-active: #0B4FD9;
   --part: var(--foreground);
   --budget-1: #0B4FD9;
-  --budget-2: #6F32CF;
-  --budget-3: #A26406;
-  --budget-4: #CE1226;
+  --budget-2: #D95F02;
+  --budget-3: #0E8A63;
+  --budget-4: #8E1F4B;
   --success:            #0B7F42;
   --success-bg:         #EFFEF5;
   --success-border:     #B6FCD5;
@@ -790,6 +811,29 @@
   --sidebar-accent-foreground: #FFFFFF;
   --sidebar-border: rgba(255, 255, 255, 0.16);
   --sidebar-ring: rgba(118, 205, 255, 0.45);
+}
+
+/* Band: the dark surface with light text behind the budget pages' highlight
+   blocks (Home outlook, data standard request, trace key, citizen summary).
+   Light themes use their primary; dark themes their raised secondary surface
+   with the page text colour; BetterGovPH its navy. The text stays legible on
+   every theme. */
+:root {
+  --band: var(--primary);
+  --band-foreground: var(--primary-foreground);
+}
+.theme-system-dark,
+.theme-warm-dark,
+.theme-ocean-dark,
+.theme-forest-dark,
+.theme-rose-dark,
+.theme-egov-dark {
+  --band: var(--secondary);
+  --band-foreground: var(--foreground);
+}
+.theme-bettergov {
+  --band: #062365;
+  --band-foreground: #FFFFFF;
 }
 
 /* Navy sidebar on the light page: the editor sidebar is built from the global
@@ -1302,3 +1346,60 @@
 ::-webkit-scrollbar-corner { background: transparent; }
 /* Firefox */
 * { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--muted-foreground) 35%, transparent) transparent; }
+
+/* ─── A4 stakeholder reports (demonstration mockups) ───────────────────────── */
+/* Examiner brief / citizen one-pager: fixed A4 canvas on screen, clean print. */
+
+.report-page {
+  width: 794px;
+  max-width: 100%;
+  min-height: 1050px;
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: 40px 44px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 30px rgb(0 0 0 / 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  font-size: 12px;
+}
+.report-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+.report-table th {
+  text-align: right;
+  font-weight: 600;
+  padding: 4px 6px;
+  border-bottom: 1.5px solid var(--foreground);
+  font-size: 10px;
+  color: var(--muted-foreground);
+}
+.report-table td {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.report-table tr.report-total td {
+  font-weight: 700;
+  border-top: 1.5px solid var(--foreground);
+  border-bottom: 0;
+  background: var(--muted);
+}
+.report-footnote {
+  font-size: 10px;
+  color: var(--muted-foreground);
+  margin-top: 4px;
+}

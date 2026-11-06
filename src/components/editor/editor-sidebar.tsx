@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -18,8 +18,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
@@ -61,8 +59,8 @@ import { IsspPropertiesDialog } from "./issp-properties-dialog";
 import { DistributeDialog } from "./distribute-dialog";
 import { ConsolidateDialog } from "./consolidate-dialog";
 import { syncPdfStyleFromUrl } from "@/lib/pdf-style";
-import { THEMES, isThemeId, useTheme } from "@/lib/theme";
-import { ThemePreview } from "@/components/shared/theme-preview";
+import { useTheme } from "@/lib/theme";
+import { ThemeMenuItems } from "@/components/theme-menu";
 import { toast } from "sonner";
 
 type ExportState =
@@ -94,35 +92,6 @@ function useIsMobileViewport(): boolean {
   }, []);
 
   return isMobile;
-}
-
-function ThemeMenuItems({ onThemeSelected }: { onThemeSelected?: () => void }) {
-  const { theme, setTheme } = useTheme();
-
-  function handleThemeChange(value: string) {
-    if (!isThemeId(value)) return;
-    setTheme(value);
-    onThemeSelected?.();
-  }
-
-  return (
-    <DropdownMenuRadioGroup value={theme} onValueChange={handleThemeChange}>
-      {THEMES.map((item, index) => (
-        <Fragment key={item.id}>
-          {/* A rule between colour families (the light/dark pair of each), so a
-              ten-item menu still reads as a short list of choices. */}
-          {index > 0 &&
-            item.id.split("-")[0] !== THEMES[index - 1].id.split("-")[0] && (
-              <DropdownMenuSeparator />
-            )}
-          <DropdownMenuRadioItem value={item.id} className="gap-2">
-            <ThemePreview theme={item.id} />
-            {item.name}
-          </DropdownMenuRadioItem>
-        </Fragment>
-      ))}
-    </DropdownMenuRadioGroup>
-  );
 }
 
 const sidebarControlClass =
